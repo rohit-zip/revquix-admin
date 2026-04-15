@@ -41,6 +41,15 @@ export const PATH_CONSTANTS = {
   ADMIN_WALLETS: "/wallets",
   ADMIN_WEBHOOKS: "/webhooks",
 
+  // ── Website Builder Admin ─────────────────────────────────────────────────
+  ADMIN_WEBSITE_TEMPLATES: "/website/templates",
+  ADMIN_WEBSITE_COMPONENTS: "/website/components",
+  ADMIN_WEBSITE_PRICING: "/website/pricing",
+  ADMIN_WEBSITE_WATERMARK: "/website/watermark",
+  ADMIN_WEBSITE_WEBSITES: "/website/websites",
+  ADMIN_WEBSITE_SUBSCRIPTIONS: "/website/subscriptions",
+  ADMIN_WEBSITE_STATS: "/website/stats",
+
   // ── Business Mentor ───────────────────────────────────────────────────────
   BUSINESS_MENTOR_SLOTS: "/business-mentor/slots",
   BUSINESS_MENTOR_BOOKINGS: "/business-mentor/bookings",
