@@ -83,6 +83,7 @@ export default function EditComponentPage({
       setJsonError("")
       updateComponent({
         name,
+        slug: component.slug,
         description,
         category,
         isFree,

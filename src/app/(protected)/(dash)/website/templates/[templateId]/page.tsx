@@ -84,7 +84,7 @@ export default function EditTemplatePage({ params }: { params: Promise<{ templat
             <span>Usage: {template.usageCount} sites</span>
           </div>
           <button
-            onClick={() => updateTemplate({ name, description })}
+            onClick={() => updateTemplate({ name, description, slug: template.slug, categoryId: template.categoryId, templateType: template.templateType })}
             disabled={isUpdating}
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
           >
