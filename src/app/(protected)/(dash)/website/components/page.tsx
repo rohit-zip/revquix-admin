@@ -1,8 +1,10 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { useAdminComponents, useToggleComponent } from "@/features/website/api/website-admin.hooks"
-import { Plus, Loader2, ToggleLeft, ToggleRight, Edit2, Users } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { Plus, Loader2, Edit2, Users } from "lucide-react"
 
 export default function AdminComponentsPage() {
   const { data: components, isLoading } = useAdminComponents()
@@ -54,6 +56,17 @@ export default function AdminComponentsPage() {
 
 function ComponentRow({ component }: { component: { componentId: string; name: string; slug: string; isFree: boolean; priceInrPaise: number; isActive: boolean; usageCount: number } }) {
   const { mutate: toggle, isPending } = useToggleComponent(component.componentId)
+  const [optimisticActive, setOptimisticActive] = useState<boolean | null>(null)
+
+  const displayActive = isPending && optimisticActive !== null ? optimisticActive : (component.isActive ?? false)
+
+  const handleToggle = () => {
+    const next = !displayActive
+    setOptimisticActive(next)
+    toggle(undefined, {
+      onSettled: () => setOptimisticActive(null),
+    })
+  }
 
   return (
     <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-0 px-4 py-3">
@@ -64,9 +77,12 @@ function ComponentRow({ component }: { component: { componentId: string; name: s
         <Users className="h-3.5 w-3.5" /> {component.usageCount}
       </div>
       <div className="px-4 flex items-center gap-2">
-        <button onClick={() => toggle()} disabled={isPending}>
-          {component.isActive ? <ToggleRight className="h-5 w-5 text-green-500" /> : <ToggleLeft className="h-5 w-5 text-muted-foreground" />}
-        </button>
+        <Switch
+          checked={displayActive}
+          onCheckedChange={handleToggle}
+          disabled={isPending}
+          size="sm"
+        />
         <Link href={`/website/components/${component.componentId}`} className="rounded p-1 hover:bg-muted">
           <Edit2 className="h-4 w-4 text-muted-foreground" />
         </Link>

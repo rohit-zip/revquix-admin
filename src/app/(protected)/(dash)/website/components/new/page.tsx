@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useCreateComponent } from "@/features/website/api/website-admin.hooks"
 import type { CreateComponentRequest, ComponentCategory } from "@/features/website/api/website-admin.types"
+import { Switch } from "@/components/ui/switch"
 import { Loader2, AlertCircle } from "lucide-react"
 
 const CATEGORIES: ComponentCategory[] = ["HERO", "NAVIGATION", "CONTENT", "FORM", "FOOTER", "DECORATION", "ADVANCED"]
@@ -80,9 +81,10 @@ export default function NewComponentPage() {
         <div className="rounded-xl border bg-card p-6 space-y-4">
           <h3 className="font-semibold">Pricing</h3>
           <div className="flex items-center gap-3 mb-2">
-            <button type="button" onClick={() => setForm({ ...form, isFree: !form.isFree })} className={`relative h-6 w-11 rounded-full transition-colors ${form.isFree ? "bg-primary" : "bg-gray-200 dark:bg-gray-700"}`}>
-              <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform shadow-sm ${form.isFree ? "translate-x-5" : ""}`} />
-            </button>
+            <Switch
+              checked={form.isFree}
+              onCheckedChange={(checked) => setForm({ ...form, isFree: checked })}
+            />
             <span className="text-sm">Free component</span>
           </div>
           {!form.isFree && (
