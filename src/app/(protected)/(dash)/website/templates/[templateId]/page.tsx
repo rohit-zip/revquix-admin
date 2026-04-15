@@ -1,13 +1,12 @@
 "use client"
 
 import { use, useState } from "react"
-import { useRouter } from "next/navigation"
 import { useAdminTemplate, useUpdateTemplate, useUpdateTemplatePricing, useToggleTemplate } from "@/features/website/api/website-admin.hooks"
-import { Save, Loader2, ToggleLeft, ToggleRight } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { Save, Loader2 } from "lucide-react"
 
 export default function EditTemplatePage({ params }: { params: Promise<{ templateId: string }> }) {
   const { templateId } = use(params)
-  const router = useRouter()
   const { data: template, isLoading } = useAdminTemplate(templateId)
   const { mutate: updateTemplate, isPending: isUpdating } = useUpdateTemplate(templateId)
   const { mutate: updatePricing, isPending: isUpdatingPricing } = useUpdateTemplatePricing(templateId)
@@ -18,6 +17,8 @@ export default function EditTemplatePage({ params }: { params: Promise<{ templat
   const [priceUsd, setPriceUsd] = useState(0)
   const [yearlyDiscount, setYearlyDiscount] = useState(20)
   const [initialized, setInitialized] = useState(false)
+  // null = use server value; boolean = optimistic value while mutation is in-flight
+  const [optimisticActive, setOptimisticActive] = useState<boolean | null>(null)
 
   if (template && !initialized) {
     setName(template.name)
@@ -28,6 +29,17 @@ export default function EditTemplatePage({ params }: { params: Promise<{ templat
     setInitialized(true)
   }
 
+  // While toggling show the optimistic flip; otherwise always reflect the server value
+  const displayActive = isToggling && optimisticActive !== null ? optimisticActive : (template?.isActive ?? false)
+
+  const handleToggle = () => {
+    const next = !displayActive
+    setOptimisticActive(next)
+    toggle(undefined, {
+      onSettled: () => setOptimisticActive(null),
+    })
+  }
+
   if (isLoading) return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
   if (!template) return <div className="py-20 text-center">Template not found</div>
 
@@ -35,10 +47,22 @@ export default function EditTemplatePage({ params }: { params: Promise<{ templat
     <div className="mx-auto max-w-2xl">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Edit Template: {template.name}</h1>
-        <button onClick={() => toggle()} disabled={isToggling} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-muted">
-          {template.isActive ? <ToggleRight className="h-5 w-5 text-green-500" /> : <ToggleLeft className="h-5 w-5" />}
-          {template.isActive ? "Active" : "Inactive"}
-        </button>
+        <div className="inline-flex items-center gap-2.5 rounded-lg border px-3 py-2 text-sm">
+          <Switch
+            checked={displayActive}
+            onCheckedChange={handleToggle}
+            disabled={isToggling}
+          />
+          {isToggling ? (
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…
+            </span>
+          ) : (
+            <span className={displayActive ? "text-green-600 font-medium" : "text-muted-foreground"}>
+              {displayActive ? "Active" : "Inactive"}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="space-y-6">

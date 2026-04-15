@@ -1,8 +1,11 @@
 "use client"
 
 import Link from "next/link"
+import { useState } from "react"
 import { useAdminTemplates, useToggleTemplate } from "@/features/website/api/website-admin.hooks"
-import { Plus, Loader2, ToggleLeft, ToggleRight, Edit2, Users } from "lucide-react"
+import type { AdminTemplateResponse } from "@/features/website/api/website-admin.types"
+import { Plus, Loader2, Edit2, Users } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
 
 export default function AdminTemplatesPage() {
   const { data: templates, isLoading } = useAdminTemplates()
@@ -39,8 +42,16 @@ export default function AdminTemplatesPage() {
   )
 }
 
-function TemplateRow({ template }: { template: { templateId: string; name: string; slug: string; templateType: string; isFree: boolean; priceInrPaise: number; isActive: boolean; usageCount: number; thumbnailUrl: string | null } }) {
+function TemplateRow({ template }: { template: AdminTemplateResponse }) {
   const { mutate: toggle, isPending } = useToggleTemplate(template.templateId)
+  const [optimisticActive, setOptimisticActive] = useState(template.isActive)
+
+  const handleToggle = () => {
+    setOptimisticActive((prev) => !prev)
+    toggle(undefined, {
+      onError: () => setOptimisticActive(template.isActive),
+    })
+  }
 
   return (
     <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-0 px-4 py-3">
@@ -62,9 +73,14 @@ function TemplateRow({ template }: { template: { templateId: string; name: strin
         {template.usageCount}
       </div>
       <div className="px-4 flex items-center gap-2">
-        <button onClick={() => toggle()} disabled={isPending} className="text-muted-foreground hover:text-foreground">
-          {template.isActive ? <ToggleRight className="h-5 w-5 text-green-500" /> : <ToggleLeft className="h-5 w-5" />}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <Switch
+            checked={optimisticActive}
+            onCheckedChange={handleToggle}
+            disabled={isPending}
+          />
+          {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+        </div>
         <Link href={`/website/templates/${template.templateId}`} className="rounded p-1 hover:bg-muted">
           <Edit2 className="h-4 w-4 text-muted-foreground" />
         </Link>
