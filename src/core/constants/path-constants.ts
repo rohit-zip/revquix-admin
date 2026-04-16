@@ -32,6 +32,7 @@ export const PATH_CONSTANTS = {
   ADMIN_MENTOR_APPLICATIONS: "/mentor-applications",
   ADMIN_MENTOR_APPLICATION_DETAIL: "/mentor-applications",
   ADMIN_MOCK_BOOKINGS: "/mock-bookings",
+  ADMIN_HOURLY_BOOKINGS: "/hourly-bookings",
   ADMIN_COUPONS: "/coupons",
   ADMIN_MENTOR_REPORTS: "/mentor-reports",
 
