@@ -24,9 +24,12 @@ import {
   Calendar,
   CreditCard,
   FileText,
+  Globe,
   Key,
   LayoutDashboard,
+  Link2,
   type LucideIcon,
+  Package,
   Settings,
   Star,
   Tag,
@@ -70,6 +73,7 @@ export const PERMISSIONS = {
   PERM_MANAGE_OWN_PROFESSIONAL_SLOTS: "PERM_MANAGE_OWN_PROFESSIONAL_SLOTS",
   PERM_VIEW_OWN_MOCK_BOOKINGS: "PERM_VIEW_OWN_MOCK_BOOKINGS",
   PERM_VIEW_ALL_MOCK_BOOKINGS: "PERM_VIEW_ALL_MOCK_BOOKINGS",
+  PERM_VIEW_ALL_HOURLY_BOOKINGS: "PERM_VIEW_ALL_HOURLY_BOOKINGS",
   PERM_CREATE_MOCK_BOOKING: "PERM_CREATE_MOCK_BOOKING",
   PERM_MANAGE_OWN_COUPONS: "PERM_MANAGE_OWN_COUPONS",
   PERM_VIEW_ALL_COUPONS: "PERM_VIEW_ALL_COUPONS",
@@ -79,6 +83,15 @@ export const PERMISSIONS = {
   // ── Payments ───────────────────────────────────────────────────────────────
   PERM_VIEW_ALL_PAYMENTS: "PERM_VIEW_ALL_PAYMENTS",
   PERM_MANAGE_PAYOUTS: "PERM_MANAGE_PAYOUTS",
+
+  // ── Website Builder ────────────────────────────────────────────────────────
+  PERM_MANAGE_TEMPLATES: "PERM_MANAGE_TEMPLATES",
+  PERM_MANAGE_COMPONENTS: "PERM_MANAGE_COMPONENTS",
+  PERM_MANAGE_PLATFORM_PRICING: "PERM_MANAGE_PLATFORM_PRICING",
+  PERM_MANAGE_WATERMARK_CONFIG: "PERM_MANAGE_WATERMARK_CONFIG",
+  PERM_VIEW_ALL_WEBSITES: "PERM_VIEW_ALL_WEBSITES",
+  PERM_MANAGE_ALL_WEBSITES: "PERM_MANAGE_ALL_WEBSITES",
+  PERM_VIEW_ALL_SUBSCRIPTIONS: "PERM_VIEW_ALL_SUBSCRIPTIONS",
 } as const
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]
@@ -257,6 +270,14 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         },
       },
       {
+        Icon: Calendar,
+        label: "Hourly Sessions",
+        href: PATH_CONSTANTS.ADMIN_HOURLY_BOOKINGS,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_ALL_HOURLY_BOOKINGS],
+        },
+      },
+      {
         Icon: Tag,
         label: "All Coupons",
         href: PATH_CONSTANTS.ADMIN_COUPONS,
@@ -271,6 +292,67 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         access: {
           anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_PROFESSIONAL_MENTORS],
         },
+      },
+    ],
+  },
+
+  // ── Website Builder ───────────────────────────────────────────────────────
+  {
+    title: "Website Builder",
+    access: {
+      anyOf: [
+        PERMISSIONS.ROLE_ADMIN,
+        PERMISSIONS.PERM_MANAGE_TEMPLATES,
+        PERMISSIONS.PERM_MANAGE_COMPONENTS,
+        PERMISSIONS.PERM_VIEW_ALL_WEBSITES,
+        PERMISSIONS.PERM_MANAGE_ALL_WEBSITES,
+        PERMISSIONS.PERM_VIEW_ALL_SUBSCRIPTIONS,
+        PERMISSIONS.PERM_MANAGE_PLATFORM_PRICING,
+        PERMISSIONS.PERM_MANAGE_WATERMARK_CONFIG,
+      ],
+    },
+    items: [
+      {
+        Icon: Globe,
+        label: "Templates",
+        href: PATH_CONSTANTS.ADMIN_WEBSITE_TEMPLATES,
+        access: { anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_TEMPLATES] },
+      },
+      {
+        Icon: Package,
+        label: "Components",
+        href: PATH_CONSTANTS.ADMIN_WEBSITE_COMPONENTS,
+        access: { anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_COMPONENTS] },
+      },
+      {
+        Icon: Tag,
+        label: "Pricing",
+        href: PATH_CONSTANTS.ADMIN_WEBSITE_PRICING,
+        access: { anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_PLATFORM_PRICING] },
+      },
+      {
+        Icon: Settings,
+        label: "Watermark",
+        href: PATH_CONSTANTS.ADMIN_WEBSITE_WATERMARK,
+        access: { anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_WATERMARK_CONFIG] },
+      },
+      {
+        Icon: Link2,
+        label: "All Websites",
+        href: PATH_CONSTANTS.ADMIN_WEBSITE_WEBSITES,
+        access: { anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_ALL_WEBSITES] },
+      },
+      {
+        Icon: CreditCard,
+        label: "Subscriptions",
+        href: PATH_CONSTANTS.ADMIN_WEBSITE_SUBSCRIPTIONS,
+        access: { anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_ALL_SUBSCRIPTIONS] },
+      },
+      {
+        Icon: BarChart3,
+        label: "Platform Stats",
+        href: PATH_CONSTANTS.ADMIN_WEBSITE_STATS,
+        access: { allOf: [PERMISSIONS.ROLE_ADMIN] },
       },
     ],
   },

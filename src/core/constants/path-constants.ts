@@ -32,6 +32,7 @@ export const PATH_CONSTANTS = {
   ADMIN_MENTOR_APPLICATIONS: "/mentor-applications",
   ADMIN_MENTOR_APPLICATION_DETAIL: "/mentor-applications",
   ADMIN_MOCK_BOOKINGS: "/mock-bookings",
+  ADMIN_HOURLY_BOOKINGS: "/hourly-bookings",
   ADMIN_COUPONS: "/coupons",
   ADMIN_MENTOR_REPORTS: "/mentor-reports",
 
@@ -40,6 +41,15 @@ export const PATH_CONSTANTS = {
   ADMIN_PAYOUTS: "/payouts",
   ADMIN_WALLETS: "/wallets",
   ADMIN_WEBHOOKS: "/webhooks",
+
+  // ── Website Builder Admin ─────────────────────────────────────────────────
+  ADMIN_WEBSITE_TEMPLATES: "/website/templates",
+  ADMIN_WEBSITE_COMPONENTS: "/website/components",
+  ADMIN_WEBSITE_PRICING: "/website/pricing",
+  ADMIN_WEBSITE_WATERMARK: "/website/watermark",
+  ADMIN_WEBSITE_WEBSITES: "/website/websites",
+  ADMIN_WEBSITE_SUBSCRIPTIONS: "/website/subscriptions",
+  ADMIN_WEBSITE_STATS: "/website/stats",
 
   // ── Business Mentor ───────────────────────────────────────────────────────
   BUSINESS_MENTOR_SLOTS: "/business-mentor/slots",
