@@ -30,6 +30,9 @@ export type PayoutStatus = (typeof PAYOUT_STATUS)[keyof typeof PAYOUT_STATUS]
 export const CURRENCY_CODE = { INR: "INR", USD: "USD" } as const
 export type CurrencyCode = (typeof CURRENCY_CODE)[keyof typeof CURRENCY_CODE]
 
+export const MEETING_PROVIDER = { GOOGLE_MEET: "GOOGLE_MEET", MANUAL_GOOGLE_MEET: "MANUAL_GOOGLE_MEET" } as const
+export type MeetingProvider = (typeof MEETING_PROVIDER)[keyof typeof MEETING_PROVIDER]
+
 // ─── Category / Skill ─────────────────────────────────────────────────────────
 
 export interface CategoryDto {
