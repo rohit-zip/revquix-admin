@@ -626,7 +626,7 @@ export default function AdminApplicationDetailView({
           <DialogHeader>
             <DialogTitle>Reject Application</DialogTitle>
             <DialogDescription>
-              Provide a reason for rejection. The applicant can reapply after 24 hours.
+              Provide a reason for rejection. The applicant can reapply immediately.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">

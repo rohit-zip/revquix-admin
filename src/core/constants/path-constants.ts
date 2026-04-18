@@ -35,6 +35,7 @@ export const PATH_CONSTANTS = {
   ADMIN_HOURLY_BOOKINGS: "/hourly-bookings",
   ADMIN_COUPONS: "/coupons",
   ADMIN_MENTOR_REPORTS: "/mentor-reports",
+  ADMIN_SESSION_DISPUTES: "/session-disputes",
 
   // ── Resume Review Admin ──────────────────────────────────────────────────
   ADMIN_RESUME_REVIEWS: "/resume-reviews",

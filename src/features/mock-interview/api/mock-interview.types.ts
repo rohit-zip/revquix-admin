@@ -21,6 +21,8 @@ export const MOCK_INTERVIEW_BOOKING_STATUS = {
   NO_SHOW_MENTOR: "NO_SHOW_MENTOR",
   PAYMENT_FAILED: "PAYMENT_FAILED",
   EXPIRED: "EXPIRED",
+  PENDING_CONFIRMATION: "PENDING_CONFIRMATION",
+  DISPUTED: "DISPUTED",
 } as const
 
 export type MockInterviewBookingStatus =
@@ -38,6 +40,8 @@ export const BOOKING_STATUS_OPTIONS: { label: string; value: MockInterviewBookin
   { label: "No Show (Mentor)", value: "NO_SHOW_MENTOR" },
   { label: "Payment Failed", value: "PAYMENT_FAILED" },
   { label: "Expired", value: "EXPIRED" },
+  { label: "Awaiting Confirmation", value: "PENDING_CONFIRMATION" },
+  { label: "Under Dispute", value: "DISPUTED" },
 ]
 
 export const EXPERIENCE_LEVEL = {

@@ -166,6 +166,8 @@ export interface CreateCouponRequest {
   validUntil: string
   applicableContexts?: string[]
   isMentorSpecific?: boolean
+  /** Optional list of email addresses this coupon is restricted to. */
+  targetedEmails?: string[]
 }
 
 export interface CouponValidationResponse {

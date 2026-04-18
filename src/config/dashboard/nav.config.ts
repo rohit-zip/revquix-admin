@@ -299,6 +299,14 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
           anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_PROFESSIONAL_MENTORS],
         },
       },
+      {
+        Icon: Bell,
+        label: "Session Disputes",
+        href: PATH_CONSTANTS.ADMIN_SESSION_DISPUTES,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN],
+        },
+      },
     ],
   },
 
