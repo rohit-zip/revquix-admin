@@ -18,6 +18,7 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock,
+  Coins,
   ExternalLink,
   FileText,
   Globe,
@@ -538,6 +539,65 @@ export default function AdminApplicationDetailView({
                   <DetailRow icon={User} label="Reviewed By" value={app.reviewedByName} />
                 </>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Proposed Pricing */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Coins className="h-4 w-4 text-muted-foreground" />
+                Proposed Pricing
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                  Mock Interview
+                </p>
+                <div className="flex gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">INR</p>
+                    <p className="text-sm font-medium">
+                      {app.proposedPriceInrPaise != null
+                        ? `₹${(app.proposedPriceInrPaise / 100).toLocaleString("en-IN")}`
+                        : <span className="text-muted-foreground italic text-xs">Not provided</span>}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">USD</p>
+                    <p className="text-sm font-medium">
+                      {app.proposedPriceUsdCents != null
+                        ? `$${(app.proposedPriceUsdCents / 100).toFixed(2)}`
+                        : <span className="text-muted-foreground italic text-xs">Not provided</span>}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <Separator />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                  Hourly Session
+                </p>
+                <div className="flex gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">INR</p>
+                    <p className="text-sm font-medium">
+                      {app.proposedHourlyPriceInrPaise != null
+                        ? `₹${(app.proposedHourlyPriceInrPaise / 100).toLocaleString("en-IN")}`
+                        : <span className="text-muted-foreground italic text-xs">Not provided</span>}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">USD</p>
+                    <p className="text-sm font-medium">
+                      {app.proposedHourlyPriceUsdCents != null
+                        ? `$${(app.proposedHourlyPriceUsdCents / 100).toFixed(2)}`
+                        : <span className="text-muted-foreground italic text-xs">Not provided</span>}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
 

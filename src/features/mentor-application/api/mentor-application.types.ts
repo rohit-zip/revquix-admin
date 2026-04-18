@@ -73,6 +73,10 @@ export interface MentorApplicationResponse {
   proposedPriceInrPaise: number | null
   /** Proposed mock-interview price in USD cents. Null for legacy applications. */
   proposedPriceUsdCents: number | null
+  /** Proposed hourly session price in INR paise. Null if not provided. */
+  proposedHourlyPriceInrPaise: number | null
+  /** Proposed hourly session price in USD cents. Null if not provided. */
+  proposedHourlyPriceUsdCents: number | null
 }
 
 // ─── Limits ───────────────────────────────────────────────────────────────────
