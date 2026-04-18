@@ -9,7 +9,7 @@
 
 import React, { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Check, ChevronDown, DollarSign, FileText, IndianRupee, Loader2, Tag, Upload } from "lucide-react"
+import { Check, ChevronDown, FileText, Loader2, Tag, Upload } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -193,12 +193,6 @@ export default function MentorApplicationForm() {
   const maxCategories = limits?.maxCategories ?? 6
   const maxSkills = limits?.maxSkills ?? 40
 
-  // Price limits (in paise/cents from server; display as ₹/$ by dividing by 100)
-  const minInrRupees = (limits?.minMockInterviewPriceInrPaise ?? 50000) / 100
-  const maxInrRupees = (limits?.maxMockInterviewPriceInrPaise ?? 2000000) / 100
-  const minUsdDollars = (limits?.minMockInterviewPriceUsdCents ?? 500) / 100
-  const maxUsdDollars = (limits?.maxMockInterviewPriceUsdCents ?? 25000) / 100
-
   // ── Pre-populate from current user's categories/skills ────────────
   const currentUser = useAppSelector((state) => state.userProfile.currentUser)
   const initialCats = React.useMemo(
@@ -250,8 +244,6 @@ export default function MentorApplicationForm() {
     skillIds: [],
     portfolioUrl: "",
     whyMentor: "",
-    proposedPriceInrPaise: 0,
-    proposedPriceUsdCents: 0,
   })
 
   const applyMutation = useApplyMentor(() => {
@@ -295,19 +287,10 @@ export default function MentorApplicationForm() {
     })
   }
 
-  const priceInrPaise = form.proposedPriceInrPaise ?? 0
-  const priceUsdCents = form.proposedPriceUsdCents ?? 0
-  const isPriceValid =
-    priceInrPaise >= (limits?.minMockInterviewPriceInrPaise ?? 50000) &&
-    priceInrPaise <= (limits?.maxMockInterviewPriceInrPaise ?? 2000000) &&
-    priceUsdCents >= (limits?.minMockInterviewPriceUsdCents ?? 500) &&
-    priceUsdCents <= (limits?.maxMockInterviewPriceUsdCents ?? 25000)
-
   const canSubmit =
     !!resumeFile &&
     selectedCategoryIds.length > 0 &&
     selectedSkillIds.length > 0 &&
-    isPriceValid &&
     !applyMutation.isPending
 
   return (
@@ -473,90 +456,6 @@ export default function MentorApplicationForm() {
             {selectedCategoryIds.length > 0 && selectedSkillIds.length === 0 && (
               <p className="text-xs text-destructive">
                 Please select at least one skill from your chosen categories.
-              </p>
-            )}
-          </div>
-
-          {/* ── Mock-Interview Pricing ────────────────────────────────────── */}
-          <div className="space-y-3">
-            <div>
-              <Label>Mock-Interview Session Pricing *</Label>
-              <p className="text-xs text-muted-foreground mt-1">
-                Set the price you&apos;d like to charge per mock-interview session. Admins will review this during application evaluation.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {/* INR Price */}
-              <div className="space-y-2">
-                <Label htmlFor="priceInr">
-                  Price (INR ₹) *
-                  <span className="ml-1 text-xs text-muted-foreground font-normal">
-                    ₹{minInrRupees.toLocaleString("en-IN")} – ₹{maxInrRupees.toLocaleString("en-IN")}
-                  </span>
-                </Label>
-                <div className="relative">
-                  <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    id="priceInr"
-                    type="number"
-                    min={minInrRupees}
-                    max={maxInrRupees}
-                    step={1}
-                    required
-                    placeholder={`e.g. ${Math.round((minInrRupees + maxInrRupees) / 2 / 100) * 100}`}
-                    className="pl-9"
-                    value={form.proposedPriceInrPaise ? form.proposedPriceInrPaise / 100 : ""}
-                    onChange={(e) => {
-                      const rupees = Number(e.target.value)
-                      updateField("proposedPriceInrPaise", isNaN(rupees) ? 0 : Math.round(rupees * 100))
-                    }}
-                  />
-                </div>
-                {priceInrPaise > 0 && (priceInrPaise < (limits?.minMockInterviewPriceInrPaise ?? 50000) || priceInrPaise > (limits?.maxMockInterviewPriceInrPaise ?? 2000000)) && (
-                  <p className="text-xs text-destructive">
-                    Must be between ₹{minInrRupees.toLocaleString("en-IN")} and ₹{maxInrRupees.toLocaleString("en-IN")}
-                  </p>
-                )}
-              </div>
-
-              {/* USD Price */}
-              <div className="space-y-2">
-                <Label htmlFor="priceUsd">
-                  Price (USD $) *
-                  <span className="ml-1 text-xs text-muted-foreground font-normal">
-                    ${minUsdDollars} – ${maxUsdDollars}
-                  </span>
-                </Label>
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    id="priceUsd"
-                    type="number"
-                    min={minUsdDollars}
-                    max={maxUsdDollars}
-                    step={1}
-                    required
-                    placeholder={`e.g. ${Math.round((minUsdDollars + maxUsdDollars) / 2 / 5) * 5}`}
-                    className="pl-9"
-                    value={form.proposedPriceUsdCents ? form.proposedPriceUsdCents / 100 : ""}
-                    onChange={(e) => {
-                      const dollars = Number(e.target.value)
-                      updateField("proposedPriceUsdCents", isNaN(dollars) ? 0 : Math.round(dollars * 100))
-                    }}
-                  />
-                </div>
-                {priceUsdCents > 0 && (priceUsdCents < (limits?.minMockInterviewPriceUsdCents ?? 500) || priceUsdCents > (limits?.maxMockInterviewPriceUsdCents ?? 25000)) && (
-                  <p className="text-xs text-destructive">
-                    Must be between ${minUsdDollars} and ${maxUsdDollars}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {priceInrPaise > 0 && priceUsdCents > 0 && isPriceValid && (
-              <p className="text-xs text-muted-foreground">
-                Proposed: ₹{(priceInrPaise / 100).toLocaleString("en-IN")} / ${(priceUsdCents / 100).toFixed(2)} per session
               </p>
             )}
           </div>
