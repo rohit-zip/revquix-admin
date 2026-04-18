@@ -281,10 +281,22 @@ export default function MentorDetailView({
 
                 {/* Price + CTA */}
                 <div className="flex flex-col items-end gap-2">
-                  <p className="text-2xl font-bold">
-                    {formatPrice(mentor.priceInrPaise, mentor.priceUsdCents)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">per session</p>
+                  {mentor.priceInrPaise != null && (
+                    <div className="text-right">
+                      <p className="text-2xl font-bold">
+                        {formatPrice(mentor.priceInrPaise, mentor.priceUsdCents)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">per session (Mock Interview)</p>
+                    </div>
+                  )}
+                  {mentor.hourlySessionPriceInrPaise != null && (
+                    <div className="text-right">
+                      <p className="text-xl font-bold">
+                        {formatPrice(mentor.hourlySessionPriceInrPaise, mentor.hourlySessionPriceUsdCents)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">per hour (Hourly Session)</p>
+                    </div>
+                  )}
                   {!mentor.isAcceptingBookings && (
                     <Badge variant="secondary" className="text-xs">
                       Not accepting bookings
@@ -306,7 +318,7 @@ export default function MentorDetailView({
                 </div>
                 <div className="flex items-center gap-1.5 text-muted-foreground">
                   <Clock className="h-4 w-4" />
-                  <span>{mentor.sessionDurationMinutes} min sessions</span>
+                  <span>60 min sessions</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-muted-foreground">
                   <Briefcase className="h-4 w-4" />
@@ -616,7 +628,7 @@ export default function MentorDetailView({
                   <p className="text-2xl font-bold">
                     {formatPrice(mentor.priceInrPaise, mentor.priceUsdCents)}
                   </p>
-                  <p className="text-xs text-muted-foreground">per {mentor.sessionDurationMinutes}-min session</p>
+                  <p className="text-xs text-muted-foreground">per session (Mock Interview)</p>
                 </div>
                 {!slotsLoading && availableDatesSet.size === 0 ? (
                   <>

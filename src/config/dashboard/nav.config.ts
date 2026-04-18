@@ -242,9 +242,9 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
     ],
   },
 
-  // ── Mock Interview Admin ──────────────────────────────────────────────────
+  // ── Professional Mentor Admin ──────────────────────────────────────────────
   {
-    title: "Mock Interview",
+    title: "Professional Mentor",
     access: {
       anyOf: [
         PERMISSIONS.ROLE_ADMIN,

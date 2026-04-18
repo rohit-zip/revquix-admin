@@ -64,7 +64,8 @@ export interface MentorProfileResponse {
   currentRole: string | null
   priceInrPaise: number | null
   priceUsdCents: number | null
-  sessionDurationMinutes: number
+  hourlySessionPriceInrPaise: number | null
+  hourlySessionPriceUsdCents: number | null
   averageRating: number
   totalSessions: number
   totalReviews: number
@@ -84,7 +85,6 @@ export interface UpdateMentorProfileRequest {
   currentCompany?: string
   currentRole?: string
   yearsOfExperience?: number
-  sessionDurationMinutes?: number
   categoryIds?: string[]
   skillIds?: string[]
 }
