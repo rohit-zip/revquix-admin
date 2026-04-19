@@ -107,6 +107,24 @@ export interface AdminUpdateServiceFlagsRequest {
   isAcceptingHourlySessions: boolean
 }
 
+// ─── Mentor Rating ────────────────────────────────────────────────────────────
+
+export type ProfessionalSessionType = "MOCK_INTERVIEW" | "HOURLY_SESSION"
+
+export interface MentorRatingResponse {
+  ratingId: string
+  mentorProfileId: string
+  mentorName: string
+  sessionId: string
+  sessionType: ProfessionalSessionType
+  userName: string
+  userEmail: string
+  rating: number
+  comment: string
+  submittedAt: string
+  createdAt: string
+}
+
 // ─── Professional Mentor Slots ────────────────────────────────────────────────
 
 export interface ProfessionalSlotResponse {

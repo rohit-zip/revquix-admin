@@ -16,6 +16,7 @@ import type {
   CreateCouponRequest,
   MentorPayoutResponse,
   MentorProfileResponse,
+  MentorRatingResponse,
   OpenSlotsRequest,
   ProfessionalSlotResponse,
   SlotStatsResponse,
@@ -228,4 +229,16 @@ export const searchPayouts = (
       `${PAYOUTS}/admin/search?page=${params.page}&size=${params.size}`,
       request,
     )
+    .then((r) => r.data)
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MENTOR RATINGS (Admin)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** GET /admin/mentor-ratings/{mentorProfileId} — All ratings for a mentor (admin only) */
+export const getAdminMentorRatings = (
+  mentorProfileId: string,
+): Promise<MentorRatingResponse[]> =>
+  apiClient
+    .get<MentorRatingResponse[]>(`/admin/mentor-ratings/${mentorProfileId}`)
     .then((r) => r.data)

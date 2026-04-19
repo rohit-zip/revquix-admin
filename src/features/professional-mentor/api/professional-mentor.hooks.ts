@@ -28,6 +28,7 @@ import {
   getMentorSlots,
   getMyCoupons,
   getMyMentorProfile,
+  getAdminMentorRatings,
   getMyPayouts,
   getMyProfessionalSlots,
   getPayoutByBooking,
@@ -342,6 +343,18 @@ export function useCompletePayout(onSuccess?: () => void) {
       onSuccess?.()
     },
     onError: (error: ApiError | NetworkError) => showErrorToast(error),
+  })
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MENTOR RATINGS (Admin)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function useAdminMentorRatings(mentorProfileId: string | undefined) {
+  return useQuery({
+    queryKey: ["admin", "mentor-ratings", mentorProfileId],
+    queryFn: () => getAdminMentorRatings(mentorProfileId!),
+    enabled: !!mentorProfileId,
   })
 }
 

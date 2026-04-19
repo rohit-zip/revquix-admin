@@ -7,9 +7,10 @@
 "use client"
 
 import React, { useEffect, useRef, useState } from "react"
-import { FileText, Loader2, Save, Trash2, Upload } from "lucide-react"
+import { FileText, Loader2, MessageSquare, Save, Star, Trash2, Upload } from "lucide-react"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -24,6 +25,7 @@ import {
   useToggleAvailability,
   useUploadMentorResume,
   useDeleteMentorResume,
+  useAdminMentorRatings,
 } from "./api/professional-mentor.hooks"
 import type { UpdateMentorProfileRequest, UpdatePricingRequest } from "./api/professional-mentor.types"
 
@@ -34,6 +36,7 @@ export default function MentorProfileEditor() {
   const toggleMutation = useToggleAvailability()
   const uploadResumeMutation = useUploadMentorResume()
   const deleteResumeMutation = useDeleteMentorResume()
+  const { data: ratings } = useAdminMentorRatings(profile?.mentorProfileId)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [profileForm, setProfileForm] = useState<UpdateMentorProfileRequest>({})
@@ -313,6 +316,54 @@ export default function MentorProfileEditor() {
               <p className="text-xs text-muted-foreground">Reviews</p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Ratings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            User Ratings
+          </CardTitle>
+          <CardDescription>All ratings submitted by users for your sessions.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!ratings || ratings.length === 0 ? (
+            <p className="text-sm text-muted-foreground italic">No ratings submitted yet.</p>
+          ) : (
+            <div className="space-y-4">
+              {ratings.map((r) => (
+                <div key={r.ratingId} className="rounded-lg border p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">{r.userName}</p>
+                      <p className="text-xs text-muted-foreground">{r.userEmail}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <div className="flex gap-0.5">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`h-3.5 w-3.5 ${star <= r.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}`}
+                          />
+                        ))}
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        {r.sessionType === "MOCK_INTERVIEW" ? "Mock Interview" : "Hourly Session"}
+                      </Badge>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{r.comment}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(r.submittedAt).toLocaleDateString("en-IN", {
+                      day: "numeric", month: "short", year: "numeric",
+                    })}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
