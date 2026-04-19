@@ -306,7 +306,7 @@ function CompleteMeetingSection({ booking }: { booking: MockInterviewBookingResp
   const [forceCompleteDialogOpen, setForceCompleteDialogOpen] = useState(false)
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false)
 
-  if (booking.status !== "CONFIRMED" || !booking.sessionId) return null
+  if (!["CONFIRMED", "IN_PROGRESS"].includes(booking.status) || !booking.sessionId) return null
   if (!isAdmin && !isMentor) return null
 
   async function handleForceComplete() {
