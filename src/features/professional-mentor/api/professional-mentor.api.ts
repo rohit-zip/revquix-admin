@@ -8,6 +8,7 @@
 import { apiClient } from "@/lib/axios"
 import type { GenericFilterRequest, GenericFilterResponse, PaginationParams } from "@/core/filters/filter.types"
 import type {
+  AdminUpdateServiceFlagsRequest,
   ApplyCouponRequest,
   BulkCancelSlotsRequest,
   CouponResponse,
@@ -42,6 +43,24 @@ export const updatePricing = (data: UpdatePricingRequest): Promise<MentorProfile
 
 export const toggleAvailability = (): Promise<MentorProfileResponse> =>
   apiClient.put<MentorProfileResponse>(`${PROFILE}/toggle-availability`).then((r) => r.data)
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ADMIN — PER-MENTOR OVERRIDES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ADMIN_PROFILE = "/professional-mentor/admin"
+
+/**
+ * Admin override: set per-service availability flags for any mentor.
+ * PUT /professional-mentor/admin/{mentorProfileId}/service-flags
+ */
+export const adminUpdateServiceFlags = (
+  mentorProfileId: string,
+  data: AdminUpdateServiceFlagsRequest,
+): Promise<MentorProfileResponse> =>
+  apiClient
+    .put<MentorProfileResponse>(`${ADMIN_PROFILE}/${mentorProfileId}/service-flags`, data)
+    .then((r) => r.data)
 
 export const uploadMentorResume = (file: File): Promise<MentorProfileResponse> => {
   const fd = new FormData()

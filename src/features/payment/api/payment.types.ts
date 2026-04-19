@@ -93,6 +93,10 @@ export interface AdminPaymentSearchResponse {
 
 // ─── Razorpay ─────────────────────────────────────────────────────────────────
 
+export interface RazorpayCheckoutInstrument {
+  method: "card" | "upi" | "netbanking" | "wallet" | "emi" | "paylater"
+}
+
 export interface RazorpayOptions {
   key: string
   amount: number
@@ -111,6 +115,18 @@ export interface RazorpayOptions {
   }
   theme?: {
     color?: string
+  }
+  config?: {
+    display?: {
+      blocks?: Record<string, {
+        name: string
+        instruments: RazorpayCheckoutInstrument[]
+      }>
+      sequence?: string[]
+      preferences?: {
+        show_default_blocks?: boolean
+      }
+    }
   }
 }
 

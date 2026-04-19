@@ -281,7 +281,7 @@ export default function MentorDetailView({
 
                 {/* Price + CTA */}
                 <div className="flex flex-col items-end gap-2">
-                  {mentor.priceInrPaise != null && (
+                  {mentor.priceInrPaise != null && mentor.isAcceptingMockInterviews && (
                     <div className="text-right">
                       <p className="text-2xl font-bold">
                         {formatPrice(mentor.priceInrPaise, mentor.priceUsdCents)}
@@ -289,7 +289,7 @@ export default function MentorDetailView({
                       <p className="text-xs text-muted-foreground">per session (Mock Interview)</p>
                     </div>
                   )}
-                  {mentor.hourlySessionPriceInrPaise != null && (
+                  {mentor.hourlySessionPriceInrPaise != null && mentor.isAcceptingHourlySessions && (
                     <div className="text-right">
                       <p className="text-xl font-bold">
                         {formatPrice(mentor.hourlySessionPriceInrPaise, mentor.hourlySessionPriceUsdCents)}

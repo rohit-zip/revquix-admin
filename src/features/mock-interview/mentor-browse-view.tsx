@@ -225,22 +225,22 @@ function MentorCard({ mentor }: { mentor: MentorProfileResponse }) {
           )}
 
           {/* Service badges */}
-          {(mentor.priceInrPaise != null || mentor.hourlySessionPriceInrPaise != null) && (
+          {(mentor.priceInrPaise != null && mentor.isAcceptingMockInterviews) || (mentor.hourlySessionPriceInrPaise != null && mentor.isAcceptingHourlySessions) ? (
             <div className="mt-2 flex flex-wrap gap-1">
-              {mentor.priceInrPaise != null && (
+              {mentor.priceInrPaise != null && mentor.isAcceptingMockInterviews && (
                 <Badge variant="secondary" className="text-[10px] gap-1 font-medium">
                   <Video className="h-3 w-3" />
                   Mock Interview
                 </Badge>
               )}
-              {mentor.hourlySessionPriceInrPaise != null && (
+              {mentor.hourlySessionPriceInrPaise != null && mentor.isAcceptingHourlySessions && (
                 <Badge variant="secondary" className="text-[10px] gap-1 font-medium">
                   <Clock className="h-3 w-3" />
                   Hourly Session
                 </Badge>
               )}
             </div>
-          )}
+          ) : null}
 
           {/* Spacer to push bottom section down */}
           <div className="flex-1" />
@@ -251,7 +251,7 @@ function MentorCard({ mentor }: { mentor: MentorProfileResponse }) {
           {/* Price + View Profile */}
           <div className="flex items-center justify-between">
             <div className="text-left space-y-0.5">
-              {mentor.priceInrPaise != null && (
+              {mentor.priceInrPaise != null && mentor.isAcceptingMockInterviews && (
                 <div>
                   <p className="text-sm font-bold leading-tight">
                     {formatPrice(mentor.priceInrPaise, mentor.priceUsdCents)}
@@ -259,7 +259,7 @@ function MentorCard({ mentor }: { mentor: MentorProfileResponse }) {
                   <p className="text-[10px] text-muted-foreground">per session</p>
                 </div>
               )}
-              {mentor.hourlySessionPriceInrPaise != null && (
+              {mentor.hourlySessionPriceInrPaise != null && mentor.isAcceptingHourlySessions && (
                 <div>
                   <p className="text-sm font-bold leading-tight">
                     {formatPrice(mentor.hourlySessionPriceInrPaise, mentor.hourlySessionPriceUsdCents)}
@@ -822,9 +822,10 @@ export default function MentorBrowseView() {
     queryKey: "mentor-discovery",
     searchFn: searchMentors,
     config: MENTOR_FILTER_CONFIG,
-    // Only show mentors who are accepting bookings and have a price configured
+    // Only show mentors who are accepting bookings and have mock interview enabled
     permanentFilters: [
       { field: "isAcceptingBookings", operator: "EQUALS", value: true },
+      { field: "isAcceptingMockInterviews", operator: "EQUALS", value: true },
       { field: "priceInrPaise", operator: "IS_NOT_NULL", value: "" },
     ],
   })

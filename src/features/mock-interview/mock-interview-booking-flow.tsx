@@ -318,6 +318,29 @@ export default function MockInterviewBookingFlow({ mentorProfileId }: BookingFlo
           name: intakeForm.fullName,
         },
         theme: { color: "#6366f1" },
+        config: {
+          display: {
+            blocks: {
+              payment_methods: {
+                name: "Payment Methods",
+                instruments: reservation.currency === "INR"
+                  ? [
+                      { method: "card" },
+                      { method: "upi" },
+                      { method: "netbanking" },
+                      { method: "wallet" },
+                    ]
+                  : [
+                      { method: "card" },
+                      { method: "netbanking" },
+                      { method: "wallet" },
+                    ],
+              },
+            },
+            sequence: ["block.payment_methods"],
+            preferences: { show_default_blocks: false },
+          },
+        },
       })
     } catch {
       setIsProcessing(false)

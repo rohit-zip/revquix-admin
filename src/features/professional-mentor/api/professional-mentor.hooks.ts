@@ -15,6 +15,7 @@ import type {
   OpenSlotsRequest,
   UpdateMentorProfileRequest,
   UpdatePricingRequest,
+  AdminUpdateServiceFlagsRequest,
 } from "./professional-mentor.types"
 import {
   bulkCancelProfessionalSlots,
@@ -37,6 +38,7 @@ import {
   updateMentorProfile,
   updatePricing,
   uploadMentorResume,
+  adminUpdateServiceFlags,
 } from "./professional-mentor.api"
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
@@ -132,6 +134,29 @@ export function useDeleteMentorResume(onSuccess?: () => void) {
     onSuccess: () => {
       showSuccessToast("Resume deleted")
       qc.invalidateQueries({ queryKey: proMentorKeys.profile })
+      onSuccess?.()
+    },
+    onError: (error: ApiError | NetworkError) => showErrorToast(error),
+  })
+}
+
+/**
+ * Admin hook: override per-service availability flags for any mentor.
+ * Requires PERM_MANAGE_PROFESSIONAL_MENTORS.
+ * Wire this to the mentor management UI when admin service-flag controls are built.
+ */
+export function useAdminUpdateServiceFlags(
+  mentorProfileId: string,
+  onSuccess?: () => void,
+) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: AdminUpdateServiceFlagsRequest) =>
+      adminUpdateServiceFlags(mentorProfileId, data),
+    retry: false,
+    onSuccess: () => {
+      showSuccessToast("Mentor service flags updated")
+      qc.invalidateQueries({ queryKey: proMentorKeys.mentorDetail(mentorProfileId) })
       onSuccess?.()
     },
     onError: (error: ApiError | NetworkError) => showErrorToast(error),

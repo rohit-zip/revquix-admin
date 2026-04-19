@@ -71,6 +71,10 @@ export interface MentorProfileResponse {
   totalReviews: number
   isActive: boolean
   isAcceptingBookings: boolean
+  /** Whether the mentor has individually enabled mock interview bookings. */
+  isAcceptingMockInterviews: boolean
+  /** Whether the mentor has individually enabled hourly session bookings. */
+  isAcceptingHourlySessions: boolean
   categories: CategoryDto[]
   skills: SkillDto[]
   resumeUrl: string | null
@@ -92,6 +96,15 @@ export interface UpdateMentorProfileRequest {
 export interface UpdatePricingRequest {
   priceInrPaise: number
   priceUsdCents: number
+}
+
+/**
+ * Request body for admin-level per-service flag overrides.
+ * Sent to PUT /professional-mentor/admin/{mentorProfileId}/service-flags
+ */
+export interface AdminUpdateServiceFlagsRequest {
+  isAcceptingMockInterviews: boolean
+  isAcceptingHourlySessions: boolean
 }
 
 // ─── Professional Mentor Slots ────────────────────────────────────────────────

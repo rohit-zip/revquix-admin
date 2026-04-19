@@ -196,6 +196,7 @@ export default function MentorProfileEditor() {
                 <Input
                   type="number"
                   min={100}
+                  max={50000}
                   step={50}
                   value={pricingForm.priceInrPaise / 100}
                   onChange={(e) =>
@@ -213,6 +214,7 @@ export default function MentorProfileEditor() {
                 <Input
                   type="number"
                   min={2}
+                  max={600}
                   step={1}
                   value={pricingForm.priceUsdCents / 100}
                   onChange={(e) =>
