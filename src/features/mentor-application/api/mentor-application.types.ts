@@ -39,10 +39,6 @@ export interface MentorApplicationRequest {
   skillIds: string[]
   portfolioUrl?: string
   whyMentor: string
-  /** Proposed mock-interview price in INR paise (e.g. 150000 = ₹1,500) */
-  proposedPriceInrPaise: number
-  /** Proposed mock-interview price in USD cents (e.g. 2000 = $20) */
-  proposedPriceUsdCents: number
 }
 
 export interface MentorApplicationRejectRequest {
@@ -77,6 +73,10 @@ export interface MentorApplicationResponse {
   proposedPriceInrPaise: number | null
   /** Proposed mock-interview price in USD cents. Null for legacy applications. */
   proposedPriceUsdCents: number | null
+  /** Proposed hourly session price in INR paise. Null if not provided. */
+  proposedHourlyPriceInrPaise: number | null
+  /** Proposed hourly session price in USD cents. Null if not provided. */
+  proposedHourlyPriceUsdCents: number | null
 }
 
 // ─── Limits ───────────────────────────────────────────────────────────────────
@@ -88,13 +88,5 @@ export interface MentorApplicationResponse {
 export interface ApplicationLimits {
   maxCategories: number
   maxSkills: number
-  /** Minimum proposed mock-interview price in INR paise */
-  minMockInterviewPriceInrPaise: number
-  /** Maximum proposed mock-interview price in INR paise */
-  maxMockInterviewPriceInrPaise: number
-  /** Minimum proposed mock-interview price in USD cents */
-  minMockInterviewPriceUsdCents: number
-  /** Maximum proposed mock-interview price in USD cents */
-  maxMockInterviewPriceUsdCents: number
 }
 

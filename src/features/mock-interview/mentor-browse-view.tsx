@@ -23,6 +23,7 @@ import {
   Check,
   Tag,
   Layers,
+  Video,
 } from "lucide-react"
 
 import { Card, CardContent } from "@/components/ui/card"
@@ -201,7 +202,7 @@ function MentorCard({ mentor }: { mentor: MentorProfileResponse }) {
             <span className="h-3 w-px bg-border" />
             <div className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />
-              <span>{mentor.sessionDurationMinutes} min</span>
+              <span>60 min</span>
             </div>
             <span className="h-3 w-px bg-border" />
             <span>{mentor.yearsOfExperience}+ yrs</span>
@@ -223,6 +224,24 @@ function MentorCard({ mentor }: { mentor: MentorProfileResponse }) {
             </div>
           )}
 
+          {/* Service badges */}
+          {(mentor.priceInrPaise != null || mentor.hourlySessionPriceInrPaise != null) && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {mentor.priceInrPaise != null && (
+                <Badge variant="secondary" className="text-[10px] gap-1 font-medium">
+                  <Video className="h-3 w-3" />
+                  Mock Interview
+                </Badge>
+              )}
+              {mentor.hourlySessionPriceInrPaise != null && (
+                <Badge variant="secondary" className="text-[10px] gap-1 font-medium">
+                  <Clock className="h-3 w-3" />
+                  Hourly Session
+                </Badge>
+              )}
+            </div>
+          )}
+
           {/* Spacer to push bottom section down */}
           <div className="flex-1" />
 
@@ -231,11 +250,23 @@ function MentorCard({ mentor }: { mentor: MentorProfileResponse }) {
 
           {/* Price + View Profile */}
           <div className="flex items-center justify-between">
-            <div className="text-left">
-              <p className="text-base font-bold leading-tight">
-                {formatPrice(mentor.priceInrPaise, mentor.priceUsdCents)}
-              </p>
-              <p className="text-[10px] text-muted-foreground">per session</p>
+            <div className="text-left space-y-0.5">
+              {mentor.priceInrPaise != null && (
+                <div>
+                  <p className="text-sm font-bold leading-tight">
+                    {formatPrice(mentor.priceInrPaise, mentor.priceUsdCents)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">per session</p>
+                </div>
+              )}
+              {mentor.hourlySessionPriceInrPaise != null && (
+                <div>
+                  <p className="text-sm font-bold leading-tight">
+                    {formatPrice(mentor.hourlySessionPriceInrPaise, mentor.hourlySessionPriceUsdCents)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">per hour</p>
+                </div>
+              )}
             </div>
             <span className="inline-flex items-center gap-1 text-xs font-medium text-primary opacity-0 transition-opacity duration-200 group-hover:opacity-100">
               View Profile
@@ -914,7 +945,7 @@ export default function MentorBrowseView() {
               search.setSort([{ field, direction }])
             }}
           >
-            <SelectTrigger className="h-9 w-[180px]">
+            <SelectTrigger className="h-9 w-45">
               <ArrowUpDown className="mr-2 h-4 w-4" />
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>

@@ -30,6 +30,9 @@ export type PayoutStatus = (typeof PAYOUT_STATUS)[keyof typeof PAYOUT_STATUS]
 export const CURRENCY_CODE = { INR: "INR", USD: "USD" } as const
 export type CurrencyCode = (typeof CURRENCY_CODE)[keyof typeof CURRENCY_CODE]
 
+export const MEETING_PROVIDER = { GOOGLE_MEET: "GOOGLE_MEET", MANUAL_GOOGLE_MEET: "MANUAL_GOOGLE_MEET" } as const
+export type MeetingProvider = (typeof MEETING_PROVIDER)[keyof typeof MEETING_PROVIDER]
+
 // ─── Category / Skill ─────────────────────────────────────────────────────────
 
 export interface CategoryDto {
@@ -61,7 +64,8 @@ export interface MentorProfileResponse {
   currentRole: string | null
   priceInrPaise: number | null
   priceUsdCents: number | null
-  sessionDurationMinutes: number
+  hourlySessionPriceInrPaise: number | null
+  hourlySessionPriceUsdCents: number | null
   averageRating: number
   totalSessions: number
   totalReviews: number
@@ -81,7 +85,6 @@ export interface UpdateMentorProfileRequest {
   currentCompany?: string
   currentRole?: string
   yearsOfExperience?: number
-  sessionDurationMinutes?: number
   categoryIds?: string[]
   skillIds?: string[]
 }
@@ -163,6 +166,8 @@ export interface CreateCouponRequest {
   validUntil: string
   applicableContexts?: string[]
   isMentorSpecific?: boolean
+  /** Optional list of email addresses this coupon is restricted to. */
+  targetedEmails?: string[]
 }
 
 export interface CouponValidationResponse {

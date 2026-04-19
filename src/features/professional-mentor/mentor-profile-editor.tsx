@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -53,7 +52,6 @@ export default function MentorProfileEditor() {
         currentCompany: profile.currentCompany ?? "",
         currentRole: profile.currentRole ?? "",
         yearsOfExperience: profile.yearsOfExperience,
-        sessionDurationMinutes: profile.sessionDurationMinutes,
       })
       setPricingForm({
         priceInrPaise: profile.priceInrPaise ?? 0,
@@ -165,22 +163,6 @@ export default function MentorProfileEditor() {
                   setProfileForm({ ...profileForm, yearsOfExperience: Number(e.target.value) })
                 }
               />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Session Duration (minutes)</Label>
-            <div className="flex gap-2">
-              {[30, 45, 60].map((d) => (
-                <Badge
-                  key={d}
-                  variant={profileForm.sessionDurationMinutes === d ? "default" : "outline"}
-                  className="cursor-pointer"
-                  onClick={() => setProfileForm({ ...profileForm, sessionDurationMinutes: d })}
-                >
-                  {d} min
-                </Badge>
-              ))}
             </div>
           </div>
 

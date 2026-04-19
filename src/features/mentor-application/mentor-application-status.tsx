@@ -86,18 +86,11 @@ function formatDate(iso: string) {
 function canReapply(app: MentorApplicationResponse): boolean {
   if (app.status === "PERMANENTLY_REJECTED") return false
   if (app.status !== "REJECTED") return false
-  if (!app.reviewedAt) return true
-  const cooldownEnd = new Date(app.reviewedAt).getTime() + 24 * 60 * 60 * 1000
-  return Date.now() >= cooldownEnd
+  return true
 }
 
-function getCooldownRemaining(app: MentorApplicationResponse): string | null {
-  if (app.status !== "REJECTED" || !app.reviewedAt) return null
-  const cooldownEnd = new Date(app.reviewedAt).getTime() + 24 * 60 * 60 * 1000
-  const remaining = cooldownEnd - Date.now()
-  if (remaining <= 0) return null
-  const hours = Math.ceil(remaining / (60 * 60 * 1000))
-  return `${hours}h remaining`
+function getCooldownRemaining(_app: MentorApplicationResponse): string | null {
+  return null
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────

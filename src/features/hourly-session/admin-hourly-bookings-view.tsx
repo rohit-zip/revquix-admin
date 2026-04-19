@@ -1,7 +1,7 @@
 /**
- * ─── ADMIN MOCK BOOKINGS VIEW ────────────────────────────────────────────────
+ * ─── ADMIN HOURLY BOOKINGS VIEW ──────────────────────────────────────────────
  *
- * Admin panel to search and view all mock interview bookings.
+ * Admin panel to search and view all hourly session bookings.
  */
 
 "use client"
@@ -9,18 +9,16 @@
 import React from "react"
 import { useRouter } from "nextjs-toploader/app"
 import { Badge } from "@/components/ui/badge"
-import {
-  TableCell, TableRow,
-} from "@/components/ui/table"
+import { TableCell, TableRow } from "@/components/ui/table"
 
 import { useGenericSearch } from "@/core/filters"
 import type { FilterConfig } from "@/core/filters/filter.types"
 import { DataExplorer, type DataColumn } from "@/components/data-explorer"
-import { searchAllBookings } from "@/features/mock-interview/api/mock-interview.api"
-import type { MockInterviewBookingResponse, MockInterviewBookingStatus } from "@/features/mock-interview/api/mock-interview.types"
+import { searchAllHourlySessions } from "./api/hourly-session.api"
+import type { HourlySessionBookingResponse, MockInterviewBookingStatus } from "./api/hourly-session.types"
 
-const BOOKING_FILTER_CONFIG: FilterConfig = {
-  searchableFields: ["mentorName"],
+const FILTER_CONFIG: FilterConfig = {
+  searchableFields: ["mentorName", "userName"],
   filterFields: [
     {
       field: "status",
@@ -74,7 +72,8 @@ function getStatusBadge(status: MockInterviewBookingStatus) {
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {
-    month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit",
+    month: "short", day: "numeric", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
   })
 }
 
@@ -83,8 +82,9 @@ function formatAmount(minor: number, currency: string) {
   return `$${(minor / 100).toFixed(2)}`
 }
 
-const columns: DataColumn<MockInterviewBookingResponse>[] = [
+const COLUMNS: DataColumn<HourlySessionBookingResponse>[] = [
   { key: "bookingId", header: "Booking ID", sortable: false },
+  { key: "userName", header: "Student", sortable: false },
   { key: "mentorName", header: "Mentor", sortable: false },
   { key: "slotStartUtc", header: "Session", sortable: true },
   { key: "finalAmountMinor", header: "Amount", sortable: false },
@@ -92,40 +92,40 @@ const columns: DataColumn<MockInterviewBookingResponse>[] = [
   { key: "createdAt", header: "Booked", sortable: true },
 ]
 
-export default function AdminMockBookingsView() {
+export default function AdminHourlyBookingsView() {
   const router = useRouter()
-  const search = useGenericSearch<MockInterviewBookingResponse>({
-    queryKey: "admin-mock-bookings",
-    searchFn: searchAllBookings,
-    config: BOOKING_FILTER_CONFIG,
+  const search = useGenericSearch<HourlySessionBookingResponse>({
+    queryKey: "admin-hourly-bookings",
+    searchFn: searchAllHourlySessions,
+    config: FILTER_CONFIG,
   })
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">All Mock Bookings</h1>
-        <p className="text-muted-foreground">View and manage all mock interview bookings.</p>
+        <h1 className="text-2xl font-bold">All Hourly Sessions</h1>
+        <p className="text-muted-foreground">View and manage all hourly session bookings across the platform.</p>
       </div>
 
       <DataExplorer
         search={search}
-        columns={columns}
+        columns={COLUMNS}
         renderRow={(booking) => (
           <TableRow
             key={booking.bookingId}
             className="cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={() => router.push(`${PATH_CONSTANTS.ADMIN_MOCK_BOOKINGS}/${booking.bookingId}`)}
+            onClick={() => router.push(`${PATH_CONSTANTS.ADMIN_HOURLY_BOOKINGS}/${booking.bookingId}`)}
           >
             <TableCell className="font-mono text-xs">{booking.bookingId}</TableCell>
+            <TableCell>{booking.userName}</TableCell>
             <TableCell>{booking.mentorName}</TableCell>
             <TableCell>{formatDate(booking.slotStartUtc)}</TableCell>
             <TableCell>{formatAmount(booking.finalAmountMinor, booking.currency)}</TableCell>
             <TableCell>{getStatusBadge(booking.status)}</TableCell>
-            <TableCell>{formatDate(booking.createdAt)}</TableCell>
+            <TableCell className="text-muted-foreground text-sm">{formatDate(booking.createdAt)}</TableCell>
           </TableRow>
         )}
       />
     </div>
   )
 }
-

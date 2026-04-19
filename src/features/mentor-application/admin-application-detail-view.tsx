@@ -18,12 +18,11 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock,
-  DollarSign,
+  Coins,
   ExternalLink,
   FileText,
   Globe,
   Hash,
-  IndianRupee,
   Layers,
   Loader2,
   Mail,
@@ -518,53 +517,6 @@ export default function AdminApplicationDetailView({
             </CardContent>
           </Card>
 
-          {/* Proposed Pricing */}
-          <Card className={app.proposedPriceInrPaise ? "border-primary/20 bg-primary/5" : undefined}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-                Proposed Mock-Interview Pricing
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {app.proposedPriceInrPaise != null ? (
-                <>
-                  <DetailRow icon={IndianRupee} label="INR Price per Session">
-                    <p className="mt-0.5 text-sm font-semibold text-foreground">
-                      ₹{(app.proposedPriceInrPaise / 100).toLocaleString("en-IN")}
-                      <span className="ml-1 text-xs font-normal text-muted-foreground">
-                        ({app.proposedPriceInrPaise.toLocaleString()} paise)
-                      </span>
-                    </p>
-                  </DetailRow>
-                  <Separator />
-                  <DetailRow icon={DollarSign} label="USD Price per Session">
-                    <p className="mt-0.5 text-sm font-semibold text-foreground">
-                      ${((app.proposedPriceUsdCents ?? 0) / 100).toFixed(2)}
-                      <span className="ml-1 text-xs font-normal text-muted-foreground">
-                        ({app.proposedPriceUsdCents?.toLocaleString()} cents)
-                      </span>
-                    </p>
-                  </DetailRow>
-                  {app.status === "PENDING" && (
-                    <p className="text-xs text-muted-foreground rounded-md bg-muted px-3 py-2">
-                      Approving will automatically apply these prices to the mentor&apos;s profile.
-                    </p>
-                  )}
-                  {app.status === "APPROVED" && (
-                    <p className="text-xs text-green-600 dark:text-green-400 rounded-md bg-green-50 dark:bg-green-950/30 px-3 py-2">
-                      These prices were applied to the mentor&apos;s profile on approval.
-                    </p>
-                  )}
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground italic">
-                  No pricing proposed (legacy application).
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
           {/* Review Info */}
           <Card>
             <CardHeader className="pb-3">
@@ -587,6 +539,65 @@ export default function AdminApplicationDetailView({
                   <DetailRow icon={User} label="Reviewed By" value={app.reviewedByName} />
                 </>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Proposed Pricing */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Coins className="h-4 w-4 text-muted-foreground" />
+                Proposed Pricing
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                  Mock Interview
+                </p>
+                <div className="flex gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">INR</p>
+                    <p className="text-sm font-medium">
+                      {app.proposedPriceInrPaise != null
+                        ? `₹${(app.proposedPriceInrPaise / 100).toLocaleString("en-IN")}`
+                        : <span className="text-muted-foreground italic text-xs">Not provided</span>}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">USD</p>
+                    <p className="text-sm font-medium">
+                      {app.proposedPriceUsdCents != null
+                        ? `$${(app.proposedPriceUsdCents / 100).toFixed(2)}`
+                        : <span className="text-muted-foreground italic text-xs">Not provided</span>}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <Separator />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                  Hourly Session
+                </p>
+                <div className="flex gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">INR</p>
+                    <p className="text-sm font-medium">
+                      {app.proposedHourlyPriceInrPaise != null
+                        ? `₹${(app.proposedHourlyPriceInrPaise / 100).toLocaleString("en-IN")}`
+                        : <span className="text-muted-foreground italic text-xs">Not provided</span>}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">USD</p>
+                    <p className="text-sm font-medium">
+                      {app.proposedHourlyPriceUsdCents != null
+                        ? `$${(app.proposedHourlyPriceUsdCents / 100).toFixed(2)}`
+                        : <span className="text-muted-foreground italic text-xs">Not provided</span>}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -615,7 +626,7 @@ export default function AdminApplicationDetailView({
           <DialogHeader>
             <DialogTitle>Reject Application</DialogTitle>
             <DialogDescription>
-              Provide a reason for rejection. The applicant can reapply after 24 hours.
+              Provide a reason for rejection. The applicant can reapply immediately.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
