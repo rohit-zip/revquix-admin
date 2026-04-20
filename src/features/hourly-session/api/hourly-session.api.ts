@@ -28,3 +28,12 @@ export const getHourlySessionBooking = (bookingId: string): Promise<HourlySessio
     .get<HourlySessionBookingResponse>(`${BASE}/${bookingId}`)
     .then((r) => r.data)
 
+/** PUT /hourly-session/{bookingId}/cancel — Admin cancel booking */
+export const adminCancelHourlySession = (
+  bookingId: string,
+  reason?: string,
+): Promise<HourlySessionBookingResponse> =>
+  apiClient
+    .put<HourlySessionBookingResponse>(`${BASE}/${bookingId}/cancel`, { reason })
+    .then((r) => r.data)
+
