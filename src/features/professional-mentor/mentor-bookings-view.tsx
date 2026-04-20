@@ -25,7 +25,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { MeetingLinkStatus } from "@/features/mock-interview/meeting-link-status"
-import { SetMeetingUrlModal } from "@/features/mock-interview/set-meeting-url-modal"
 
 import { useGenericSearch } from "@/core/filters"
 import type { FilterConfig } from "@/core/filters/filter.types"
@@ -186,10 +185,13 @@ export default function MentorBookingsView() {
             <TableCell>
               <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                 {booking.sessionId && booking.meetingUrlPending && booking.status === "CONFIRMED" && (
-                  <SetMeetingUrlModal
-                    sessionId={booking.sessionId}
-                    onSuccess={() => search.refetch()}
-                  />
+                  <Badge
+                    variant="outline"
+                    className="cursor-pointer text-xs border-amber-400 text-amber-600 hover:bg-amber-50"
+                    onClick={() => router.push(`/professional-mentor/bookings/${booking.bookingId}`)}
+                  >
+                    Set Meeting Link
+                  </Badge>
                 )}
                 {canCancel(booking.status) && (
                   <Button
