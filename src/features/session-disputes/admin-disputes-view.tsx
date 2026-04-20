@@ -16,6 +16,7 @@ import {
   Eye,
   RefreshCw,
   Shield,
+  XCircle,
 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -132,7 +133,8 @@ export function AdminDisputesView() {
             <TableHeader>
               <TableRow>
                 <TableHead>Dispute ID</TableHead>
-                <TableHead>Booking</TableHead>
+                <TableHead>User</TableHead>
+                <TableHead>Mentor</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Raised By</TableHead>
                 <TableHead>User Responded</TableHead>
@@ -146,7 +148,7 @@ export function AdminDisputesView() {
               {isLoading
                 ? Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      {Array.from({ length: 9 }).map((__, j) => (
+                      {Array.from({ length: 10 }).map((__, j) => (
                         <TableCell key={j}>
                           <Skeleton className="h-4 w-24" />
                         </TableCell>
@@ -156,7 +158,7 @@ export function AdminDisputesView() {
                 : disputes.length === 0
                   ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
+                      <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
                         No disputes found
                       </TableCell>
                     </TableRow>
@@ -170,23 +172,38 @@ export function AdminDisputesView() {
                       }
                     >
                       <TableCell className="font-mono text-xs">{dispute.disputeId}</TableCell>
-                      <TableCell className="font-mono text-xs">{dispute.bookingId}</TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium text-sm">{dispute.userName ?? "—"}</p>
+                          <p className="text-xs text-muted-foreground">{dispute.userEmail ?? ""}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium text-sm">{dispute.mentorName ?? "—"}</p>
+                          <p className="text-xs text-muted-foreground">{dispute.mentorEmail ?? ""}</p>
+                        </div>
+                      </TableCell>
                       <TableCell>{getBookingTypeBadge(dispute.bookingType)}</TableCell>
                       <TableCell>
                         <Badge variant="outline">{dispute.raisedByRole}</Badge>
                       </TableCell>
                       <TableCell>
-                        {dispute.userResponded ? (
-                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        {dispute.userResponded === null ? (
+                          <Clock className="h-4 w-4 text-muted-foreground" title="No response yet" />
+                        ) : dispute.userResponded === true ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-500" title="Said: Session DID happen" />
                         ) : (
-                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <XCircle className="h-4 w-4 text-destructive" title="Said: Session did NOT happen" />
                         )}
                       </TableCell>
                       <TableCell>
-                        {dispute.mentorResponded ? (
-                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        {dispute.mentorResponded === null ? (
+                          <Clock className="h-4 w-4 text-muted-foreground" title="No response yet" />
+                        ) : dispute.mentorResponded === true ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-500" title="Said: Session DID happen" />
                         ) : (
-                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <XCircle className="h-4 w-4 text-destructive" title="Said: Session did NOT happen" />
                         )}
                       </TableCell>
                       <TableCell>{getStatusBadge(dispute.disputeStatus)}</TableCell>

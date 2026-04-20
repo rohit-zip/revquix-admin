@@ -14,6 +14,8 @@ import {
   ArrowLeft,
   CheckCircle2,
   Clock,
+  ExternalLink,
+  Image,
   Loader2,
   Shield,
   User,
@@ -41,6 +43,7 @@ import {
   DISPUTE_STATUS,
 } from "./api/session-disputes.types"
 import { PATH_CONSTANTS } from "@/core/constants/path-constants"
+import { getMeetingScreenshot } from "@/features/book-slot/api/meeting.api"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -54,6 +57,97 @@ function getStatusBadge(status: DisputeStatus) {
   }
   const info = map[status] ?? { variant: "outline", label: status }
   return <Badge variant={info.variant}>{info.label}</Badge>
+}
+
+/**
+ * Renders the attendance response for a single party.
+ *
+ * | responded value | meaning                    | icon + label                    |
+ * |-----------------|----------------------------|---------------------------------|
+ * | null            | no response received yet   | ⏰ "No response yet"            |
+ * | true            | party said session DID happen | ✓ "Said: Session DID happen"  |
+ * | false           | party said session did NOT happen | ✗ "Said: Session did NOT happen" |
+ */
+function AttendanceResponseCell({
+  label,
+  responded,
+}: {
+  label: string
+  responded: boolean | null
+}) {
+  const isNull = responded === null
+  const isYes = responded === true
+  // responded === false means "did NOT happen"
+
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-lg border">
+      {isNull ? (
+        <Clock className="h-5 w-5 text-muted-foreground shrink-0" />
+      ) : isYes ? (
+        <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0" />
+      ) : (
+        <XCircle className="h-5 w-5 text-destructive shrink-0" />
+      )}
+      <div>
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-xs text-muted-foreground">
+          {isNull
+            ? "No response yet"
+            : isYes
+            ? "Said: Session DID happen"
+            : "Said: Session did NOT happen"}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Fetches and shows the mentor's completion screenshot (if any).
+ */
+function ScreenshotSection({ sessionId }: { sessionId: string }) {
+  const [loading, setLoading] = React.useState(false)
+  const [url, setUrl] = React.useState<string | null>(null)
+  const [error, setError] = React.useState(false)
+
+  async function handleView() {
+    setLoading(true)
+    setError(false)
+    try {
+      const screenshotUrl = await getMeetingScreenshot(sessionId)
+      window.open(screenshotUrl, "_blank", "noopener,noreferrer")
+      setUrl(screenshotUrl)
+    } catch {
+      setError(true)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          Evidence Screenshot
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex items-center gap-3">
+        <Image className="h-5 w-5 text-muted-foreground" />
+        <div className="flex-1">
+          <p className="text-sm text-muted-foreground">
+            If the mentor uploaded a screenshot (either when completing or as dispute evidence), it can be viewed here.
+          </p>
+          {error && (
+            <p className="text-xs text-destructive mt-1">No screenshot available for this session.</p>
+          )}
+        </div>
+        <Button size="sm" variant="outline" onClick={handleView} disabled={loading}>
+          {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ExternalLink className="h-4 w-4 mr-2" />}
+          View Screenshot
+        </Button>
+      </CardContent>
+    </Card>
+  )
 }
 
 function formatDate(iso: string | null) {
@@ -145,6 +239,27 @@ export function AdminDisputeDetailView({ disputeId }: AdminDisputeDetailViewProp
         </div>
       </div>
 
+      {/* Participants */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Participants
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">User</p>
+            <p className="font-medium text-sm">{dispute.userName ?? "—"}</p>
+            <p className="text-xs text-muted-foreground">{dispute.userEmail ?? "—"}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">Mentor</p>
+            <p className="font-medium text-sm">{dispute.mentorName ?? "—"}</p>
+            <p className="text-xs text-muted-foreground">{dispute.mentorEmail ?? "—"}</p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Session Summary */}
       <Card>
         <CardHeader className="pb-3">
@@ -183,34 +298,13 @@ export function AdminDisputeDetailView({ disputeId }: AdminDisputeDetailViewProp
           </CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-4">
-          <div className="flex items-center gap-3 p-3 rounded-lg border">
-            {dispute.userResponded ? (
-              <XCircle className="h-5 w-5 text-destructive shrink-0" />
-            ) : (
-              <Clock className="h-5 w-5 text-muted-foreground shrink-0" />
-            )}
-            <div>
-              <p className="text-sm font-medium">User</p>
-              <p className="text-xs text-muted-foreground">
-                {dispute.userResponded ? "Said: Session did NOT happen" : "No response yet"}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-3 rounded-lg border">
-            {dispute.mentorResponded ? (
-              <XCircle className="h-5 w-5 text-destructive shrink-0" />
-            ) : (
-              <Clock className="h-5 w-5 text-muted-foreground shrink-0" />
-            )}
-            <div>
-              <p className="text-sm font-medium">Mentor</p>
-              <p className="text-xs text-muted-foreground">
-                {dispute.mentorResponded ? "Said: Session did NOT happen" : "No response yet"}
-              </p>
-            </div>
-          </div>
+          <AttendanceResponseCell label="User" responded={dispute.userResponded} />
+          <AttendanceResponseCell label="Mentor" responded={dispute.mentorResponded} />
         </CardContent>
       </Card>
+
+      {/* Evidence Screenshot */}
+      <ScreenshotSection sessionId={dispute.sessionId} />
 
       {/* Admin Note (if exists) */}
       {dispute.adminNote && (

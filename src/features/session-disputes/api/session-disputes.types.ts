@@ -69,13 +69,24 @@ export interface SessionDisputeResponse {
   bookingType: "MOCK_INTERVIEW" | "HOURLY_SESSION"
   disputeStatus: DisputeStatus
   raisedByRole: ParticipantRole
-  userResponded: boolean
-  mentorResponded: boolean
+  /**
+   * null  → party has not responded yet
+   * true  → party confirmed the session DID happen
+   * false → party said the session did NOT happen
+   */
+  userResponded: boolean | null
+  mentorResponded: boolean | null
   adminNote: string | null
   resolvedAt: string | null
   resolvedByUserId: string | null
   createdAt: string
   updatedAt: string
+
+  // Participant info
+  userName: string | null
+  userEmail: string | null
+  mentorName: string | null
+  mentorEmail: string | null
 }
 
 // ─── Request DTOs ─────────────────────────────────────────────────────────────
