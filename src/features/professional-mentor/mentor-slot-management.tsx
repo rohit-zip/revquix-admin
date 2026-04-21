@@ -181,7 +181,9 @@ export default function MentorSlotManagement() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Open New Slots</CardTitle>
-            <CardDescription>Slots will be created in 45-minute increments.</CardDescription>
+            <CardDescription>
+              Slots are created in 60-minute increments. Overnight windows (e.g. 11:00 PM – 8:00 AM) are supported — set the end time earlier than the start time.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-5">
@@ -218,6 +220,11 @@ export default function MentorSlotManagement() {
                   value={form.endTime}
                   onChange={(e) => setForm({ ...form, endTime: e.target.value })}
                 />
+                {form.endTime && form.startTime && form.endTime < form.startTime && (
+                  <p className="text-xs text-amber-600">
+                    Overnight window — slots will continue into the next day.
+                  </p>
+                )}
               </div>
               <div className="flex items-end">
                 <Button onClick={handleOpenSlots} disabled={openMutation.isPending} className="w-full">
