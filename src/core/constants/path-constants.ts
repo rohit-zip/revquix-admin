@@ -33,6 +33,8 @@ export const PATH_CONSTANTS = {
   ADMIN_MENTOR_APPLICATION_DETAIL: "/mentor-applications",
   ADMIN_MOCK_BOOKINGS: "/mock-bookings",
   ADMIN_HOURLY_BOOKINGS: "/hourly-bookings",
+  ADMIN_HOURLY_SESSION_MENTORS: "/hourly-session/mentors",
+  ADMIN_HOURLY_SESSION_MENTOR_DETAIL: "/hourly-session/mentors",
   ADMIN_COUPONS: "/coupons",
   ADMIN_MENTOR_REPORTS: "/mentor-reports",
   ADMIN_SESSION_DISPUTES: "/session-disputes",

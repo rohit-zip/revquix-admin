@@ -284,6 +284,14 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         },
       },
       {
+        Icon: Users,
+        label: "Hourly Mentors",
+        href: PATH_CONSTANTS.ADMIN_HOURLY_SESSION_MENTORS,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_PROFESSIONAL_MENTORS],
+        },
+      },
+      {
         Icon: Tag,
         label: "All Coupons",
         href: PATH_CONSTANTS.ADMIN_COUPONS,

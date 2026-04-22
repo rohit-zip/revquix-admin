@@ -864,10 +864,11 @@ export default function BookingDetailView({
               </div>
 
               {booking.sessionId && booking.status === "CONFIRMED" && (
-                <div className="pt-2">
+                <div className="pt-2 flex flex-wrap items-center gap-2">
                   <JoinMeetingButton
                     sessionId={booking.sessionId}
                     allowedJoinAt={booking.allowedJoinAt}
+                    meetingUrlPending={booking.meetingUrlPending}
                   />
                 </div>
               )}

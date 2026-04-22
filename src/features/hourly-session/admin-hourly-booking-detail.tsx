@@ -39,6 +39,8 @@ import { useAdminHourlyBooking, useAdminCancelHourlySession } from "./api/hourly
 import type { MockInterviewBookingStatus } from "./api/hourly-session.types"
 import { PATH_CONSTANTS } from "@/core/constants/path-constants"
 import { forceCompleteMeeting } from "@/features/book-slot/api/meeting.api"
+import { JoinMeetingButton } from "@/components/join-meeting-button"
+import { SetMeetingUrlModal } from "@/features/mock-interview/set-meeting-url-modal"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -305,8 +307,23 @@ export default function AdminHourlyBookingDetail({ bookingId }: { bookingId: str
                 />
               </>
             )}
-            {booking.meetingUrlPending && (
-              <p className="text-sm text-muted-foreground italic">Meeting link pending</p>
+            {booking.sessionId && (booking.status === "CONFIRMED" || booking.status === "IN_PROGRESS") && (
+              <>
+                <Separator />
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <JoinMeetingButton
+                    sessionId={booking.sessionId}
+                    allowedJoinAt={booking.allowedJoinAt}
+                    meetingUrlPending={booking.meetingUrlPending}
+                  />
+                  {booking.meetingUrlPending && (
+                    <SetMeetingUrlModal
+                      sessionId={booking.sessionId}
+                      onSuccess={() => window.location.reload()}
+                    />
+                  )}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
