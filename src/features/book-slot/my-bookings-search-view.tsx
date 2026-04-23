@@ -47,7 +47,6 @@ import {
   XCircle,
   AlertTriangle,
   Ban,
-  Play,
   Star,
   FileText,
   PhoneCall,
@@ -105,12 +104,6 @@ function BookingStatusBadge({ status }: { status: BookingStatus }) {
           <CheckCircle2 className="size-3" /> Confirmed
         </Badge>
       )
-    case "IN_PROGRESS":
-      return (
-        <Badge variant="outline" className="gap-1 text-xs border-blue-500/30 text-blue-600 dark:text-blue-400">
-          <Play className="size-3" /> In Progress
-        </Badge>
-      )
     case "COMPLETED":
       return (
         <Badge variant="secondary" className="gap-1 text-xs">
@@ -129,19 +122,13 @@ function BookingStatusBadge({ status }: { status: BookingStatus }) {
           <Ban className="size-3" /> Cancelled by Mentor
         </Badge>
       )
-    case "NO_SHOW":
-      return (
-        <Badge variant="destructive" className="gap-1 text-xs">
-          <AlertTriangle className="size-3" /> No Show
-        </Badge>
-      )
     default:
       return <Badge variant="secondary" className="text-xs">{status}</Badge>
   }
 }
 
 function isCancellable(status: BookingStatus): boolean {
-  return status === "CONFIRMED" || status === "IN_PROGRESS"
+  return status === "CONFIRMED"
 }
 
 // ─── Credit Counter Banner ────────────────────────────────────────────────────
@@ -384,7 +371,7 @@ function BookingDetailDialog({
 }) {
   if (!booking) return null
 
-  const showJoin = booking.sessionId && (booking.status === "CONFIRMED" || booking.status === "IN_PROGRESS")
+  const showJoin = booking.sessionId && booking.status === "CONFIRMED"
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>

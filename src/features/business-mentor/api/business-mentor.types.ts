@@ -14,22 +14,18 @@ export type { SpringPageResponse }
 
 export const BOOKING_STATUS = {
   CONFIRMED: "CONFIRMED",
-  IN_PROGRESS: "IN_PROGRESS",
   COMPLETED: "COMPLETED",
   CANCELLED_BY_USER: "CANCELLED_BY_USER",
   CANCELLED_BY_MENTOR: "CANCELLED_BY_MENTOR",
-  NO_SHOW: "NO_SHOW",
 } as const
 
 export type BookingStatus = (typeof BOOKING_STATUS)[keyof typeof BOOKING_STATUS]
 
 export const BOOKING_STATUS_OPTIONS: { label: string; value: BookingStatus }[] = [
   { label: "Confirmed", value: "CONFIRMED" },
-  { label: "In Progress", value: "IN_PROGRESS" },
   { label: "Completed", value: "COMPLETED" },
   { label: "Cancelled by User", value: "CANCELLED_BY_USER" },
   { label: "Cancelled by Mentor", value: "CANCELLED_BY_MENTOR" },
-  { label: "No Show", value: "NO_SHOW" },
 ]
 
 export const BOOKING_CATEGORY = {
@@ -95,7 +91,6 @@ export interface BookingResponse {
   meetingTimezone: string
 
   // Meeting details
-  roomName: string | null
   meetingUrl: string | null
 
   // Cancellation

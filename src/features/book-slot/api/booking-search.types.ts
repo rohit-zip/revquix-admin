@@ -4,11 +4,9 @@
 
 export type BookingStatus =
   | "CONFIRMED"
-  | "IN_PROGRESS"
   | "COMPLETED"
   | "CANCELLED_BY_USER"
   | "CANCELLED_BY_MENTOR"
-  | "NO_SHOW"
 
 export type BookingCategory =
   | "BUSINESS_STARTUP"
@@ -29,7 +27,6 @@ export interface MyBookingResponse {
   meetingTimezone: string | null
   /** UTC instant when the join window opens (scheduledAt - 30 min) */
   allowedJoinAt: string | null
-  roomName: string | null
   meetingUrl: string | null
   cancellationReason: string | null
   cancelledAt: string | null

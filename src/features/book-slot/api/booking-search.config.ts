@@ -38,11 +38,9 @@ export const BOOKING_FILTER_CONFIG: FilterConfig = {
       operators: ["EQUALS", "NOT_EQUALS", "IN"],
       options: [
         { label: "Confirmed", value: "CONFIRMED" },
-        { label: "In Progress", value: "IN_PROGRESS" },
         { label: "Completed", value: "COMPLETED" },
         { label: "Cancelled by User", value: "CANCELLED_BY_USER" },
         { label: "Cancelled by Mentor", value: "CANCELLED_BY_MENTOR" },
-        { label: "No Show", value: "NO_SHOW" },
       ],
     },
     {

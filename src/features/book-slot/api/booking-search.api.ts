@@ -39,7 +39,7 @@ export const cancelBooking = (
 
 /**
  * GET /api/v1/bookings/my/active
- * Returns the user's active booking (CONFIRMED or IN_PROGRESS), or null if none.
+ * Returns the user's active booking (CONFIRMED), or null if none.
  */
 export const getActiveBooking = (): Promise<MyBookingResponse | null> =>
   apiClient

@@ -22,8 +22,6 @@
 import React from "react"
 import {
   CheckCircle2,
-  Clock,
-  Hourglass,
   UserX,
   XCircle,
 } from "lucide-react"
@@ -71,11 +69,6 @@ const STATUS_CONFIG: Record<
     variant: "default",
     icon: <CheckCircle2 className="size-3" />,
   },
-  IN_PROGRESS: {
-    label: "In Progress",
-    variant: "default",
-    icon: <Hourglass className="size-3" />,
-  },
   COMPLETED: {
     label: "Completed",
     variant: "secondary",
@@ -90,11 +83,6 @@ const STATUS_CONFIG: Record<
     label: "Cancelled (Mentor)",
     variant: "destructive",
     icon: <XCircle className="size-3" />,
-  },
-  NO_SHOW: {
-    label: "No Show",
-    variant: "outline",
-    icon: <Clock className="size-3" />,
   },
 }
 

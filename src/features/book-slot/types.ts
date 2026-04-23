@@ -56,7 +56,6 @@ export type ConfirmBookingRequest = {
 export type BookingConfirmedResponse = {
   bookingId: string
   sessionId: string
-  roomName: string
   meetingUrl: string
   scheduledAt: string   // ISO-8601 UTC instant
   durationMinutes: number

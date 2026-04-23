@@ -16,10 +16,13 @@ export interface GoogleCalendarStatus {
 /**
  * Initiates the Google Calendar OAuth flow.
  * Returns the authorization URL to redirect the user to.
+ * Sends X-Origin: admin so the OAuth callback redirects back to the admin panel.
  */
 export async function getAuthorizationUrl(): Promise<string> {
   const response = await apiClient.post<{ authorizationUrl: string }>(
-    "/mentor/google-calendar/authorize"
+    "/mentor/google-calendar/authorize",
+    {},
+    { headers: { "X-Origin": "admin" } }
   )
   return response.data.authorizationUrl
 }
