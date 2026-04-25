@@ -97,6 +97,12 @@ export interface NotificationActionButton {
 
 export interface NotificationResponse {
   notificationId: string
+  /** Populated in admin endpoints; null in user-facing endpoints. */
+  targetUserId: string | null
+  /** Email of the target user — admin-only. */
+  targetUserEmail: string | null
+  /** Display name of the target user — admin-only. */
+  targetUserName: string | null
   title: string
   message: string | null
   type: NotificationType

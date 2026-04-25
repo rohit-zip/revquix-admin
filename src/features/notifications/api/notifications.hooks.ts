@@ -11,8 +11,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useAuth } from "@/hooks/useAuth"
 import { showErrorToast, showSuccessToast } from "@/lib/show-toast"
 import type { ApiError } from "@/lib/api-error"
+import { useGenericSearch } from "@/core/filters"
+import type { FilterConfig } from "@/core/filters/filter.types"
 import {
   adminGetHistory,
+  adminSearchNotifications,
   adminSendNotification,
   getUnreadCount,
   getMyNotifications,
@@ -42,6 +45,78 @@ export function useAdminNotificationHistory(page = 0, size = 20) {
   return useQuery<PageResponse<NotificationResponse>>({
     queryKey: notificationKeys.history(page, size),
     queryFn: () => adminGetHistory(page, size),
+  })
+}
+
+// ─── Filter config for admin notification search ──────────────────────────────
+
+const NOTIFICATION_FILTER_CONFIG: FilterConfig = {
+  entityLabel: "Notifications",
+  searchableFields: ["title", "message"],
+  filterFields: [
+    {
+      field: "category",
+      label: "Category",
+      type: "STRING",
+      operators: ["EQUALS"],
+      options: [
+        { label: "Bookings & Sessions", value: "BOOKINGS" },
+        { label: "Payments & Refunds", value: "PAYMENTS" },
+        { label: "Resume Reviews", value: "RESUME_REVIEW" },
+        { label: "Mock Interviews", value: "MOCK_INTERVIEWS" },
+        { label: "Hourly Sessions", value: "HOURLY_SESSIONS" },
+        { label: "Disputes", value: "DISPUTES" },
+        { label: "Mentor Application", value: "MENTOR_APPLICATION" },
+        { label: "Mentor Earnings", value: "MENTOR_EARNINGS" },
+        { label: "Mentor Status", value: "MENTOR_STATUS" },
+        { label: "Platform", value: "PLATFORM" },
+      ],
+    },
+    {
+      field: "read",
+      label: "Status",
+      type: "BOOLEAN",
+      operators: ["EQUALS"],
+      options: [
+        { label: "Unread", value: false },
+        { label: "Read", value: true },
+      ],
+    },
+    {
+      field: "email",
+      label: "Email sent",
+      type: "BOOLEAN",
+      operators: ["EQUALS"],
+      options: [
+        { label: "Yes", value: true },
+        { label: "No", value: false },
+      ],
+    },
+    {
+      field: "targetUserId",
+      label: "User ID",
+      type: "STRING",
+      operators: ["EQUALS", "LIKE"],
+    },
+  ],
+  rangeFilterFields: [
+    { field: "createdAt", label: "Sent Date", type: "INSTANT" },
+  ],
+  sortFields: [
+    { field: "createdAt", label: "Sent Date" },
+    { field: "category", label: "Category" },
+    { field: "type", label: "Type" },
+  ],
+  joinFilterFields: [],
+  defaultSort: [{ field: "createdAt", direction: "DESC" }],
+  defaultPageSize: 20,
+}
+
+export function useAdminNotificationSearch() {
+  return useGenericSearch<NotificationResponse>({
+    queryKey: "admin-notification-history-search",
+    searchFn: adminSearchNotifications,
+    config: NOTIFICATION_FILTER_CONFIG,
   })
 }
 

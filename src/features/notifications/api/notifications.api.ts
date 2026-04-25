@@ -6,6 +6,7 @@
  */
 
 import { apiClient } from "@/lib/axios"
+import type { GenericFilterRequest, GenericFilterResponse } from "@/core/filters/filter.types"
 import type {
   NotificationResponse,
   PageResponse,
@@ -55,4 +56,20 @@ export const adminSendNotification = (request: SendNotificationRequest): Promise
 export const adminGetHistory = (page = 0, size = 20): Promise<PageResponse<NotificationResponse>> =>
   apiClient
     .get<PageResponse<NotificationResponse>>(`${BASE}/admin/history`, { params: { page, size } })
+    .then((r) => r.data)
+
+/**
+ * POST /notifications/admin/history/search — Filtered + paginated admin notification search.
+ * Supports keyword search, field filters, range filters, and sorting via GenericFilterRequest.
+ */
+export const adminSearchNotifications = (
+  request: GenericFilterRequest,
+  params: { page: number; size: number },
+): Promise<GenericFilterResponse<NotificationResponse>> =>
+  apiClient
+    .post<GenericFilterResponse<NotificationResponse>>(
+      `${BASE}/admin/history/search`,
+      request,
+      { params: { page: params.page, size: params.size } },
+    )
     .then((r) => r.data)
