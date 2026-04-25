@@ -59,6 +59,11 @@ export const PATH_CONSTANTS = {
   ADMIN_WEBSITE_SUBSCRIPTIONS: "/website/subscriptions",
   ADMIN_WEBSITE_STATS: "/website/stats",
 
+  // ── Notification Management Admin ─────────────────────────────────────────
+  ADMIN_NOTIFICATION_SEND: "/notification-management/send",
+  ADMIN_NOTIFICATION_HISTORY: "/notification-management/history",
+  ADMIN_NOTIFICATION_ANALYTICS: "/notification-management/analytics",
+
   // ── Business Mentor ───────────────────────────────────────────────────────
   BUSINESS_MENTOR_SLOTS: "/business-mentor/slots",
   BUSINESS_MENTOR_BOOKINGS: "/business-mentor/bookings",

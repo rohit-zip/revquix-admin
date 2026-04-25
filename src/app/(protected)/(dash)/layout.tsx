@@ -17,7 +17,7 @@ export default function DashLayout({ children }: { children: ReactNode }) {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <DashboardTopbar notificationCount={0} />
+        <DashboardTopbar />
         <div className="flex-1 p-4 lg:p-6">
           <div className="mx-auto max-w-6xl">{children}</div>
         </div>

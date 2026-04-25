@@ -26,11 +26,13 @@ import {
   CreditCard,
   FileText,
   Globe,
+  History,
   Key,
   LayoutDashboard,
   Link2,
   type LucideIcon,
   Package,
+  Send,
   Settings,
   Star,
   Tag,
@@ -457,6 +459,32 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         Icon: Webhook,
         label: "Webhook Logs",
         href: PATH_CONSTANTS.ADMIN_WEBHOOKS,
+        access: { allOf: [PERMISSIONS.ROLE_ADMIN] },
+      },
+    ],
+  },
+
+  // ── Notification Management ─────────────────────────────────────────────
+  {
+    title: "Notifications",
+    access: { allOf: [PERMISSIONS.ROLE_ADMIN] },
+    items: [
+      {
+        Icon: Send,
+        label: "Send Notification",
+        href: PATH_CONSTANTS.ADMIN_NOTIFICATION_SEND,
+        access: { allOf: [PERMISSIONS.ROLE_ADMIN] },
+      },
+      {
+        Icon: History,
+        label: "Delivery Log",
+        href: PATH_CONSTANTS.ADMIN_NOTIFICATION_HISTORY,
+        access: { allOf: [PERMISSIONS.ROLE_ADMIN] },
+      },
+      {
+        Icon: BarChart3,
+        label: "Analytics",
+        href: PATH_CONSTANTS.ADMIN_NOTIFICATION_ANALYTICS,
         access: { allOf: [PERMISSIONS.ROLE_ADMIN] },
       },
     ],
