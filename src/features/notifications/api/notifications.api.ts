@@ -11,6 +11,7 @@ import type {
   NotificationResponse,
   PageResponse,
   SendNotificationRequest,
+  SseTicketResponse,
   UnreadCountResponse,
 } from "./notifications.types"
 
@@ -72,4 +73,9 @@ export const adminSearchNotifications = (
       request,
       { params: { page: params.page, size: params.size } },
     )
+    .then((r) => r.data)
+
+export const getStreamTicket = (): Promise<SseTicketResponse> =>
+  apiClient
+    .post<SseTicketResponse>(`${BASE}/stream/ticket`)
     .then((r) => r.data)

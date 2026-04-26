@@ -17,6 +17,7 @@ import {
   adminGetHistory,
   adminSearchNotifications,
   adminSendNotification,
+  getStreamTicket,
   getUnreadCount,
   getMyNotifications,
   markNotificationRead,
@@ -152,97 +153,225 @@ interface UseNotificationStreamOptions {
   onUnreadCountUpdate?: (count: number) => void
 }
 
-/**
- * Establishes an SSE connection for real-time notifications.
- * Used in the admin topbar to receive live unread count updates.
- */
-const SSE_MAX_RETRIES = 5
+const SSE_BASE_RECONNECT_MS = 2_000
+const SSE_MAX_RECONNECT_MS = 60_000
+const SSE_BROADCAST_CHANNEL = "revquix:notifications"
+
+type CrossTabMessage =
+  | { kind: "notification"; payload: SseNotificationEvent }
+  | { kind: "unread_count"; count: number }
+  | { kind: "invalidate" }
 
 export function useNotificationStream(options: UseNotificationStreamOptions = {}) {
-  const { accessToken } = useAuth()
+  const { accessToken, isLoggedIn } = useAuth()
   const queryClient = useQueryClient()
   const [connected, setConnected] = useState(false)
+
   const esRef = useRef<EventSource | null>(null)
-  const optionsRef = useRef(options)
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const retryCountRef = useRef(0)
+  const closedByUserRef = useRef(false)
+  const channelRef = useRef<BroadcastChannel | null>(null)
+  const optionsRef = useRef(options)
   optionsRef.current = options
 
-  const connect = useCallback(() => {
-    if (!accessToken) return
+  const handleNotification = useCallback(
+    (payload: SseNotificationEvent, broadcast: boolean) => {
+      optionsRef.current.onNotification?.(payload)
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all })
+      if (broadcast && channelRef.current) {
+        channelRef.current.postMessage({ kind: "notification", payload } satisfies CrossTabMessage)
+      }
+    },
+    [queryClient],
+  )
 
-    // Clear any pending reconnect timer
+  const handleUnreadCount = useCallback(
+    (count: number, broadcast: boolean) => {
+      optionsRef.current.onUnreadCountUpdate?.(count)
+      queryClient.setQueryData(notificationKeys.unreadCount, { count })
+      if (broadcast && channelRef.current) {
+        channelRef.current.postMessage({ kind: "unread_count", count } satisfies CrossTabMessage)
+      }
+    },
+    [queryClient],
+  )
+
+  const closeCurrent = useCallback(() => {
     if (reconnectTimerRef.current) {
       clearTimeout(reconnectTimerRef.current)
       reconnectTimerRef.current = null
     }
+    if (esRef.current) {
+      try {
+        esRef.current.close()
+      } catch {
+        /* noop */
+      }
+      esRef.current = null
+    }
+    setConnected(false)
+  }, [])
 
-    esRef.current?.close()
+  const scheduleReconnect = useCallback(
+    (connectFn: () => void) => {
+      if (closedByUserRef.current) return
+      const attempt = retryCountRef.current
+      retryCountRef.current = attempt + 1
+      const exponential = SSE_BASE_RECONNECT_MS * Math.pow(2, attempt)
+      const capped = Math.min(exponential, SSE_MAX_RECONNECT_MS)
+      const jitter = Math.random() * Math.min(1_000, capped / 4)
+      const delay = capped + jitter
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null
+        connectFn()
+      }, delay)
+    },
+    [],
+  )
 
-    const apiBase =
-      (process.env.NEXT_PUBLIC_API_URL || "http://localhost:7001/api/v1")
-        .replace(/\/$/, "")
+  const connect = useCallback(async () => {
+    if (closedByUserRef.current) return
+    if (!isLoggedIn || !accessToken) return
 
-    const url = `${apiBase}/notifications/stream?token=${encodeURIComponent(accessToken)}`
-    const es = new EventSource(url)
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current)
+      reconnectTimerRef.current = null
+    }
+    if (esRef.current) {
+      try {
+        esRef.current.close()
+      } catch {
+        /* noop */
+      }
+      esRef.current = null
+    }
+
+    let ticketResp
+    try {
+      ticketResp = await getStreamTicket()
+    } catch (err) {
+      const status = (err as { httpStatus?: number })?.httpStatus
+      if (status === 401 || status === 403) {
+        closedByUserRef.current = true
+        return
+      }
+      scheduleReconnect(connect)
+      return
+    }
+
+    const apiBase = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:7001/api/v1").replace(/\/$/, "")
+    const apiOrigin = apiBase.replace(/\/api\/v1$/, "")
+    const url = ticketResp.streamUrl.startsWith("http")
+      ? ticketResp.streamUrl
+      : `${apiOrigin}${ticketResp.streamUrl}`
+
+    const es = new EventSource(url, { withCredentials: true })
     esRef.current = es
 
     es.addEventListener("open", () => {
-      setConnected(true)
       retryCountRef.current = 0
+      setConnected(true)
+    })
+
+    es.addEventListener("connected", () => {
+      retryCountRef.current = 0
+      setConnected(true)
     })
 
     es.addEventListener("notification", (e: MessageEvent) => {
       try {
-        const payload: SseNotificationEvent = JSON.parse(e.data)
-        optionsRef.current.onNotification?.(payload)
-        queryClient.invalidateQueries({ queryKey: notificationKeys.all })
+        const payload = JSON.parse(e.data) as SseNotificationEvent
+        handleNotification(payload, true)
       } catch {
-        // Ignore malformed events
+        /* malformed event */
       }
     })
 
     es.addEventListener("unread_count", (e: MessageEvent) => {
       try {
-        const payload: SseUnreadCountEvent = JSON.parse(e.data)
-        optionsRef.current.onUnreadCountUpdate?.(payload.count)
-        queryClient.setQueryData(notificationKeys.unreadCount, { count: payload.count })
+        const payload = JSON.parse(e.data) as SseUnreadCountEvent
+        handleUnreadCount(payload.count, true)
       } catch {
-        // Ignore malformed events
+        /* malformed event */
       }
+    })
+
+    es.addEventListener("reauth", () => {
+      try { es.close() } catch { /* noop */ }
+      esRef.current = null
+      setConnected(false)
+      retryCountRef.current = 0
+      void connect()
+    })
+
+    es.addEventListener("shutdown", () => {
+      try { es.close() } catch { /* noop */ }
+      esRef.current = null
+      setConnected(false)
+      scheduleReconnect(connect)
     })
 
     es.addEventListener("error", () => {
-      setConnected(false)
-      // Prevent browser auto-reconnect with the same (possibly expired) URL token
-      es.close()
+      try { es.close() } catch { /* noop */ }
       esRef.current = null
-
-      if (retryCountRef.current >= SSE_MAX_RETRIES) {
-        // Give up — SSE will resume automatically on the next token refresh
-        return
-      }
-
-      // Exponential back-off: 1 s, 2 s, 4 s, 8 s, 16 s
-      const delay = Math.min(1_000 * Math.pow(2, retryCountRef.current), 30_000)
-      retryCountRef.current += 1
-      reconnectTimerRef.current = setTimeout(() => connect(), delay)
+      setConnected(false)
+      scheduleReconnect(connect)
     })
-  }, [accessToken, queryClient])
-
-  // A fresh token means a clean slate — reset retry counter so the new connection
-  // gets the full 5 attempts before giving up.
-  useEffect(() => {
-    retryCountRef.current = 0
-  }, [accessToken])
+  }, [accessToken, isLoggedIn, handleNotification, handleUnreadCount, scheduleReconnect])
 
   useEffect(() => {
-    connect()
+    if (typeof window === "undefined") return
+    if (typeof BroadcastChannel === "undefined") return
+
+    const channel = new BroadcastChannel(SSE_BROADCAST_CHANNEL)
+    channelRef.current = channel
+    channel.onmessage = (event: MessageEvent<CrossTabMessage>) => {
+      const data = event.data
+      if (!data || typeof data !== "object") return
+      if (data.kind === "notification") {
+        optionsRef.current.onNotification?.(data.payload)
+        queryClient.invalidateQueries({ queryKey: notificationKeys.all })
+      } else if (data.kind === "unread_count") {
+        optionsRef.current.onUnreadCountUpdate?.(data.count)
+        queryClient.setQueryData(notificationKeys.unreadCount, { count: data.count })
+      } else if (data.kind === "invalidate") {
+        queryClient.invalidateQueries({ queryKey: notificationKeys.all })
+      }
+    }
     return () => {
-      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current)
-      esRef.current?.close()
-      esRef.current = null
-      setConnected(false)
+      channel.close()
+      channelRef.current = null
+    }
+  }, [queryClient])
+
+  useEffect(() => {
+    closedByUserRef.current = false
+    retryCountRef.current = 0
+    void connect()
+    return () => {
+      closedByUserRef.current = true
+      closeCurrent()
+    }
+  }, [connect, closeCurrent])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const onOnline = () => {
+      retryCountRef.current = 0
+      void connect()
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === "visible" && esRef.current === null && !closedByUserRef.current) {
+        retryCountRef.current = 0
+        void connect()
+      }
+    }
+    window.addEventListener("online", onOnline)
+    document.addEventListener("visibilitychange", onVisibility)
+    return () => {
+      window.removeEventListener("online", onOnline)
+      document.removeEventListener("visibilitychange", onVisibility)
     }
   }, [connect])
 

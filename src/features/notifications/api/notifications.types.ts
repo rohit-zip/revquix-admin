@@ -163,3 +163,10 @@ export interface SseNotificationEvent {
 export interface SseUnreadCountEvent {
   count: number
 }
+
+export interface SseTicketResponse {
+  ticket: string
+  expiresInSeconds: number
+  accessTokenExpiresAtEpochMs: number
+  streamUrl: string
+}
