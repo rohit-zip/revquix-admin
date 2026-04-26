@@ -75,6 +75,8 @@ export interface MentorProfileResponse {
   isAcceptingMockInterviews: boolean
   /** Whether the mentor has individually enabled hourly session bookings. */
   isAcceptingHourlySessions: boolean
+  /** True when at least one of the two services is enabled; used as a filterable flag. */
+  hasAnyServiceEnabled: boolean
   categories: CategoryDto[]
   skills: SkillDto[]
   resumeUrl: string | null
