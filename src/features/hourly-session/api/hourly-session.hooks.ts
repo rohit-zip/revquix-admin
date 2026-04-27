@@ -17,8 +17,10 @@ import {
 // ─── Query Keys ───────────────────────────────────────────────────────────────
 
 export const adminHourlySessionKeys = {
-  allBookings: ["admin-hourly-session", "all-bookings"] as const,
-  detail: (id: string) => ["admin-hourly-session", "detail", id] as const,
+  /** Root prefix — invalidating this hits ALL hourly booking caches (lists, details). */
+  all: ["hourly-booking"] as const,
+  allBookings: ["hourly-booking", "all-bookings"] as const,
+  detail: (id: string) => ["hourly-booking", "detail", id] as const,
 }
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
@@ -38,9 +40,8 @@ export function useAdminCancelHourlySession() {
   return useMutation({
     mutationFn: ({ bookingId, reason }: { bookingId: string; reason?: string }) =>
       adminCancelHourlySession(bookingId, reason),
-    onSuccess: (_, { bookingId }) => {
-      queryClient.invalidateQueries({ queryKey: adminHourlySessionKeys.detail(bookingId) })
-      queryClient.invalidateQueries({ queryKey: adminHourlySessionKeys.allBookings })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminHourlySessionKeys.all })
       showSuccessToast("Booking cancelled")
     },
     onError: (error: ApiError) => showErrorToast(error),

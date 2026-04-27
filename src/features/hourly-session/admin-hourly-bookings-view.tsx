@@ -14,6 +14,7 @@ import { TableCell, TableRow } from "@/components/ui/table"
 import { useGenericSearch } from "@/core/filters"
 import type { FilterConfig } from "@/core/filters/filter.types"
 import { DataExplorer, type DataColumn } from "@/components/data-explorer"
+import { PATH_CONSTANTS } from "@/core/constants/path-constants"
 import { searchAllHourlySessions } from "./api/hourly-session.api"
 import type { HourlySessionBookingResponse, MockInterviewBookingStatus } from "./api/hourly-session.types"
 
@@ -95,7 +96,7 @@ const COLUMNS: DataColumn<HourlySessionBookingResponse>[] = [
 export default function AdminHourlyBookingsView() {
   const router = useRouter()
   const search = useGenericSearch<HourlySessionBookingResponse>({
-    queryKey: "admin-hourly-bookings",
+    queryKey: "hourly-booking",
     searchFn: searchAllHourlySessions,
     config: FILTER_CONFIG,
   })

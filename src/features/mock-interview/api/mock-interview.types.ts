@@ -187,7 +187,6 @@ export interface MockInterviewBookingResponse {
   cancelledAt: string | null
   slotStartUtc: string
   durationMinutes: number
-  meetingUrl: string | null
   sessionId: string | null
   /** How the meeting link was generated: GOOGLE_MEET or MANUAL_GOOGLE_MEET */
   meetingProvider: "GOOGLE_MEET" | "MANUAL_GOOGLE_MEET" | null

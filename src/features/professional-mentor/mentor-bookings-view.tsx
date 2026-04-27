@@ -125,9 +125,10 @@ export default function MentorBookingsView() {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
   const [cancelBookingId, setCancelBookingId] = useState("")
   const [cancelReason, setCancelReason] = useState("")
+  const [reasonError, setReasonError] = useState(false)
 
   const search = useGenericSearch<MockInterviewBookingResponse>({
-    queryKey: "mentor-received-bookings",
+    queryKey: "mock-booking",
     searchFn: searchMentorBookings,
     config: BOOKING_FILTER_CONFIG,
   })
@@ -135,6 +136,7 @@ export default function MentorBookingsView() {
   const cancelMutation = useCancelMockBooking(() => {
     setCancelDialogOpen(false)
     setCancelReason("")
+    setReasonError(false)
     search.refetch()
   })
 
@@ -214,7 +216,16 @@ export default function MentorBookingsView() {
       />
 
       {/* Cancel Dialog */}
-      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+      <Dialog
+        open={cancelDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReasonError(false)
+            setCancelReason("")
+          }
+          setCancelDialogOpen(open)
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Cancel Mock Interview</DialogTitle>
@@ -224,26 +235,48 @@ export default function MentorBookingsView() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            <Label>Reason (optional)</Label>
+            <Label>
+              Reason <span className="text-destructive">*</span>
+            </Label>
             <Textarea
               value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              placeholder="Why are you cancelling?"
+              onChange={(e) => {
+                setCancelReason(e.target.value)
+                if (e.target.value.trim()) setReasonError(false)
+              }}
+              placeholder="Please provide a reason for cancelling. This will be shared with the student."
               rows={3}
+              className={reasonError ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {reasonError && (
+              <p className="text-xs text-destructive">
+                A reason is required when cancelling as a mentor.
+              </p>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setReasonError(false)
+                setCancelReason("")
+                setCancelDialogOpen(false)
+              }}
+            >
               Keep Booking
             </Button>
             <Button
               variant="destructive"
-              onClick={() =>
+              onClick={() => {
+                if (!cancelReason.trim()) {
+                  setReasonError(true)
+                  return
+                }
                 cancelMutation.mutate({
                   bookingId: cancelBookingId,
-                  reason: cancelReason || undefined,
+                  reason: cancelReason.trim(),
                 })
-              }
+              }}
               disabled={cancelMutation.isPending}
             >
               {cancelMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

@@ -31,12 +31,14 @@ import {
 // ─── Query Keys ───────────────────────────────────────────────────────────────
 
 export const mockInterviewKeys = {
-  myBookings: ["mock-interview", "my-bookings"] as const,
-  allBookings: ["mock-interview", "all-bookings"] as const,
-  detail: (id: string) => ["mock-interview", "detail", id] as const,
-  feedback: (bookingId: string) => ["mock-interview", "feedback", bookingId] as const,
-  refundPolicy: ["mock-interview", "refund-policy"] as const,
-  cancellationPreview: (id: string) => ["mock-interview", "cancellation-preview", id] as const,
+  /** Root prefix — invalidating this hits ALL mock booking caches (lists, details, feedback). */
+  all: ["mock-booking"] as const,
+  myBookings: ["mock-booking", "my-bookings"] as const,
+  allBookings: ["mock-booking", "all-bookings"] as const,
+  detail: (id: string) => ["mock-booking", "detail", id] as const,
+  feedback: (bookingId: string) => ["mock-booking", "feedback", bookingId] as const,
+  refundPolicy: ["mock-booking", "refund-policy"] as const,
+  cancellationPreview: (id: string) => ["mock-booking", "cancellation-preview", id] as const,
 }
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
@@ -118,7 +120,7 @@ export function useConfirmPayment(onSuccess?: () => void) {
     retry: false,
     onSuccess: () => {
       showSuccessToast("Payment confirmed! Your mock interview is booked.")
-      qc.invalidateQueries({ queryKey: mockInterviewKeys.myBookings })
+      qc.invalidateQueries({ queryKey: mockInterviewKeys.all })
       onSuccess?.()
     },
     onError: (error: ApiError | NetworkError) => showErrorToast(error),
@@ -133,7 +135,7 @@ export function useCancelMockBooking(onSuccess?: () => void) {
     retry: false,
     onSuccess: () => {
       showSuccessToast("Booking cancelled")
-      qc.invalidateQueries({ queryKey: mockInterviewKeys.myBookings })
+      qc.invalidateQueries({ queryKey: mockInterviewKeys.all })
       onSuccess?.()
     },
     onError: (error: ApiError | NetworkError) => showErrorToast(error),
@@ -159,8 +161,7 @@ export function useSubmitMockFeedback(onSuccess?: () => void) {
     retry: false,
     onSuccess: (_result, variables) => {
       showSuccessToast("Feedback submitted successfully!")
-      qc.invalidateQueries({ queryKey: mockInterviewKeys.feedback(variables.bookingId) })
-      qc.invalidateQueries({ queryKey: mockInterviewKeys.detail(variables.bookingId) })
+      qc.invalidateQueries({ queryKey: mockInterviewKeys.all })
       onSuccess?.()
     },
     onError: (error: ApiError | NetworkError) => showErrorToast(error),

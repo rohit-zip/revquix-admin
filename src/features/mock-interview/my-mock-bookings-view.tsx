@@ -126,7 +126,7 @@ export default function MyMockBookingsView() {
   const [cancelReason, setCancelReason] = useState("")
 
   const search = useGenericSearch<MockInterviewBookingResponse>({
-    queryKey: "my-mock-bookings",
+    queryKey: "mock-booking",
     searchFn: searchMyBookings,
     config: BOOKING_FILTER_CONFIG,
   })

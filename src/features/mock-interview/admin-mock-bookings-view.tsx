@@ -95,7 +95,7 @@ const columns: DataColumn<MockInterviewBookingResponse>[] = [
 export default function AdminMockBookingsView() {
   const router = useRouter()
   const search = useGenericSearch<MockInterviewBookingResponse>({
-    queryKey: "admin-mock-bookings",
+    queryKey: "mock-booking",
     searchFn: searchAllBookings,
     config: BOOKING_FILTER_CONFIG,
   })

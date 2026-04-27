@@ -603,12 +603,14 @@ export default function BookingDetailView({
 }: BookingDetailViewProps) {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
   const [cancelReason, setCancelReason] = useState("")
+  const [reasonError, setReasonError] = useState(false)
 
   const { data: booking, isLoading, isError } = useMockBookingDetail(bookingId)
 
   const cancelMutation = useCancelMockBooking(() => {
     setCancelDialogOpen(false)
     setCancelReason("")
+    setReasonError(false)
   })
 
   // ── Refund data fetched from backend ─────────────────────────────────────
@@ -1246,17 +1248,28 @@ export default function BookingDetailView({
       </div>
 
       {/* Cancel Dialog */}
-      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+      <Dialog
+        open={cancelDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReasonError(false)
+            setCancelReason("")
+          }
+          setCancelDialogOpen(open)
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Cancel Mock Interview</DialogTitle>
             <DialogDescription>
-              Are you sure you want to cancel this booking?
+              {isMentorView
+                ? "Are you sure you want to cancel this session? The student will be notified and a full refund will be initiated automatically."
+                : "Are you sure you want to cancel this booking?"}
             </DialogDescription>
           </DialogHeader>
 
-          {/* Real-time Refund Estimate — from backend */}
-          {isLoadingPreview ? (
+          {/* Real-time Refund Estimate — from backend (user view only) */}
+          {!isMentorView && (isLoadingPreview ? (
             <div className="rounded-lg border p-4 space-y-3">
               <Skeleton className="h-4 w-36" />
               <div className="space-y-2">
@@ -1295,65 +1308,93 @@ export default function BookingDetailView({
               )}
               <p className="text-xs text-muted-foreground">{cancellationPreview.applicableTierLabel}</p>
             </div>
-          ) : null}
+          ) : null)}
 
-          {/* Full Policy Table — from backend */}
-          <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800 p-3">
-            <p className="text-xs font-semibold mb-2">Cancellation Policy</p>
-            {isLoadingPolicy ? (
-              <div className="space-y-1.5">
-                <Skeleton className="h-3 w-full" />
-                <Skeleton className="h-3 w-5/6" />
-                <Skeleton className="h-3 w-4/6" />
-                <Skeleton className="h-3 w-5/6" />
-              </div>
-            ) : refundPolicy ? (
-              <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
-                {refundPolicy.tiers.map((tier) => {
-                  const [timePart] = tier.label.split(":")
-                  return (
-                    <React.Fragment key={tier.hoursBefore}>
-                      <span>{timePart}:</span>
-                      {tier.refundPercentage === 0 ? (
-                        <span className="font-medium text-destructive">No refund</span>
-                      ) : (
-                        <span className="font-medium text-foreground">{tier.refundPercentage}% refund</span>
-                      )}
-                    </React.Fragment>
-                  )
-                })}
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
-                <span>24+ hours before:</span><span className="font-medium text-foreground">90% refund</span>
-                <span>12–24 hours before:</span><span className="font-medium text-foreground">70% refund</span>
-                <span>6–12 hours before:</span><span className="font-medium text-foreground">50% refund</span>
-                <span>Less than 6 hours:</span><span className="font-medium text-destructive">No refund</span>
-              </div>
-            )}
-          </div>
+          {/* Full Policy Table — shown only for user cancellations */}
+          {!isMentorView && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800 p-3">
+              <p className="text-xs font-semibold mb-2">Cancellation Policy</p>
+              {isLoadingPolicy ? (
+                <div className="space-y-1.5">
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-5/6" />
+                  <Skeleton className="h-3 w-4/6" />
+                  <Skeleton className="h-3 w-5/6" />
+                </div>
+              ) : refundPolicy ? (
+                <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
+                  {refundPolicy.tiers.map((tier) => {
+                    const [timePart] = tier.label.split(":")
+                    return (
+                      <React.Fragment key={tier.hoursBefore}>
+                        <span>{timePart}:</span>
+                        {tier.refundPercentage === 0 ? (
+                          <span className="font-medium text-destructive">No refund</span>
+                        ) : (
+                          <span className="font-medium text-foreground">{tier.refundPercentage}% refund</span>
+                        )}
+                      </React.Fragment>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
+                  <span>24+ hours before:</span><span className="font-medium text-foreground">90% refund</span>
+                  <span>12–24 hours before:</span><span className="font-medium text-foreground">70% refund</span>
+                  <span>6–12 hours before:</span><span className="font-medium text-foreground">50% refund</span>
+                  <span>Less than 6 hours:</span><span className="font-medium text-destructive">No refund</span>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
-            <Label>Reason (optional)</Label>
+            <Label>
+              Reason {isMentorView ? <span className="text-destructive">*</span> : "(optional)"}
+            </Label>
             <Textarea
               value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              placeholder="Why are you cancelling?"
+              onChange={(e) => {
+                setCancelReason(e.target.value)
+                if (isMentorView && e.target.value.trim()) setReasonError(false)
+              }}
+              placeholder={
+                isMentorView
+                  ? "Please provide a reason for cancelling. This will be shared with the student."
+                  : "Why are you cancelling?"
+              }
               rows={3}
+              className={reasonError ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {reasonError && (
+              <p className="text-xs text-destructive">
+                A reason is required when cancelling as a mentor.
+              </p>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setReasonError(false)
+                setCancelReason("")
+                setCancelDialogOpen(false)
+              }}
+            >
               Keep Booking
             </Button>
             <Button
               variant="destructive"
-              onClick={() =>
+              onClick={() => {
+                if (isMentorView && !cancelReason.trim()) {
+                  setReasonError(true)
+                  return
+                }
                 cancelMutation.mutate({
                   bookingId: booking.bookingId,
-                  reason: cancelReason || undefined,
+                  reason: cancelReason.trim() || undefined,
                 })
-              }
+              }}
               disabled={cancelMutation.isPending}
             >
               {cancelMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
