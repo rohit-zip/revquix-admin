@@ -23,6 +23,7 @@ export const MOCK_INTERVIEW_BOOKING_STATUS = {
   EXPIRED: "EXPIRED",
   PENDING_CONFIRMATION: "PENDING_CONFIRMATION",
   DISPUTED: "DISPUTED",
+  PENDING_FEEDBACK: "PENDING_FEEDBACK",
 } as const
 
 export type MockInterviewBookingStatus =
@@ -42,6 +43,7 @@ export const BOOKING_STATUS_OPTIONS: { label: string; value: MockInterviewBookin
   { label: "Expired", value: "EXPIRED" },
   { label: "Awaiting Confirmation", value: "PENDING_CONFIRMATION" },
   { label: "Under Dispute", value: "DISPUTED" },
+  { label: "Pending Feedback", value: "PENDING_FEEDBACK" },
 ]
 
 export const EXPERIENCE_LEVEL = {
@@ -207,6 +209,8 @@ export interface MockInterviewBookingResponse {
   resumeUrl: string | null
   // ── Feedback status ─────────────────────────────────────────────────
   feedbackSubmitted: boolean | null
+  /** UTC deadline by which the mentor must submit feedback. Null for older bookings. */
+  feedbackDeadlineAt: string | null
 }
 
 export interface ReserveSlotResponse {

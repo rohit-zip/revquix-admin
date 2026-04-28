@@ -47,6 +47,7 @@ function getStatusBadge(status: DisputeStatus) {
     RESOLVED_COMPLETED: { variant: "outline", label: "Resolved — Completed" },
     RESOLVED_NO_SHOW_USER: { variant: "outline", label: "Resolved — No Show (User)" },
     RESOLVED_NO_SHOW_MENTOR: { variant: "outline", label: "Resolved — No Show (Mentor)" },
+    RESOLVED_FEEDBACK_LATE: { variant: "outline", label: "Resolved — Late Feedback" },
   }
   const info = map[status] ?? { variant: "outline", label: status }
   return <Badge variant={info.variant}>{info.label}</Badge>
@@ -186,7 +187,7 @@ export function AdminDisputesView() {
                       </TableCell>
                       <TableCell>{getBookingTypeBadge(dispute.bookingType)}</TableCell>
                       <TableCell>
-                        <Badge variant="outline">{dispute.raisedByRole}</Badge>
+                        <Badge variant="outline">{dispute.raisedByRole ?? "System"}</Badge>
                       </TableCell>
                       <TableCell>
                         {dispute.userResponded === null ? (

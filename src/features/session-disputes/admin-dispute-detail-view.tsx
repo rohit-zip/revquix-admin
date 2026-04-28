@@ -54,6 +54,7 @@ function getStatusBadge(status: DisputeStatus) {
     RESOLVED_COMPLETED: { variant: "outline", label: "Resolved — Completed" },
     RESOLVED_NO_SHOW_USER: { variant: "outline", label: "Resolved — No Show (User)" },
     RESOLVED_NO_SHOW_MENTOR: { variant: "outline", label: "Resolved — No Show (Mentor)" },
+    RESOLVED_FEEDBACK_LATE: { variant: "outline", label: "Resolved — Late Feedback Accepted" },
   }
   const info = map[status] ?? { variant: "outline", label: status }
   return <Badge variant={info.variant}>{info.label}</Badge>
@@ -166,6 +167,7 @@ const RESOLVED_STATUSES: DisputeStatus[] = [
   DISPUTE_STATUS.RESOLVED_COMPLETED,
   DISPUTE_STATUS.RESOLVED_NO_SHOW_USER,
   DISPUTE_STATUS.RESOLVED_NO_SHOW_MENTOR,
+  DISPUTE_STATUS.RESOLVED_FEEDBACK_LATE,
 ]
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -182,6 +184,11 @@ export function AdminDisputeDetailView({ disputeId }: AdminDisputeDetailViewProp
 
   const [selectedResolution, setSelectedResolution] = useState<DisputeResolution>("MARK_COMPLETED")
   const [adminNote, setAdminNote] = useState("")
+
+  // Auto-select the appropriate default resolution when dispute data loads
+  const defaultResolution = dispute?.disputeType === "FEEDBACK_NOT_SUBMITTED"
+    ? "ACCEPT_LATE_FEEDBACK"
+    : "MARK_COMPLETED"
 
   if (isLoading) {
     return (
@@ -206,12 +213,16 @@ export function AdminDisputeDetailView({ disputeId }: AdminDisputeDetailViewProp
   }
 
   const isResolved = RESOLVED_STATUSES.includes(dispute.disputeStatus)
+  // Use user-selected or the dispute-appropriate default
+  const effectiveResolution = selectedResolution === "MARK_COMPLETED" && dispute.disputeType === "FEEDBACK_NOT_SUBMITTED"
+    ? defaultResolution
+    : selectedResolution
 
   const handleResolve = () => {
     resolveDisputeMutation.mutate({
       disputeId,
       request: {
-        resolution: selectedResolution,
+        resolution: effectiveResolution,
         adminNote: adminNote.trim() || undefined,
       },
     })
@@ -281,12 +292,32 @@ export function AdminDisputeDetailView({ disputeId }: AdminDisputeDetailViewProp
             <p className="text-sm capitalize">{dispute.bookingType.replace("_", " ")}</p>
           </div>
           <div>
+            <p className="text-xs text-muted-foreground">Dispute Type</p>
+            <Badge variant="outline" className="mt-1">
+              {dispute.disputeType === "FEEDBACK_NOT_SUBMITTED" ? "Feedback Not Submitted" : "Attendance Dispute"}
+            </Badge>
+          </div>
+          <div>
             <p className="text-xs text-muted-foreground">Raised By</p>
             <Badge variant="outline" className="mt-1">
               <User className="h-3 w-3 mr-1" />
-              {dispute.raisedByRole}
+              {dispute.raisedByRole ?? "System"}
             </Badge>
           </div>
+          {dispute.disputeType === "FEEDBACK_NOT_SUBMITTED" && (
+            <div>
+              <p className="text-xs text-muted-foreground">Feedback Status</p>
+              {dispute.feedbackSubmitted ? (
+                <Badge className="mt-1 bg-green-100 text-green-700 border-green-200">
+                  Submitted (late)
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="mt-1 bg-amber-100 text-amber-700 border-amber-200">
+                  Not yet submitted
+                </Badge>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -359,11 +390,25 @@ export function AdminDisputeDetailView({ disputeId }: AdminDisputeDetailViewProp
             <CardContent className="space-y-5">
               {/* Resolution choice */}
               <RadioGroup
-                value={selectedResolution}
+                value={effectiveResolution}
                 onValueChange={(v) => setSelectedResolution(v as DisputeResolution)}
                 className="space-y-3"
               >
-                {DISPUTE_RESOLUTION_OPTIONS.map((option) => (
+                {DISPUTE_RESOLUTION_OPTIONS
+                  .filter((option) => {
+                    // ACCEPT_LATE_FEEDBACK is only valid when:
+                    // 1. The dispute type is FEEDBACK_NOT_SUBMITTED
+                    // 2. The mentor has already submitted feedback (possibly late)
+                    if (option.value === "ACCEPT_LATE_FEEDBACK") {
+                      return dispute.disputeType === "FEEDBACK_NOT_SUBMITTED" && dispute.feedbackSubmitted === true
+                    }
+                    // For FEEDBACK_NOT_SUBMITTED disputes hide attendance options
+                    if (dispute.disputeType === "FEEDBACK_NOT_SUBMITTED") {
+                      return option.value === "ACCEPT_LATE_FEEDBACK"
+                    }
+                    return true
+                  })
+                  .map((option) => (
                   <div
                     key={option.value}
                     className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/30 transition-colors"

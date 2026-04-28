@@ -13,6 +13,7 @@ export const DISPUTE_STATUS = {
   RESOLVED_COMPLETED: "RESOLVED_COMPLETED",
   RESOLVED_NO_SHOW_USER: "RESOLVED_NO_SHOW_USER",
   RESOLVED_NO_SHOW_MENTOR: "RESOLVED_NO_SHOW_MENTOR",
+  RESOLVED_FEEDBACK_LATE: "RESOLVED_FEEDBACK_LATE",
 } as const
 
 export type DisputeStatus = (typeof DISPUTE_STATUS)[keyof typeof DISPUTE_STATUS]
@@ -23,6 +24,7 @@ export const DISPUTE_STATUS_OPTIONS: { label: string; value: DisputeStatus }[] =
   { label: "Resolved — Completed", value: "RESOLVED_COMPLETED" },
   { label: "Resolved — No Show (User)", value: "RESOLVED_NO_SHOW_USER" },
   { label: "Resolved — No Show (Mentor)", value: "RESOLVED_NO_SHOW_MENTOR" },
+  { label: "Resolved — Late Feedback Accepted", value: "RESOLVED_FEEDBACK_LATE" },
 ]
 
 export const PARTICIPANT_ROLE = {
@@ -31,13 +33,19 @@ export const PARTICIPANT_ROLE = {
 } as const
 
 export type ParticipantRole = (typeof PARTICIPANT_ROLE)[keyof typeof PARTICIPANT_ROLE]
+export const DISPUTE_TYPE = {
+  ATTENDANCE_DISPUTE: "ATTENDANCE_DISPUTE",
+  FEEDBACK_NOT_SUBMITTED: "FEEDBACK_NOT_SUBMITTED",
+} as const
 
+export type DisputeType = (typeof DISPUTE_TYPE)[keyof typeof DISPUTE_TYPE]
 // ─── Dispute resolution options sent to backend ───────────────────────────────
 
 export const DISPUTE_RESOLUTION = {
   MARK_COMPLETED: "MARK_COMPLETED",
   MARK_NO_SHOW_USER: "MARK_NO_SHOW_USER",
   MARK_NO_SHOW_MENTOR: "MARK_NO_SHOW_MENTOR",
+  ACCEPT_LATE_FEEDBACK: "ACCEPT_LATE_FEEDBACK",
 } as const
 
 export type DisputeResolution = (typeof DISPUTE_RESOLUTION)[keyof typeof DISPUTE_RESOLUTION]
@@ -58,6 +66,11 @@ export const DISPUTE_RESOLUTION_OPTIONS: { label: string; value: DisputeResoluti
     value: "MARK_NO_SHOW_MENTOR",
     description: "Mentor did not attend the session.",
   },
+  {
+    label: "Accept Late Feedback",
+    value: "ACCEPT_LATE_FEEDBACK",
+    description: "Mentor submitted feedback after the deadline. Mark as completed and release payout.",
+  },
 ]
 
 // ─── Response DTOs ─────────────────────────────────────────────────────────────
@@ -68,7 +81,10 @@ export interface SessionDisputeResponse {
   bookingId: string
   bookingType: "MOCK_INTERVIEW" | "HOURLY_SESSION"
   disputeStatus: DisputeStatus
-  raisedByRole: ParticipantRole
+  /** Classifies why the dispute was created. */
+  disputeType: DisputeType
+  /** null for system-generated FEEDBACK_NOT_SUBMITTED disputes */
+  raisedByRole: ParticipantRole | null
   /**
    * null  → party has not responded yet
    * true  → party confirmed the session DID happen
@@ -87,6 +103,8 @@ export interface SessionDisputeResponse {
   userEmail: string | null
   mentorName: string | null
   mentorEmail: string | null
+  /** True when the mentor has submitted feedback (only relevant for FEEDBACK_NOT_SUBMITTED disputes). */
+  feedbackSubmitted: boolean | null
 }
 
 // ─── Request DTOs ─────────────────────────────────────────────────────────────

@@ -67,9 +67,12 @@ function getStatusBadge(status: MockInterviewBookingStatus) {
     NO_SHOW_MENTOR: { variant: "destructive", label: "No Show (Mentor)" },
     PAYMENT_FAILED: { variant: "destructive", label: "Payment Failed" },
     EXPIRED: { variant: "outline", label: "Expired" },
+    PENDING_CONFIRMATION: { variant: "secondary", label: "Awaiting Confirmation" },
+    DISPUTED: { variant: "destructive", label: "Under Dispute" },
+    PENDING_FEEDBACK: { variant: "outline", label: "Pending Feedback", className: "bg-amber-100 text-amber-700 border-amber-200" },
   }
-  const info = map[status] ?? { variant: "outline", label: status }
-  return <Badge variant={info.variant}>{info.label}</Badge>
+  const info = map[status] ?? { variant: "outline" as const, label: status }
+  return <Badge variant={info.variant} className={info.className}>{info.label}</Badge>
 }
 
 function formatDate(iso: string) {
