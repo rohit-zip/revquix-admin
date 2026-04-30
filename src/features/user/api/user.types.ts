@@ -51,6 +51,14 @@ export interface CurrentUserResponse {
   username: string | null
   name: string | null
   avatarUrl: string | null
+  headline: string | null
+  bio: string | null
+  location: string | null
+  linkedinUrl: string | null
+  portfolioUrl: string | null
+  yearsOfExperience: number | null
+  currentCompany: string | null
+  currentRole: string | null
   isEmailVerified: boolean
   isAccountNonLocked: boolean
   isEnabled: boolean
