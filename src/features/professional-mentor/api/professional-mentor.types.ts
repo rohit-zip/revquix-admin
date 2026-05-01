@@ -109,7 +109,38 @@ export interface AdminUpdateServiceFlagsRequest {
   isAcceptingHourlySessions: boolean
 }
 
-// ─── Mentor Rating ────────────────────────────────────────────────────────────
+// ─── Public Mentor Card ───────────────────────────────────────────────────────
+/**
+ * Compact mentor card as returned by POST /api/v1/public/mentors/search.
+ * Admin browse views use this type after Phase C migration.
+ * Note: `name` is the display name (maps to UserAuth.fullName), not `userName`.
+ */
+export interface PublicMentorCard {
+  mentorProfileId: string
+  userId: string
+  username: string
+  name: string | null
+  avatarUrl: string | null
+  headline: string | null
+  location: string | null
+  currentCompany: string | null
+  currentRole: string | null
+  yearsOfExperience: number | null
+  skills: SkillDto[]
+  categories: CategoryDto[]
+  priceInrPaise: number | null
+  priceUsdCents: number | null
+  hourlySessionPriceInrPaise: number | null
+  hourlySessionPriceUsdCents: number | null
+  averageRating: number | null
+  totalSessions: number | null
+  totalReviews: number | null
+  isAcceptingBookings: boolean | null
+  isAcceptingMockInterviews: boolean | null
+  isAcceptingHourlySessions: boolean | null
+  /** ISO-8601 instant; null if mentor has no upcoming open slots. */
+  nextAvailableSlot: string | null
+}
 
 export type ProfessionalSessionType = "MOCK_INTERVIEW" | "HOURLY_SESSION"
 

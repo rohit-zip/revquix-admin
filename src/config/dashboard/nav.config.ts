@@ -19,26 +19,20 @@
 import {
   BarChart3,
   Bell,
-  Briefcase,
-  Building2,
   Calendar,
   ClipboardCheck,
   CreditCard,
   FileText,
-  Globe,
   History,
   Key,
   LayoutDashboard,
-  Link2,
   type LucideIcon,
-  Package,
   Send,
   Settings,
   Star,
   Tag,
   User,
   UserCheck,
-  UserPlus,
   Users,
   Video,
   Wallet,
@@ -92,14 +86,6 @@ export const PERMISSIONS = {
   PERM_MANAGE_RESUME_PLANS: "PERM_MANAGE_RESUME_PLANS",
   PERM_VIEW_RESUME_ANALYTICS: "PERM_VIEW_RESUME_ANALYTICS",
 
-  // ── Website Builder ────────────────────────────────────────────────────────
-  PERM_MANAGE_TEMPLATES: "PERM_MANAGE_TEMPLATES",
-  PERM_MANAGE_COMPONENTS: "PERM_MANAGE_COMPONENTS",
-  PERM_MANAGE_PLATFORM_PRICING: "PERM_MANAGE_PLATFORM_PRICING",
-  PERM_MANAGE_WATERMARK_CONFIG: "PERM_MANAGE_WATERMARK_CONFIG",
-  PERM_VIEW_ALL_WEBSITES: "PERM_VIEW_ALL_WEBSITES",
-  PERM_MANAGE_ALL_WEBSITES: "PERM_MANAGE_ALL_WEBSITES",
-  PERM_VIEW_ALL_SUBSCRIPTIONS: "PERM_VIEW_ALL_SUBSCRIPTIONS",
 } as const
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]
@@ -359,66 +345,6 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
     ],
   },
 
-  // ── Website Builder ───────────────────────────────────────────────────────
-  {
-    title: "Website Builder",
-    access: {
-      anyOf: [
-        PERMISSIONS.ROLE_ADMIN,
-        PERMISSIONS.PERM_MANAGE_TEMPLATES,
-        PERMISSIONS.PERM_MANAGE_COMPONENTS,
-        PERMISSIONS.PERM_VIEW_ALL_WEBSITES,
-        PERMISSIONS.PERM_MANAGE_ALL_WEBSITES,
-        PERMISSIONS.PERM_VIEW_ALL_SUBSCRIPTIONS,
-        PERMISSIONS.PERM_MANAGE_PLATFORM_PRICING,
-        PERMISSIONS.PERM_MANAGE_WATERMARK_CONFIG,
-      ],
-    },
-    items: [
-      {
-        Icon: Globe,
-        label: "Templates",
-        href: PATH_CONSTANTS.ADMIN_WEBSITE_TEMPLATES,
-        access: { anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_TEMPLATES] },
-      },
-      {
-        Icon: Package,
-        label: "Components",
-        href: PATH_CONSTANTS.ADMIN_WEBSITE_COMPONENTS,
-        access: { anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_COMPONENTS] },
-      },
-      {
-        Icon: Tag,
-        label: "Pricing",
-        href: PATH_CONSTANTS.ADMIN_WEBSITE_PRICING,
-        access: { anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_PLATFORM_PRICING] },
-      },
-      {
-        Icon: Settings,
-        label: "Watermark",
-        href: PATH_CONSTANTS.ADMIN_WEBSITE_WATERMARK,
-        access: { anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_WATERMARK_CONFIG] },
-      },
-      {
-        Icon: Link2,
-        label: "All Websites",
-        href: PATH_CONSTANTS.ADMIN_WEBSITE_WEBSITES,
-        access: { anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_ALL_WEBSITES] },
-      },
-      {
-        Icon: CreditCard,
-        label: "Subscriptions",
-        href: PATH_CONSTANTS.ADMIN_WEBSITE_SUBSCRIPTIONS,
-        access: { anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_ALL_SUBSCRIPTIONS] },
-      },
-      {
-        Icon: BarChart3,
-        label: "Platform Stats",
-        href: PATH_CONSTANTS.ADMIN_WEBSITE_STATS,
-        access: { allOf: [PERMISSIONS.ROLE_ADMIN] },
-      },
-    ],
-  },
 
   // ── Payments Admin ────────────────────────────────────────────────────────
   {
@@ -490,67 +416,6 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
     ],
   },
 
-  // ── Hiring Management (future) ────────────────────────────────────────────
-  {
-    title: "Hiring",
-    access: { allOf: [PERMISSIONS.ROLE_ADMIN] },
-    items: [
-      {
-        Icon: Briefcase,
-        label: "Job Listings",
-        href: "/hiring/listings",
-        access: { allOf: [PERMISSIONS.ROLE_ADMIN] },
-      },
-      {
-        Icon: UserPlus,
-        label: "Candidate Pipeline",
-        href: "/hiring/pipeline",
-        access: { allOf: [PERMISSIONS.ROLE_ADMIN] },
-      },
-    ],
-  },
-
-  // ── Content (future) ──────────────────────────────────────────────────────
-  {
-    title: "Content",
-    access: { allOf: [PERMISSIONS.ROLE_ADMIN] },
-    items: [
-      {
-        Icon: FileText,
-        label: "Pages & Posts",
-        href: "/content/pages",
-        access: { allOf: [PERMISSIONS.ROLE_ADMIN] },
-      },
-    ],
-  },
-
-  // ── Analytics (future) ────────────────────────────────────────────────────
-  {
-    title: "Analytics",
-    access: { allOf: [PERMISSIONS.ROLE_ADMIN] },
-    items: [
-      {
-        Icon: BarChart3,
-        label: "Platform Analytics",
-        href: "/analytics",
-        access: { allOf: [PERMISSIONS.ROLE_ADMIN] },
-      },
-    ],
-  },
-
-  // ── System (future) ───────────────────────────────────────────────────────
-  {
-    title: "System",
-    access: { allOf: [PERMISSIONS.ROLE_ADMIN] },
-    items: [
-      {
-        Icon: Settings,
-        label: "Configuration",
-        href: "/system/config",
-        access: { allOf: [PERMISSIONS.ROLE_ADMIN] },
-      },
-    ],
-  },
 
   // ── Account ───────────────────────────────────────────────────────────────
   {

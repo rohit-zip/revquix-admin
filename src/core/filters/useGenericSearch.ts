@@ -24,6 +24,7 @@ import type {
   GenericFilterRequest,
   GenericFilterResponse,
   JoinFilterCriteria,
+  JoinRangeFilterCriteria,
   PaginationParams,
   RangeFilterCriteria,
   SortCriteria,
@@ -93,6 +94,12 @@ export interface UseGenericSearchReturn<T> {
   removeJoinFilter: (association: string, field: string) => void
   clearJoinFilters: () => void
 
+  // ── Join Range Filters ──────────────────────────────────────────────────
+  joinRangeFilters: JoinRangeFilterCriteria[]
+  addJoinRangeFilter: (filter: JoinRangeFilterCriteria) => void
+  removeJoinRangeFilter: (association: string, field: string) => void
+  clearJoinRangeFilters: () => void
+
   // ── Sort ────────────────────────────────────────────────────────────────
   sort: SortCriteria[]
   setSort: (sort: SortCriteria[]) => void
@@ -135,6 +142,7 @@ export function useGenericSearch<T>({
   const [filters, setFilters] = useState<FilterCriteria[]>([])
   const [rangeFilters, setRangeFilters] = useState<RangeFilterCriteria[]>([])
   const [joinFilters, setJoinFilters] = useState<JoinFilterCriteria[]>([])
+  const [joinRangeFilters, setJoinRangeFiltersState] = useState<JoinRangeFilterCriteria[]>([])
   const [sort, setSort] = useState<SortCriteria[]>(config.defaultSort)
   const [page, setPage] = useState(0)
   const [size, setSize] = useState(defaultSize)
@@ -148,9 +156,10 @@ export function useGenericSearch<T>({
     const allRangeFilters = [...permanentRangeFilters, ...rangeFilters]
     if (allRangeFilters.length > 0) req.rangeFilters = allRangeFilters
     if (joinFilters.length > 0) req.joinFilters = joinFilters
+    if (joinRangeFilters.length > 0) req.joinRangeFilters = joinRangeFilters
     if (sort.length > 0) req.sort = sort
     return req
-  }, [searchTerms, permanentFilters, filters, permanentRangeFilters, rangeFilters, joinFilters, sort])
+  }, [searchTerms, permanentFilters, filters, permanentRangeFilters, rangeFilters, joinFilters, joinRangeFilters, sort])
 
   // ── React Query ───────────────────────────────────────────────────────────
   const query = useQuery({
@@ -247,6 +256,29 @@ export function useGenericSearch<T>({
     setPage(0)
   }, [])
 
+  // ── Join Range filter helpers ─────────────────────────────────────────────
+  const addJoinRangeFilter = useCallback((filter: JoinRangeFilterCriteria) => {
+    setJoinRangeFiltersState((prev) => {
+      const without = prev.filter(
+        (f) => !(f.association === filter.association && f.field === filter.field),
+      )
+      return [...without, filter]
+    })
+    setPage(0)
+  }, [])
+
+  const removeJoinRangeFilter = useCallback((association: string, field: string) => {
+    setJoinRangeFiltersState((prev) =>
+      prev.filter((f) => !(f.association === association && f.field === field)),
+    )
+    setPage(0)
+  }, [])
+
+  const clearJoinRangeFilters = useCallback(() => {
+    setJoinRangeFiltersState([])
+    setPage(0)
+  }, [])
+
   // ── Sort helpers ──────────────────────────────────────────────────────────
   const toggleSort = useCallback(
     (field: string) => {
@@ -268,6 +300,7 @@ export function useGenericSearch<T>({
     setFilters([])
     setRangeFilters([])
     setJoinFilters([])
+    setJoinRangeFiltersState([])
     setSort(config.defaultSort)
     setPage(0)
     setSize(defaultSize)
@@ -275,7 +308,7 @@ export function useGenericSearch<T>({
 
   // ── Active filter count ───────────────────────────────────────────────────
   const activeFilterCount =
-    searchTerms.length + filters.length + rangeFilters.length + joinFilters.length
+    searchTerms.length + filters.length + rangeFilters.length + joinFilters.length + joinRangeFilters.length
 
   return {
     data: query.data,
@@ -307,6 +340,11 @@ export function useGenericSearch<T>({
     addJoinFilter,
     removeJoinFilter,
     clearJoinFilters,
+
+    joinRangeFilters,
+    addJoinRangeFilter,
+    removeJoinRangeFilter,
+    clearJoinRangeFilters,
 
     sort,
     setSort,

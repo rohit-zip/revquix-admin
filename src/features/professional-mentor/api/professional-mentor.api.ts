@@ -19,6 +19,7 @@ import type {
   MentorRatingResponse,
   OpenSlotsRequest,
   ProfessionalSlotResponse,
+  PublicMentorCard,
   SlotStatsResponse,
   SpringPageResponse,
   UpdateMentorProfileRequest,
@@ -77,30 +78,39 @@ export const deleteMentorResume = (): Promise<void> =>
   apiClient.delete(`${PROFILE}/resume`).then(() => undefined)
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MENTOR DISCOVERY (Public-ish)
+// MENTOR DISCOVERY — public endpoint (POST /api/v1/public/mentors/search)
 // ═══════════════════════════════════════════════════════════════════════════════
+//
+// Phase C: The old auth-gated POST /api/v1/mentors/search was deleted in Phase 1
+// (MentorDiscoveryController.searchMentors removed). The admin now uses the
+// public endpoint. Auth headers are stripped server-side for /public/** so the
+// response is always unscoped, safe to cache.
 
-const MENTORS = "/mentors"
-
+/**
+ * Search mentors using the public discovery endpoint.
+ *
+ * Wraps the GenericFilterRequest in the `{ filter }` envelope expected by
+ * PublicMentorSearchRequest. Compatible with useGenericSearch's searchFn type.
+ */
 export const searchMentors = (
   request: GenericFilterRequest,
   params: { page: number; size: number },
-): Promise<GenericFilterResponse<MentorProfileResponse>> =>
+): Promise<GenericFilterResponse<PublicMentorCard>> =>
   apiClient
-    .post<GenericFilterResponse<MentorProfileResponse>>(
-      `${MENTORS}/search?page=${params.page}&size=${params.size}`,
-      request,
+    .post<GenericFilterResponse<PublicMentorCard>>(
+      `/public/mentors/search?page=${params.page}&size=${params.size}`,
+      { filter: request },
     )
     .then((r) => r.data)
 
 export const getMentorProfile = (mentorProfileId: string): Promise<MentorProfileResponse> =>
-  apiClient.get<MentorProfileResponse>(`${MENTORS}/${mentorProfileId}`).then((r) => r.data)
+  apiClient.get<MentorProfileResponse>(`/mentors/${mentorProfileId}`).then((r) => r.data)
 
 export const getMentorSlots = (
   mentorProfileId: string,
 ): Promise<ProfessionalSlotResponse[]> =>
   apiClient
-    .get<ProfessionalSlotResponse[]>(`${MENTORS}/${mentorProfileId}/slots`)
+    .get<ProfessionalSlotResponse[]>(`/mentors/${mentorProfileId}/slots`)
     .then((r) => r.data)
 
 // ═══════════════════════════════════════════════════════════════════════════════

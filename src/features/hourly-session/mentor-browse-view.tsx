@@ -2,14 +2,17 @@
  * ─── HOURLY SESSION MENTOR BROWSE VIEW ───────────────────────────────────────
  *
  * Admin-only mentor discovery page filtered to mentors who accept hourly sessions.
- * Modelled after mock-interview/mentor-browse-view.tsx.
+ *
+ * Phase C: Migrated from the deleted POST /api/v1/mentors/search to the public
+ * POST /api/v1/public/mentors/search endpoint. Uses PublicMentorCard type.
+ * Experience range filter now correctly uses joinRangeFilter on userAuth
+ * (Phase 0 backend fix — yearsOfExperience lives on UserAuth, not MentorProfile).
  */
 
 "use client"
 
 import React, { useState, useCallback } from "react"
 import Link from "next/link"
-import { useQuery } from "@tanstack/react-query"
 import {
   Star,
   Briefcase,
@@ -20,10 +23,6 @@ import {
   ArrowRight,
   X,
   RotateCcw,
-  ChevronDown,
-  Check,
-  Tag,
-  Layers,
 } from "lucide-react"
 
 import { Card, CardContent } from "@/components/ui/card"
@@ -50,20 +49,20 @@ import {
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { cn } from "@/lib/utils"
 
 import { useGenericSearch } from "@/core/filters"
 import type { FilterConfig } from "@/core/filters/filter.types"
 import { searchMentors } from "@/features/professional-mentor/api/professional-mentor.api"
-import type { MentorProfileResponse } from "@/features/professional-mentor/api/professional-mentor.types"
+import type { PublicMentorCard } from "@/features/professional-mentor/api/professional-mentor.types"
 import { PATH_CONSTANTS } from "@/core/constants/path-constants"
-import { getAllCategoriesWithSkills } from "@/features/user/api/category.api"
-import type { CategoryWithSkills } from "@/features/user/api/user.types"
 
 // ─── Filter Config ────────────────────────────────────────────────────────────
+// Note: yearsOfExperience is on UserAuth (not MentorProfile root) — it must be
+// passed as a joinRangeFilter with association: "userAuth". The rangeFilterFields
+// here only cover root MentorProfile fields.
 
 const MENTOR_FILTER_CONFIG: FilterConfig = {
-  searchableFields: ["headline", "bio", "currentCompany", "currentRole", "userName"],
+  searchableFields: ["headline", "bio", "currentCompany", "currentRole"],
   filterFields: [
     {
       field: "isAcceptingBookings",
@@ -73,7 +72,6 @@ const MENTOR_FILTER_CONFIG: FilterConfig = {
     },
   ],
   rangeFilterFields: [
-    { field: "yearsOfExperience", label: "Experience (years)", type: "INTEGER" },
     { field: "hourlySessionPriceInrPaise", label: "Hourly Price (₹)", type: "INTEGER" },
     { field: "averageRating", label: "Rating", type: "INTEGER" },
   ],
@@ -81,40 +79,29 @@ const MENTOR_FILTER_CONFIG: FilterConfig = {
     { field: "averageRating", label: "Rating" },
     { field: "totalSessions", label: "Sessions" },
     { field: "hourlySessionPriceInrPaise", label: "Hourly Price (INR)" },
-    { field: "yearsOfExperience", label: "Experience" },
-  ],
-  joinFilterFields: [
-    {
-      association: "userAuth",
-      field: "name",
-      label: "Mentor Name",
-      operators: ["LIKE"],
-    },
-    {
-      association: "categories",
-      field: "name",
-      label: "Categories",
-      operators: ["IN"],
-    },
-    {
-      association: "skills",
-      field: "name",
-      label: "Skills",
-      operators: ["IN"],
-    },
   ],
   defaultSort: [{ field: "averageRating", direction: "DESC" }],
   defaultPageSize: 12,
 }
 
-const SORT_OPTIONS = [
-  { value: "averageRating-DESC", label: "Highest Rated" },
-  { value: "averageRating-ASC", label: "Lowest Rated" },
-  { value: "hourlySessionPriceInrPaise-ASC", label: "Price: Low to High" },
-  { value: "hourlySessionPriceInrPaise-DESC", label: "Price: High to Low" },
-  { value: "yearsOfExperience-DESC", label: "Most Experienced" },
-  { value: "yearsOfExperience-ASC", label: "Least Experienced" },
-  { value: "totalSessions-DESC", label: "Most Sessions" },
+// ─── Sort options ─────────────────────────────────────────────────────────────
+
+interface SortOption {
+  value: string
+  label: string
+  field: string
+  direction: "ASC" | "DESC"
+  association?: string
+}
+
+const SORT_OPTIONS: SortOption[] = [
+  { value: "averageRating-DESC", label: "Highest Rated",       field: "averageRating", direction: "DESC" },
+  { value: "averageRating-ASC",  label: "Lowest Rated",        field: "averageRating", direction: "ASC" },
+  { value: "price-ASC",          label: "Price: Low to High",  field: "hourlySessionPriceInrPaise", direction: "ASC" },
+  { value: "price-DESC",         label: "Price: High to Low",  field: "hourlySessionPriceInrPaise", direction: "DESC" },
+  { value: "experience-DESC",    label: "Most Experienced",    field: "yearsOfExperience", direction: "DESC", association: "userAuth" },
+  { value: "experience-ASC",     label: "Least Experienced",   field: "yearsOfExperience", direction: "ASC",  association: "userAuth" },
+  { value: "totalSessions-DESC", label: "Most Sessions",       field: "totalSessions", direction: "DESC" },
 ]
 
 // ─── Format helpers ───────────────────────────────────────────────────────────
@@ -125,8 +112,14 @@ function formatPrice(paise: number | null, cents: number | null) {
   return "Price not set"
 }
 
-function getInitials(name: string) {
-  return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+function getInitials(name: string | null) {
+  if (!name) return "?"
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2)
 }
 
 function rupeesToPaise(rupees: string): string {
@@ -143,7 +136,7 @@ function paiseToRupees(paise: string): string {
 
 // ─── Mentor Card ──────────────────────────────────────────────────────────────
 
-function MentorCard({ mentor }: { mentor: MentorProfileResponse }) {
+function MentorCard({ mentor }: { mentor: PublicMentorCard }) {
   return (
     <Link
       href={`${PATH_CONSTANTS.ADMIN_HOURLY_SESSION_MENTOR_DETAIL}/${mentor.mentorProfileId}`}
@@ -156,13 +149,13 @@ function MentorCard({ mentor }: { mentor: MentorProfileResponse }) {
             <Avatar className="h-12 w-12 shrink-0 ring-2 ring-background shadow-sm">
               <AvatarImage src={mentor.avatarUrl ?? undefined} />
               <AvatarFallback className="text-sm font-semibold bg-primary/10 text-primary">
-                {getInitials(mentor.userName)}
+                {getInitials(mentor.name)}
               </AvatarFallback>
             </Avatar>
 
             <div className="min-w-0 flex-1 text-left">
               <h3 className="truncate text-sm font-semibold leading-tight group-hover:text-primary transition-colors">
-                {mentor.userName}
+                {mentor.name ?? mentor.username}
               </h3>
               <p className="mt-0.5 truncate text-xs text-muted-foreground leading-snug">
                 {mentor.headline}
@@ -184,9 +177,9 @@ function MentorCard({ mentor }: { mentor: MentorProfileResponse }) {
             <div className="flex items-center gap-1">
               <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
               <span className="font-semibold text-foreground">
-                {mentor.averageRating > 0 ? mentor.averageRating.toFixed(1) : "New"}
+                {(mentor.averageRating ?? 0) > 0 ? (mentor.averageRating!).toFixed(1) : "New"}
               </span>
-              {mentor.totalReviews > 0 && (
+              {(mentor.totalReviews ?? 0) > 0 && (
                 <span>({mentor.totalReviews})</span>
               )}
             </div>
@@ -195,8 +188,12 @@ function MentorCard({ mentor }: { mentor: MentorProfileResponse }) {
               <Clock className="h-3.5 w-3.5" />
               <span>60 min</span>
             </div>
-            <span className="h-3 w-px bg-border" />
-            <span>{mentor.yearsOfExperience}+ yrs</span>
+            {mentor.yearsOfExperience != null && (
+              <>
+                <span className="h-3 w-px bg-border" />
+                <span>{mentor.yearsOfExperience}+ yrs</span>
+              </>
+            )}
           </div>
 
           {/* Skills */}
@@ -224,7 +221,7 @@ function MentorCard({ mentor }: { mentor: MentorProfileResponse }) {
           <div className="flex items-center justify-between">
             <div className="text-left space-y-0.5">
               <p className="text-sm font-bold leading-tight">
-                {formatPrice(mentor.hourlySessionPriceInrPaise, mentor.hourlySessionPriceUsdCents)}
+                {formatPrice(mentor.hourlySessionPriceInrPaise, mentor.hourlySessionPriceUsdCents ?? null)}
               </p>
               <p className="text-[10px] text-muted-foreground">per hour</p>
             </div>
@@ -234,7 +231,7 @@ function MentorCard({ mentor }: { mentor: MentorProfileResponse }) {
             </span>
           </div>
 
-          {!mentor.isAcceptingBookings && (
+          {mentor.isAcceptingBookings === false && (
             <p className="mt-2 text-[11px] font-medium text-destructive">Currently not accepting bookings</p>
           )}
         </CardContent>
@@ -243,39 +240,26 @@ function MentorCard({ mentor }: { mentor: MentorProfileResponse }) {
   )
 }
 
-// ─── Filter Sheet (Side Panel) ────────────────────────────────────────────────
+// ─── Filter Sheet ─────────────────────────────────────────────────────────────
 
 interface FilterPanelProps {
-  search: ReturnType<typeof useGenericSearch<MentorProfileResponse>>
-  catalogue: CategoryWithSkills[]
-  selectedCategoryNames: string[]
-  setSelectedCategoryNames: React.Dispatch<React.SetStateAction<string[]>>
-  selectedSkillNames: string[]
-  setSelectedSkillNames: React.Dispatch<React.SetStateAction<string[]>>
+  search: ReturnType<typeof useGenericSearch<PublicMentorCard>>
 }
 
-function FilterPanel({
-  search,
-  catalogue,
-  selectedCategoryNames,
-  setSelectedCategoryNames,
-  selectedSkillNames,
-  setSelectedSkillNames,
-}: FilterPanelProps) {
+function FilterPanel({ search }: FilterPanelProps) {
   const [expMin, setExpMin] = useState("")
   const [expMax, setExpMax] = useState("")
   const [priceMin, setPriceMin] = useState("")
   const [priceMax, setPriceMax] = useState("")
   const [ratingMin, setRatingMin] = useState("")
-  const [expandedCatId, setExpandedCatId] = useState<string | null>(null)
-  const [skillSearch, setSkillSearch] = useState("")
 
   const applyExperience = useCallback(() => {
     if (!expMin && !expMax) {
-      search.removeRangeFilter("yearsOfExperience")
+      search.removeJoinRangeFilter("userAuth", "yearsOfExperience")
       return
     }
-    search.addRangeFilter({
+    search.addJoinRangeFilter({
+      association: "userAuth",
       field: "yearsOfExperience",
       ...(expMin && { from: expMin }),
       ...(expMax && { to: expMax }),
@@ -294,231 +278,72 @@ function FilterPanel({
     })
   }, [priceMin, priceMax, search])
 
-  const syncJoinFilters = useCallback(
-    (catNames: string[], skillNames: string[]) => {
-      const jf: import("@/core/filters/filter.types").JoinFilterCriteria[] = []
-      if (catNames.length > 0) {
-        jf.push({ association: "categories", field: "name", operator: "IN", value: catNames })
-      }
-      for (const name of skillNames) {
-        jf.push({ association: "skills", field: "name", operator: "EQUALS", value: name })
-      }
-      search.setJoinFilters(jf)
-    },
-    [search],
-  )
-
-  const toggleCategory = useCallback(
-    (catName: string) => {
-      setSelectedCategoryNames((prev) => {
-        const next = prev.includes(catName) ? prev.filter((n) => n !== catName) : [...prev, catName]
-        if (!next.includes(catName)) {
-          const cat = catalogue.find((c) => c.name === catName)
-          if (cat) {
-            const catSkillNames = cat.skills.map((s) => s.name)
-            setSelectedSkillNames((ps) => {
-              const nextSkills = ps.filter((n) => !catSkillNames.includes(n))
-              syncJoinFilters(next, nextSkills)
-              return nextSkills
-            })
-            return next
-          }
-        }
-        setSelectedSkillNames((ps) => { syncJoinFilters(next, ps); return ps })
-        return next
-      })
-    },
-    [catalogue, syncJoinFilters, setSelectedCategoryNames, setSelectedSkillNames],
-  )
-
-  const toggleSkill = useCallback(
-    (skillName: string) => {
-      setSelectedSkillNames((prev) => {
-        const next = prev.includes(skillName) ? prev.filter((n) => n !== skillName) : [...prev, skillName]
-        setSelectedCategoryNames((cats) => { syncJoinFilters(cats, next); return cats })
-        return next
-      })
-    },
-    [syncJoinFilters, setSelectedSkillNames, setSelectedCategoryNames],
-  )
-
   const clearAllFilters = useCallback(() => {
-    setExpMin(""); setExpMax(""); setPriceMin(""); setPriceMax(""); setRatingMin(""); setSkillSearch("")
-    setSelectedCategoryNames([]); setSelectedSkillNames([])
-    search.clearRangeFilters(); search.clearFilters(); search.clearJoinFilters()
-  }, [search, setSelectedCategoryNames, setSelectedSkillNames])
+    setExpMin(""); setExpMax(""); setPriceMin(""); setPriceMax(""); setRatingMin("")
+    search.clearRangeFilters()
+    search.clearJoinRangeFilters()
+    search.clearFilters()
+  }, [search])
 
-  const hasActiveFilters = search.rangeFilters.length > 0 || search.filters.length > 0 || search.joinFilters.length > 0
+  const hasActiveFilters =
+    search.rangeFilters.length > 0 ||
+    search.joinRangeFilters.length > 0 ||
+    search.filters.length > 0
 
   return (
     <ScrollArea className="h-full">
       <div className="space-y-5 pr-3">
 
-        {/* Categories */}
-        <div className="space-y-2.5">
-          <Label className="flex items-center gap-2 text-sm font-semibold">
-            <Layers className="h-3.5 w-3.5 text-muted-foreground" />
-            Categories
-          </Label>
-          <div className="space-y-1">
-            {catalogue.map((cat) => {
-              const isSelected = selectedCategoryNames.includes(cat.name)
-              return (
-                <button
-                  key={cat.categoryId}
-                  type="button"
-                  onClick={() => toggleCategory(cat.name)}
-                  className={cn(
-                    "flex w-full items-center gap-2.5 rounded-lg border px-3 py-2 text-left text-sm transition-all",
-                    isSelected
-                      ? "border-primary/40 bg-primary/5 text-foreground"
-                      : "border-transparent hover:bg-accent text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  <div className={cn(
-                    "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors",
-                    isSelected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30",
-                  )}>
-                    {isSelected && <Check className="h-3 w-3" />}
-                  </div>
-                  <span className="flex-1 truncate">{cat.name}</span>
-                  <span className="text-[10px] text-muted-foreground">{cat.skills.length}</span>
-                </button>
-              )
-            })}
-            {catalogue.length === 0 && (
-              <p className="py-2 text-center text-xs text-muted-foreground">Loading categories…</p>
-            )}
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* Skills */}
-        <div className="space-y-2.5">
-          <Label className="flex items-center gap-2 text-sm font-semibold">
-            <Tag className="h-3.5 w-3.5 text-muted-foreground" />
-            Skills
-            {selectedSkillNames.length > 0 && (
-              <Badge variant="secondary" className="ml-auto h-5 rounded-full px-1.5 text-[10px]">
-                {selectedSkillNames.length}
-              </Badge>
-            )}
-          </Label>
-
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search skills…"
-              value={skillSearch}
-              onChange={(e) => setSkillSearch(e.target.value)}
-              className="h-8 pl-8 text-xs"
-            />
-          </div>
-
-          {selectedSkillNames.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {selectedSkillNames.map((name) => (
-                <Badge key={name} variant="secondary" className="gap-1 py-0.5 text-[10px]">
-                  {name}
-                  <button onClick={() => toggleSkill(name)} className="ml-0.5 hover:text-destructive">
-                    <X className="h-2.5 w-2.5" />
-                  </button>
-                </Badge>
-              ))}
-            </div>
-          )}
-
-          <div className="space-y-1">
-            {(selectedCategoryNames.length > 0
-              ? catalogue.filter((c) => selectedCategoryNames.includes(c.name))
-              : catalogue
-            ).map((cat) => {
-              const filteredSkills = cat.skills.filter(
-                (s) => !skillSearch || s.name.toLowerCase().includes(skillSearch.toLowerCase()),
-              )
-              if (filteredSkills.length === 0) return null
-              const isExpanded = expandedCatId === cat.categoryId
-              return (
-                <div key={cat.categoryId} className="rounded-lg border border-border/60">
-                  <button
-                    type="button"
-                    onClick={() => setExpandedCatId(isExpanded ? null : cat.categoryId)}
-                    className="flex w-full items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <span>{cat.name}</span>
-                    <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isExpanded && "rotate-180")} />
-                  </button>
-                  {isExpanded && (
-                    <div className="border-t border-border/40 px-2 pb-2 pt-1 space-y-0.5">
-                      {filteredSkills.map((skill) => {
-                        const isSelected = selectedSkillNames.includes(skill.name)
-                        return (
-                          <button
-                            key={skill.skillId}
-                            type="button"
-                            onClick={() => toggleSkill(skill.name)}
-                            className={cn(
-                              "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors",
-                              isSelected
-                                ? "bg-primary/5 text-foreground"
-                                : "text-muted-foreground hover:bg-accent hover:text-foreground",
-                            )}
-                          >
-                            <div className={cn(
-                              "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border transition-colors",
-                              isSelected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30",
-                            )}>
-                              {isSelected && <Check className="h-2.5 w-2.5" />}
-                            </div>
-                            <span className="truncate">{skill.name}</span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* Experience Range */}
+        {/* ── Experience Range ─────────────────────────────────────── */}
         <div className="space-y-2.5">
           <Label className="text-sm font-semibold">Experience (years)</Label>
           <div className="flex items-center gap-2">
-            <Input type="number" placeholder="Min" value={expMin} onChange={(e) => setExpMin(e.target.value)}
-              onBlur={applyExperience} onKeyDown={(e) => e.key === "Enter" && applyExperience()}
-              className="h-8 text-xs" min={0} />
+            <Input
+              type="number" placeholder="Min" value={expMin}
+              onChange={(e) => setExpMin(e.target.value)}
+              onBlur={applyExperience}
+              onKeyDown={(e) => e.key === "Enter" && applyExperience()}
+              className="h-8 text-xs" min={0}
+            />
             <span className="text-xs text-muted-foreground">to</span>
-            <Input type="number" placeholder="Max" value={expMax} onChange={(e) => setExpMax(e.target.value)}
-              onBlur={applyExperience} onKeyDown={(e) => e.key === "Enter" && applyExperience()}
-              className="h-8 text-xs" min={0} />
+            <Input
+              type="number" placeholder="Max" value={expMax}
+              onChange={(e) => setExpMax(e.target.value)}
+              onBlur={applyExperience}
+              onKeyDown={(e) => e.key === "Enter" && applyExperience()}
+              className="h-8 text-xs" min={0}
+            />
           </div>
         </div>
 
         <Separator />
 
-        {/* Hourly Price Range */}
+        {/* ── Hourly Price Range ───────────────────────────────────── */}
         <div className="space-y-2.5">
           <Label className="text-sm font-semibold">Hourly Price (₹)</Label>
           <div className="flex items-center gap-2">
-            <Input type="number" placeholder="Min" value={priceMin} onChange={(e) => setPriceMin(e.target.value)}
-              onBlur={applyPrice} onKeyDown={(e) => e.key === "Enter" && applyPrice()}
-              className="h-8 text-xs" min={0} />
+            <Input
+              type="number" placeholder="Min" value={priceMin}
+              onChange={(e) => setPriceMin(e.target.value)}
+              onBlur={applyPrice}
+              onKeyDown={(e) => e.key === "Enter" && applyPrice()}
+              className="h-8 text-xs" min={0}
+            />
             <span className="text-xs text-muted-foreground">to</span>
-            <Input type="number" placeholder="Max" value={priceMax} onChange={(e) => setPriceMax(e.target.value)}
-              onBlur={applyPrice} onKeyDown={(e) => e.key === "Enter" && applyPrice()}
-              className="h-8 text-xs" min={0} />
+            <Input
+              type="number" placeholder="Max" value={priceMax}
+              onChange={(e) => setPriceMax(e.target.value)}
+              onBlur={applyPrice}
+              onKeyDown={(e) => e.key === "Enter" && applyPrice()}
+              className="h-8 text-xs" min={0}
+            />
           </div>
           <p className="text-[10px] text-muted-foreground">Values in rupees (e.g. 500 for ₹500)</p>
         </div>
 
         <Separator />
 
-        {/* Rating */}
+        {/* ── Rating ──────────────────────────────────────────────── */}
         <div className="space-y-2.5">
           <Label className="text-sm font-semibold">Minimum Rating</Label>
           <Select
@@ -560,60 +385,50 @@ function FilterPanel({
 
 // ─── Active Filters Display ───────────────────────────────────────────────────
 
-interface ActiveFiltersProps {
-  search: ReturnType<typeof useGenericSearch<MentorProfileResponse>>
-  selectedCategoryNames: string[]
-  selectedSkillNames: string[]
-  onRemoveCategory: (name: string) => void
-  onRemoveSkill: (name: string) => void
-}
-
 function ActiveFilters({
   search,
-  selectedCategoryNames,
-  selectedSkillNames,
-  onRemoveCategory,
-  onRemoveSkill,
-}: ActiveFiltersProps) {
-  const activeRangeLabels: { label: string; field: string }[] = search.rangeFilters.map((rf) => {
-    const meta = MENTOR_FILTER_CONFIG.rangeFilterFields?.find((f) => f.field === rf.field)
-    const label = meta?.label ?? rf.field
+}: {
+  search: ReturnType<typeof useGenericSearch<PublicMentorCard>>
+}) {
+  const rangeLabels = search.rangeFilters.map((rf) => {
     if (rf.field === "hourlySessionPriceInrPaise") {
       const from = rf.from ? `₹${paiseToRupees(rf.from)}` : ""
       const to = rf.to ? `₹${paiseToRupees(rf.to)}` : ""
-      const rangeStr = from && to ? `${from} – ${to}` : from ? `≥ ${from}` : `≤ ${to}`
-      return { label: `${label}: ${rangeStr}`, field: rf.field }
+      const rangeStr = from && to ? `${from}–${to}` : from ? `≥${from}` : `≤${to}`
+      return { label: `Hourly Price: ${rangeStr}`, field: rf.field }
     }
     const from = rf.from ?? ""; const to = rf.to ?? ""
-    const rangeStr = from && to ? `${from} – ${to}` : from ? `≥ ${from}` : `≤ ${to}`
-    return { label: `${label}: ${rangeStr}`, field: rf.field }
+    const rangeStr = from && to ? `${from}–${to}` : from ? `≥${from}` : `≤${to}`
+    const meta = MENTOR_FILTER_CONFIG.rangeFilterFields?.find((f) => f.field === rf.field)
+    return { label: `${meta?.label ?? rf.field}: ${rangeStr}`, field: rf.field }
   })
 
-  const hasAnything = activeRangeLabels.length > 0 || selectedCategoryNames.length > 0 || selectedSkillNames.length > 0
-  if (!hasAnything) return null
+  const joinRangeLabels = search.joinRangeFilters.map((rf) => {
+    const from = rf.from ?? ""; const to = rf.to ?? ""
+    const rangeStr = from && to ? `${from}–${to}` : from ? `≥${from}` : `≤${to}`
+    return { label: `Experience: ${rangeStr} yrs`, association: rf.association, field: rf.field }
+  })
+
+  const hasAny = rangeLabels.length > 0 || joinRangeLabels.length > 0
+  if (!hasAny) return null
 
   return (
     <div className="flex flex-wrap gap-1.5">
-      {selectedCategoryNames.map((name) => (
-        <Badge key={`cat-${name}`} variant="secondary" className="gap-1 text-xs">
-          <Layers className="h-3 w-3" /> {name}
-          <button className="ml-0.5 hover:text-destructive" onClick={() => onRemoveCategory(name)}>
-            <X className="h-3 w-3" />
-          </button>
-        </Badge>
-      ))}
-      {selectedSkillNames.map((name) => (
-        <Badge key={`skill-${name}`} variant="outline" className="gap-1 text-xs">
-          <Tag className="h-3 w-3" /> {name}
-          <button className="ml-0.5 hover:text-destructive" onClick={() => onRemoveSkill(name)}>
-            <X className="h-3 w-3" />
-          </button>
-        </Badge>
-      ))}
-      {activeRangeLabels.map((item) => (
+      {rangeLabels.map((item) => (
         <Badge key={item.field} variant="secondary" className="gap-1 text-xs">
           {item.label}
           <button className="ml-0.5 hover:text-destructive" onClick={() => search.removeRangeFilter(item.field)}>
+            <X className="h-3 w-3" />
+          </button>
+        </Badge>
+      ))}
+      {joinRangeLabels.map((item) => (
+        <Badge key={`${item.association}-${item.field}`} variant="secondary" className="gap-1 text-xs">
+          {item.label}
+          <button
+            className="ml-0.5 hover:text-destructive"
+            onClick={() => search.removeJoinRangeFilter(item.association, item.field)}
+          >
             <X className="h-3 w-3" />
           </button>
         </Badge>
@@ -625,81 +440,27 @@ function ActiveFilters({
 // ─── Main View ────────────────────────────────────────────────────────────────
 
 export default function HourlySessionMentorBrowseView() {
-  const search = useGenericSearch<MentorProfileResponse>({
+  const search = useGenericSearch<PublicMentorCard>({
     queryKey: "hourly-session-mentor-discovery",
     searchFn: searchMentors,
     config: MENTOR_FILTER_CONFIG,
     permanentFilters: [
-      { field: "isAcceptingBookings", operator: "EQUALS", value: true },
+      { field: "isAcceptingBookings",     operator: "EQUALS", value: true },
       { field: "isAcceptingHourlySessions", operator: "EQUALS", value: true },
       { field: "hourlySessionPriceInrPaise", operator: "IS_NOT_NULL", value: "" },
     ],
   })
 
-  const { data: catalogue = [] } = useQuery({
-    queryKey: ["categories-with-skills"],
-    queryFn: getAllCategoriesWithSkills,
-    staleTime: 1000 * 60 * 10,
-  })
+  const currentSortValue = (() => {
+    if (search.sort.length === 0) return "averageRating-DESC"
+    const s = search.sort[0]
+    const opt = SORT_OPTIONS.find(
+      (o) => o.field === s.field && o.direction === s.direction && (o.association ?? null) === (s.association ?? null),
+    )
+    return opt?.value ?? "averageRating-DESC"
+  })()
 
-  const [selectedCategoryNames, setSelectedCategoryNames] = useState<string[]>([])
-  const [selectedSkillNames, setSelectedSkillNames] = useState<string[]>([])
-
-  const buildJoinFilters = useCallback(
-    (catNames: string[], skillNames: string[]) => {
-      const jf: import("@/core/filters/filter.types").JoinFilterCriteria[] = []
-      if (catNames.length > 0) {
-        jf.push({ association: "categories", field: "name", operator: "IN", value: catNames })
-      }
-      for (const name of skillNames) {
-        jf.push({ association: "skills", field: "name", operator: "EQUALS", value: name })
-      }
-      search.setJoinFilters(jf)
-    },
-    [search],
-  )
-
-  const handleRemoveCategory = useCallback(
-    (name: string) => {
-      setSelectedCategoryNames((prev) => {
-        const nextCats = prev.filter((n) => n !== name)
-        const cat = catalogue.find((c) => c.name === name)
-        if (cat) {
-          const catSkillNames = cat.skills.map((s) => s.name)
-          setSelectedSkillNames((ps) => {
-            const nextSkills = ps.filter((n) => !catSkillNames.includes(n))
-            buildJoinFilters(nextCats, nextSkills)
-            return nextSkills
-          })
-        } else {
-          setSelectedSkillNames((ps) => { buildJoinFilters(nextCats, ps); return ps })
-        }
-        return nextCats
-      })
-    },
-    [catalogue, buildJoinFilters],
-  )
-
-  const handleRemoveSkill = useCallback(
-    (name: string) => {
-      setSelectedSkillNames((prev) => {
-        const nextSkills = prev.filter((n) => n !== name)
-        setSelectedCategoryNames((cats) => { buildJoinFilters(cats, nextSkills); return cats })
-        return nextSkills
-      })
-    },
-    [buildJoinFilters],
-  )
-
-  const currentSortValue = search.sort.length > 0
-    ? `${search.sort[0].field}-${search.sort[0].direction}`
-    : "averageRating-DESC"
-
-  const filterCount =
-    search.rangeFilters.length +
-    search.filters.length +
-    selectedCategoryNames.length +
-    selectedSkillNames.length
+  const filterCount = search.activeFilterCount
 
   return (
     <div className="space-y-6">
@@ -732,11 +493,16 @@ export default function HourlySessionMentorBrowseView() {
           <Select
             value={currentSortValue}
             onValueChange={(val) => {
-              const [field, direction] = val.split("-") as [string, "ASC" | "DESC"]
-              search.setSort([{ field, direction }])
+              const opt = SORT_OPTIONS.find((o) => o.value === val)
+              if (!opt) return
+              search.setSort([{
+                field: opt.field,
+                direction: opt.direction,
+                ...(opt.association ? { association: opt.association } : {}),
+              }])
             }}
           >
-            <SelectTrigger className="h-9 w-45">
+            <SelectTrigger className="h-9 w-48">
               <ArrowUpDown className="mr-2 h-4 w-4" />
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
@@ -763,33 +529,17 @@ export default function HourlySessionMentorBrowseView() {
               <SheetHeader>
                 <SheetTitle>Filter Mentors</SheetTitle>
                 <SheetDescription>
-                  Narrow down by category, skills, experience, hourly price, and rating.
+                  Narrow down by experience, hourly price, and rating.
                 </SheetDescription>
               </SheetHeader>
               <div className="flex-1 overflow-hidden px-4 pb-4">
-                <FilterPanel
-                  search={search}
-                  catalogue={catalogue}
-                  selectedCategoryNames={selectedCategoryNames}
-                  setSelectedCategoryNames={setSelectedCategoryNames}
-                  selectedSkillNames={selectedSkillNames}
-                  setSelectedSkillNames={setSelectedSkillNames}
-                />
+                <FilterPanel search={search} />
               </div>
             </SheetContent>
           </Sheet>
 
-          {(search.activeFilterCount > 0 || search.searchTerms.length > 0 || selectedCategoryNames.length > 0 || selectedSkillNames.length > 0) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-9"
-              onClick={() => {
-                setSelectedCategoryNames([])
-                setSelectedSkillNames([])
-                search.resetAll()
-              }}
-            >
+          {(search.activeFilterCount > 0 || search.searchTerms.length > 0) && (
+            <Button variant="ghost" size="sm" className="h-9" onClick={search.resetAll}>
               <RotateCcw className="mr-1 h-3 w-3" />
               Reset
             </Button>
@@ -810,13 +560,7 @@ export default function HourlySessionMentorBrowseView() {
         </div>
       )}
 
-      <ActiveFilters
-        search={search}
-        selectedCategoryNames={selectedCategoryNames}
-        selectedSkillNames={selectedSkillNames}
-        onRemoveCategory={handleRemoveCategory}
-        onRemoveSkill={handleRemoveSkill}
-      />
+      <ActiveFilters search={search} />
 
       {!search.isLoading && search.data && (
         <p className="text-sm text-muted-foreground">

@@ -41,9 +41,24 @@ export interface JoinFilterCriteria {
   value: string | string[]
 }
 
+/**
+ * Range filter on a joined field (Phase 0 — userAuth.yearsOfExperience, etc.).
+ */
+export interface JoinRangeFilterCriteria {
+  association: string
+  field: string
+  from?: string
+  to?: string
+}
+
 export interface SortCriteria {
   field: string
   direction: SortDirection
+  /**
+   * Optional join association.
+   * When set, the backend sorts on `{association}.{field}` (Phase 0).
+   */
+  association?: string
 }
 
 /**
@@ -55,6 +70,8 @@ export interface GenericFilterRequest {
   filters?: FilterCriteria[]
   rangeFilters?: RangeFilterCriteria[]
   joinFilters?: JoinFilterCriteria[]
+  /** Range filters on joined fields — e.g. userAuth.yearsOfExperience (Phase 0). */
+  joinRangeFilters?: JoinRangeFilterCriteria[]
   sort?: SortCriteria[]
 }
 
