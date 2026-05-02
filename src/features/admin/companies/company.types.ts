@@ -24,11 +24,3 @@ export interface AdminUpdateCompanyRequest {
   isVerified?: boolean | null
   isActive?: boolean | null
 }
-
-export interface AdminCompanyListResponse {
-  content: AdminCompanyResponse[]
-  totalElements: number
-  totalPages: number
-  number: number
-  size: number
-}

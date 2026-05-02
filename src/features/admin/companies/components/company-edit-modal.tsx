@@ -21,6 +21,7 @@ interface CompanyEditModalProps {
   company: AdminCompanyResponse | null
   open: boolean
   onClose: () => void
+  onUpdated?: () => void
 }
 
 interface FormState {
@@ -31,7 +32,7 @@ interface FormState {
   isActive: boolean
 }
 
-export function CompanyEditModal({ company, open, onClose }: CompanyEditModalProps) {
+export function CompanyEditModal({ company, open, onClose, onUpdated }: CompanyEditModalProps) {
   const [form, setForm] = useState<FormState>({
     name: "",
     domain: "",
@@ -41,7 +42,7 @@ export function CompanyEditModal({ company, open, onClose }: CompanyEditModalPro
   })
   const [nameError, setNameError] = useState<string | null>(null)
 
-  const update = useUpdateAdminCompany(onClose)
+  const update = useUpdateAdminCompany(() => { onClose(); onUpdated?.() })
 
   useEffect(() => {
     if (company && open) {
