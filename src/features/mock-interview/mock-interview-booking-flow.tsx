@@ -437,7 +437,7 @@ export default function MockInterviewBookingFlow({ mentorProfileId }: BookingFlo
               </span>
               <span className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
-                {mentor.sessionDurationMinutes} min
+                60 min
               </span>
               <span className="font-semibold">
                 {formatPrice(mentor.priceInrPaise, mentor.priceUsdCents)}

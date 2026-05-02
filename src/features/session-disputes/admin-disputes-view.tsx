@@ -191,20 +191,20 @@ export function AdminDisputesView() {
                       </TableCell>
                       <TableCell>
                         {dispute.userResponded === null ? (
-                          <Clock className="h-4 w-4 text-muted-foreground" title="No response yet" />
+                          <Clock className="h-4 w-4 text-muted-foreground" aria-label="No response yet" />
                         ) : dispute.userResponded === true ? (
-                          <CheckCircle2 className="h-4 w-4 text-green-500" title="Said: Session DID happen" />
+                          <CheckCircle2 className="h-4 w-4 text-green-500" aria-label="Said: Session DID happen" />
                         ) : (
-                          <XCircle className="h-4 w-4 text-destructive" title="Said: Session did NOT happen" />
+                          <XCircle className="h-4 w-4 text-destructive" aria-label="Said: Session did NOT happen" />
                         )}
                       </TableCell>
                       <TableCell>
                         {dispute.mentorResponded === null ? (
-                          <Clock className="h-4 w-4 text-muted-foreground" title="No response yet" />
+                          <Clock className="h-4 w-4 text-muted-foreground" aria-label="No response yet" />
                         ) : dispute.mentorResponded === true ? (
-                          <CheckCircle2 className="h-4 w-4 text-green-500" title="Said: Session DID happen" />
+                          <CheckCircle2 className="h-4 w-4 text-green-500" aria-label="Said: Session DID happen" />
                         ) : (
-                          <XCircle className="h-4 w-4 text-destructive" title="Said: Session did NOT happen" />
+                          <XCircle className="h-4 w-4 text-destructive" aria-label="Said: Session did NOT happen" />
                         )}
                       </TableCell>
                       <TableCell>{getStatusBadge(dispute.disputeStatus)}</TableCell>

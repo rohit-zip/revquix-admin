@@ -19,6 +19,7 @@
 import {
   BarChart3,
   Bell,
+  Building2,
   Calendar,
   ClipboardCheck,
   CreditCard,
@@ -416,6 +417,20 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
     ],
   },
 
+
+  // ── Platform / Content Management ────────────────────────────────────────────
+  {
+    title: "Platform",
+    access: { allOf: [PERMISSIONS.ROLE_ADMIN] },
+    items: [
+      {
+        Icon: Building2,
+        label: "Company Registry",
+        href: PATH_CONSTANTS.ADMIN_COMPANIES,
+        access: { allOf: [PERMISSIONS.ROLE_ADMIN] },
+      },
+    ],
+  },
 
   // ── Account ───────────────────────────────────────────────────────────────
   {

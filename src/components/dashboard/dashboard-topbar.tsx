@@ -82,8 +82,7 @@ function TopbarUserMenu() {
 }
 
 export function DashboardTopbar(_props: DashboardTopbarProps) {
-  const { data: unreadData } = useUnreadCount()
-  const unreadCount = unreadData?.count ?? 0
+  const { data: unreadCount = 0 } = useUnreadCount()
   useNotificationStream()
 
   return (

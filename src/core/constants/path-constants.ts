@@ -61,7 +61,8 @@ export const PATH_CONSTANTS = {
   BUSINESS_MENTOR_BOOKINGS: "/business-mentor/bookings",
   BUSINESS_MENTOR_ALL_BOOKINGS: "/business-mentor/all-bookings",
   BUSINESS_MENTOR_INTAKES: "/business-mentor/intakes",
-
+  // ── Platform / Content Management ────────────────────────────────────────────
+  ADMIN_COMPANIES: "/companies",
   // ── Cross-app: revquix-dashboard ──────────────────────────────────────────
   EXTERNAL_DASHBOARD: DASHBOARD_URL,
   EXTERNAL_PROFILE: `${DASHBOARD_URL}/profile`,

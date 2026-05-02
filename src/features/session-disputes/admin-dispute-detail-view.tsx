@@ -404,7 +404,8 @@ export function AdminDisputeDetailView({ disputeId }: AdminDisputeDetailViewProp
                     }
                     // For FEEDBACK_NOT_SUBMITTED disputes hide attendance options
                     if (dispute.disputeType === "FEEDBACK_NOT_SUBMITTED") {
-                      return option.value === "ACCEPT_LATE_FEEDBACK"
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      return (option.value as any) === "ACCEPT_LATE_FEEDBACK"
                     }
                     return true
                   })

@@ -109,7 +109,6 @@ export interface NotificationResponse {
   category: NotificationCategory
   read: boolean
   email: boolean
-  targetUserId?: string | null
   actionButtons: NotificationActionButton[] | null
   metadata: Record<string, unknown> | null
   expiresAt: string | null

@@ -247,7 +247,7 @@ export function NotificationHistoryTable() {
                     {n.read ? "Read" : "Unread"}
                   </span>
                   {n.email && (
-                    <Mail className="h-3 w-3 text-muted-foreground" title="Email sent" />
+                    <Mail className="h-3 w-3 text-muted-foreground" aria-label="Email sent" />
                   )}
                 </div>
               </TableCell>

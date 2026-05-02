@@ -18,6 +18,7 @@ import type { FilterConfig } from "@/core/filters/filter.types"
 import { DataExplorer, type DataColumn } from "@/components/data-explorer"
 import { searchAllBookings } from "@/features/mock-interview/api/mock-interview.api"
 import type { MockInterviewBookingResponse, MockInterviewBookingStatus } from "@/features/mock-interview/api/mock-interview.types"
+import { PATH_CONSTANTS } from "@/core/constants/path-constants"
 
 const BOOKING_FILTER_CONFIG: FilterConfig = {
   searchableFields: ["mentorName"],
@@ -56,7 +57,7 @@ const BOOKING_FILTER_CONFIG: FilterConfig = {
 }
 
 function getStatusBadge(status: MockInterviewBookingStatus) {
-  const map: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
+  const map: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string; className?: string }> = {
     PENDING_PAYMENT: { variant: "secondary", label: "Pending Payment" },
     CONFIRMED: { variant: "default", label: "Confirmed" },
     IN_PROGRESS: { variant: "default", label: "In Progress" },

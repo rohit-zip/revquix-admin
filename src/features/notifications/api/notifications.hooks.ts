@@ -141,7 +141,7 @@ export function useAdminSendNotification() {
       queryClient.invalidateQueries({ queryKey: notificationKeys.all })
     },
     onError: (error: ApiError) => {
-      showErrorToast(error?.response?.data?.message || "Failed to send notification")
+      showErrorToast(error)
     },
   })
 }
@@ -395,7 +395,7 @@ export function useMarkNotificationRead() {
       queryClient.invalidateQueries({ queryKey: notificationKeys.all })
     },
     onError: (error: ApiError) => {
-      showErrorToast(error?.response?.data?.message || "Failed to mark as read")
+      showErrorToast(error)
     },
   })
 }
@@ -409,7 +409,7 @@ export function useMarkAllNotificationsRead() {
       showSuccessToast("All notifications marked as read")
     },
     onError: (error: ApiError) => {
-      showErrorToast(error?.response?.data?.message || "Failed to mark all as read")
+      showErrorToast(error)
     },
   })
 }
