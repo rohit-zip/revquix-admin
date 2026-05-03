@@ -63,6 +63,13 @@ export const PATH_CONSTANTS = {
   BUSINESS_MENTOR_INTAKES: "/business-mentor/intakes",
   // ── Platform / Content Management ────────────────────────────────────────────
   ADMIN_COMPANIES: "/companies",
+
+  // ── Offer Services (Global Offer Service) ─────────────────────────────────
+  ADMIN_OFFER_SERVICES: "/offer-services",
+  ADMIN_OFFER_SERVICE_DETAIL: "/offer-services",
+  ADMIN_OFFER_ORDERS: "/offer-orders",
+  ADMIN_OFFER_ORDER_DETAIL: "/offer-orders",
+  ADMIN_OFFER_COUPONS: "/offer-coupons",
   // ── Cross-app: revquix-dashboard ──────────────────────────────────────────
   EXTERNAL_DASHBOARD: DASHBOARD_URL,
   EXTERNAL_PROFILE: `${DASHBOARD_URL}/profile`,

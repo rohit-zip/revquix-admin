@@ -28,8 +28,10 @@ import {
   Key,
   LayoutDashboard,
   type LucideIcon,
+  Package,
   Send,
   Settings,
+  ShoppingCart,
   Star,
   Tag,
   User,
@@ -86,6 +88,12 @@ export const PERMISSIONS = {
   PERM_VIEW_ALL_RESUME_REVIEWS: "PERM_VIEW_ALL_RESUME_REVIEWS",
   PERM_MANAGE_RESUME_PLANS: "PERM_MANAGE_RESUME_PLANS",
   PERM_VIEW_RESUME_ANALYTICS: "PERM_VIEW_RESUME_ANALYTICS",
+
+  // ── Offer Services ─────────────────────────────────────────────────────
+  PERM_MANAGE_OFFER_SERVICES: "PERM_MANAGE_OFFER_SERVICES",
+  PERM_MANAGE_OFFER_ORDERS: "PERM_MANAGE_OFFER_ORDERS",
+  PERM_REVIEW_OFFER_ORDERS: "PERM_REVIEW_OFFER_ORDERS",
+  PERM_MANAGE_PLATFORM_COUPONS: "PERM_MANAGE_PLATFORM_COUPONS",
 
 } as const
 
@@ -428,6 +436,50 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         label: "Company Registry",
         href: PATH_CONSTANTS.ADMIN_COMPANIES,
         access: { allOf: [PERMISSIONS.ROLE_ADMIN] },
+      },
+    ],
+  },
+
+  // ── Offer Services (Global Offer Service) ─────────────────────────────────
+  {
+    title: "Offer Services",
+    access: {
+      anyOf: [
+        PERMISSIONS.ROLE_ADMIN,
+        PERMISSIONS.PERM_MANAGE_OFFER_SERVICES,
+        PERMISSIONS.PERM_MANAGE_OFFER_ORDERS,
+        PERMISSIONS.PERM_REVIEW_OFFER_ORDERS,
+        PERMISSIONS.PERM_MANAGE_PLATFORM_COUPONS,
+      ],
+    },
+    items: [
+      {
+        Icon: Package,
+        label: "Service Catalogue",
+        href: PATH_CONSTANTS.ADMIN_OFFER_SERVICES,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_OFFER_SERVICES],
+        },
+      },
+      {
+        Icon: ShoppingCart,
+        label: "Orders",
+        href: PATH_CONSTANTS.ADMIN_OFFER_ORDERS,
+        access: {
+          anyOf: [
+            PERMISSIONS.ROLE_ADMIN,
+            PERMISSIONS.PERM_MANAGE_OFFER_ORDERS,
+            PERMISSIONS.PERM_REVIEW_OFFER_ORDERS,
+          ],
+        },
+      },
+      {
+        Icon: Tag,
+        label: "Platform Coupons",
+        href: PATH_CONSTANTS.ADMIN_OFFER_COUPONS,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_PLATFORM_COUPONS],
+        },
       },
     ],
   },
