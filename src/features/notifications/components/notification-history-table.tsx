@@ -33,7 +33,6 @@ function relativeTime(dateString: string): string {
 const CATEGORY_COLOR: Record<string, string> = {
   BOOKINGS:           "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
   PAYMENTS:           "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-  RESUME_REVIEW:      "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
   MOCK_INTERVIEWS:    "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
   HOURLY_SESSIONS:    "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400",
   DISPUTES:           "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
@@ -46,7 +45,6 @@ const CATEGORY_COLOR: Record<string, string> = {
 const CATEGORY_LABEL: Record<string, string> = {
   BOOKINGS:           "Bookings",
   PAYMENTS:           "Payments",
-  RESUME_REVIEW:      "Resume Review",
   MOCK_INTERVIEWS:    "Mock Interviews",
   HOURLY_SESSIONS:    "Hourly Sessions",
   DISPUTES:           "Disputes",

@@ -10,7 +10,6 @@ import {
   ChevronLeft,
   ChevronRight,
   CreditCard,
-  FileText,
   Gavel,
   Megaphone,
   Sparkles,
@@ -37,7 +36,6 @@ type CategoryVisual = { Icon: React.ElementType; bg: string; text: string }
 const CATEGORY_VISUAL: Record<NotificationCategory, CategoryVisual> = {
   BOOKINGS:           { Icon: Calendar,   bg: "bg-blue-100 dark:bg-blue-950",       text: "text-blue-600 dark:text-blue-400" },
   PAYMENTS:           { Icon: CreditCard, bg: "bg-emerald-100 dark:bg-emerald-950", text: "text-emerald-600 dark:text-emerald-400" },
-  RESUME_REVIEW:      { Icon: FileText,   bg: "bg-amber-100 dark:bg-amber-950",     text: "text-amber-600 dark:text-amber-400" },
   MOCK_INTERVIEWS:    { Icon: Video,      bg: "bg-violet-100 dark:bg-violet-950",   text: "text-violet-600 dark:text-violet-400" },
   HOURLY_SESSIONS:    { Icon: Calendar,   bg: "bg-sky-100 dark:bg-sky-950",         text: "text-sky-600 dark:text-sky-400" },
   DISPUTES:           { Icon: Gavel,      bg: "bg-red-100 dark:bg-red-950",         text: "text-red-600 dark:text-red-400" },

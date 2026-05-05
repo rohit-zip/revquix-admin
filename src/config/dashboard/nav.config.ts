@@ -84,11 +84,6 @@ export const PERMISSIONS = {
   PERM_VIEW_ALL_PAYMENTS: "PERM_VIEW_ALL_PAYMENTS",
   PERM_MANAGE_PAYOUTS: "PERM_MANAGE_PAYOUTS",
 
-  // ── Resume Review ───────────────────────────────────────────────────────
-  PERM_VIEW_ALL_RESUME_REVIEWS: "PERM_VIEW_ALL_RESUME_REVIEWS",
-  PERM_MANAGE_RESUME_PLANS: "PERM_MANAGE_RESUME_PLANS",
-  PERM_VIEW_RESUME_ANALYTICS: "PERM_VIEW_RESUME_ANALYTICS",
-
   // ── Offer Services ─────────────────────────────────────────────────────
   PERM_MANAGE_OFFER_SERVICES: "PERM_MANAGE_OFFER_SERVICES",
   PERM_MANAGE_OFFER_ORDERS: "PERM_MANAGE_OFFER_ORDERS",
@@ -314,46 +309,6 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
       },
     ],
   },
-
-  // ── Resume Review ───────────────────────────────────────────────────────
-  {
-    title: "Resume Review",
-    access: {
-      anyOf: [
-        PERMISSIONS.ROLE_ADMIN,
-        PERMISSIONS.PERM_VIEW_ALL_RESUME_REVIEWS,
-        PERMISSIONS.PERM_MANAGE_RESUME_PLANS,
-        PERMISSIONS.PERM_VIEW_RESUME_ANALYTICS,
-      ],
-    },
-    items: [
-      {
-        Icon: ClipboardCheck,
-        label: "All Reviews",
-        href: PATH_CONSTANTS.ADMIN_RESUME_REVIEWS,
-        access: {
-          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_ALL_RESUME_REVIEWS],
-        },
-      },
-      {
-        Icon: Tag,
-        label: "Plans",
-        href: PATH_CONSTANTS.ADMIN_RESUME_REVIEW_PLANS,
-        access: {
-          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_RESUME_PLANS],
-        },
-      },
-      {
-        Icon: BarChart3,
-        label: "Analytics",
-        href: PATH_CONSTANTS.ADMIN_RESUME_REVIEW_ANALYTICS,
-        access: {
-          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_RESUME_ANALYTICS],
-        },
-      },
-    ],
-  },
-
 
   // ── Payments Admin ────────────────────────────────────────────────────────
   {

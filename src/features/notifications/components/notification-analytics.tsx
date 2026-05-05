@@ -75,7 +75,6 @@ function HBar({ label, count, total, color }: HBarProps) {
 const CATEGORY_LABEL: Record<NotificationCategory, string> = {
   BOOKINGS: "Bookings & Sessions",
   PAYMENTS: "Payments & Refunds",
-  RESUME_REVIEW: "Resume Reviews",
   MOCK_INTERVIEWS: "Mock Interviews",
   HOURLY_SESSIONS: "Hourly Sessions",
   DISPUTES: "Disputes",
@@ -88,7 +87,6 @@ const CATEGORY_LABEL: Record<NotificationCategory, string> = {
 const CATEGORY_COLORS: Record<NotificationCategory, string> = {
   BOOKINGS:           "bg-blue-500",
   PAYMENTS:           "bg-emerald-500",
-  RESUME_REVIEW:      "bg-amber-500",
   MOCK_INTERVIEWS:    "bg-violet-500",
   HOURLY_SESSIONS:    "bg-sky-500",
   DISPUTES:           "bg-red-500",

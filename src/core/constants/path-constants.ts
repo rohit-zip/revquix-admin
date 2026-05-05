@@ -39,11 +39,6 @@ export const PATH_CONSTANTS = {
   ADMIN_MENTOR_REPORTS: "/mentor-reports",
   ADMIN_SESSION_DISPUTES: "/session-disputes",
 
-  // ── Resume Review Admin ──────────────────────────────────────────────────
-  ADMIN_RESUME_REVIEWS: "/resume-reviews",
-  ADMIN_RESUME_REVIEW_PLANS: "/resume-review-plans",
-  ADMIN_RESUME_REVIEW_ANALYTICS: "/resume-review-analytics",
-
   // ── Payments Admin ────────────────────────────────────────────────────────
   ADMIN_PAYMENTS: "/payments",
   ADMIN_PAYOUTS: "/payouts",

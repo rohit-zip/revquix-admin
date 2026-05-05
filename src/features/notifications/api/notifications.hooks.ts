@@ -63,7 +63,6 @@ const NOTIFICATION_FILTER_CONFIG: FilterConfig = {
       options: [
         { label: "Bookings & Sessions", value: "BOOKINGS" },
         { label: "Payments & Refunds", value: "PAYMENTS" },
-        { label: "Resume Reviews", value: "RESUME_REVIEW" },
         { label: "Mock Interviews", value: "MOCK_INTERVIEWS" },
         { label: "Hourly Sessions", value: "HOURLY_SESSIONS" },
         { label: "Disputes", value: "DISPUTES" },

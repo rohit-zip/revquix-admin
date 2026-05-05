@@ -50,7 +50,6 @@ const PAYMENT_FILTER_CONFIG: FilterConfig = {
       operators: ["EQUALS"],
       options: [
         { label: "Mock Interview", value: "MOCK_INTERVIEW" },
-        { label: "Resume Review", value: "RESUME_REVIEW" },
         { label: "Career Coaching", value: "CAREER_COACHING" },
       ],
     },

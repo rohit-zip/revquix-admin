@@ -54,7 +54,6 @@ const PROFESSIONAL_DATA = {
   ],
   careerTools: [
     { label: "Mock Interview", Icon: Video, href: "/mentorship/explore" },
-    { label: "Resume Review", Icon: FileText, href: "/mentorship/explore" },
     { label: "LinkedIn Review", Icon: Users, href: "/mentorship/explore" },
     { label: "Career Mentorship", Icon: Award, href: "/mentorship/explore" },
   ],

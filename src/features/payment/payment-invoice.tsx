@@ -41,7 +41,6 @@ function formatDateTime(iso: string | null | undefined) {
 function getContextLabel(ctx: string) {
   const map: Record<string, string> = {
     MOCK_INTERVIEW: "Mock Interview Session",
-    RESUME_REVIEW: "Resume Review",
     CAREER_COACHING: "Career Coaching Session",
     GROUP_WORKSHOP: "Group Workshop",
     SUBSCRIPTION: "Platform Subscription",
