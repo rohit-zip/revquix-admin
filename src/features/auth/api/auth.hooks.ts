@@ -99,6 +99,26 @@ export function useLogin(setError: UseFormSetError<LoginFormValues>) {
     },
     onError: (error: ApiError | NetworkError) => {
       setIsRedirecting(false)
+
+      // ── Email not verified — redirect to verify-email ──────────────────
+      // GAP-08 FIX: Handle RQ-AE-16 with fallback when details are missing.
+      if ("code" in error && error.code === "RQ-AE-16") {
+        const userId = error.details?.["userId"] as string | undefined
+        const email  = error.details?.["email"]  as string | undefined
+        if (userId && email) {
+          const from = new URLSearchParams(window.location.search).get("from")
+          const verifyUrl = `/auth/verify-email?userId=${encodeURIComponent(userId)}&email=${encodeURIComponent(email)}`
+          setIsRedirecting(true)
+          resendOtp({ userId, purpose: "REGISTER" }).catch(() => {})
+          router.push(from ? `${verifyUrl}&from=${encodeURIComponent(from)}` : verifyUrl)
+          return
+        }
+        // Fallback when details are missing — redirect without pre-filled params
+        setIsRedirecting(true)
+        router.push("/auth/verify-email")
+        return
+      }
+
       if ("isFieldError" in error && error.isFieldError) {
         Object.entries(error.fieldErrors).forEach(([field, message]) => {
           setError(field as keyof LoginFormValues, { type: "server", message })

@@ -26,6 +26,7 @@ import {
   Layers,
   Loader2,
   Mail,
+  MapPin,
   RotateCcw,
   Tag,
   User,
@@ -407,6 +408,70 @@ export default function AdminApplicationDetailView({
                     </div>
                   </div>
                 </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Work Experience History */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                Work Experience
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {app.experiences.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">No experience entries added</p>
+              ) : (
+                <ol className="relative border-l border-border ml-2 space-y-6">
+                  {app.experiences.map((exp) => {
+                    const start = `${new Date(0).toLocaleString("default", { month: "short" }).slice(0, 3)} ${exp.startYear}`
+                    const end = exp.isCurrent
+                      ? "Present"
+                      : exp.endYear
+                        ? `${new Date(0).toLocaleString("default", { month: "short" }).slice(0, 3)} ${exp.endYear}`
+                        : String(exp.startYear)
+                    return (
+                      <li key={exp.experienceId} className="ml-4">
+                        <span className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full border border-background bg-muted-foreground" />
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="text-sm font-semibold leading-tight">{exp.role}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {exp.company?.name ?? "—"}
+                            </p>
+                          </div>
+                          {exp.isCurrent && (
+                            <Badge className="bg-green-600 text-xs shrink-0">Current</Badge>
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {start} – {end}
+                        </p>
+                        {exp.location && (
+                          <p className="mt-0.5 text-xs text-muted-foreground flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />{exp.location}
+                          </p>
+                        )}
+                        {exp.description && (
+                          <p className="mt-1.5 text-xs text-foreground/80 leading-relaxed whitespace-pre-wrap">
+                            {exp.description}
+                          </p>
+                        )}
+                        {exp.skills.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {exp.skills.map((s) => (
+                              <Badge key={s.skillId} variant="outline" className="text-xs px-1.5 py-0">
+                                {s.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ol>
               )}
             </CardContent>
           </Card>

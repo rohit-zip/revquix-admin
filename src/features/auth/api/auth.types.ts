@@ -50,7 +50,7 @@ export interface VerifyEmailResponse {
 
 // ─── Resend OTP ────────────────────────────────────────────────────────────────
 
-export type OtpPurpose = "REGISTER" | "PASSWORD_RESET"
+export type OtpPurpose = "REGISTER" | "PASSWORD_RESET" | "EMAIL_OTP_REGISTER" | "EMAIL_OTP_LOGIN"
 
 export interface ResendOtpRequest {
   userId: string
@@ -77,6 +77,8 @@ export interface EmailOtpInitiateResponse {
   message: string
   /** How long (seconds) the OTP remains valid */
   otpExpiresInSeconds: number
+  /** userId for this OTP session — pass to /auth/resend-otp instead of re-calling initiate */
+  userId: string
 }
 
 export interface EmailOtpVerifyRequest {

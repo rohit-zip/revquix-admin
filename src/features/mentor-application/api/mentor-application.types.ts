@@ -26,6 +26,32 @@ export const APPLICATION_STATUS_OPTIONS: { label: string; value: MentorApplicati
   { label: "Withdrawn", value: "WITHDRAWN" },
 ]
 
+// ─── Shared sub-types ────────────────────────────────────────────────────────
+
+export interface CompanyDto {
+  companyId: string
+  name: string
+  domain: string | null
+  logoUrl: string | null
+  isVerified: boolean
+}
+
+export interface ExperienceResponse {
+  experienceId: string
+  role: string
+  company: CompanyDto | null
+  startYear: number
+  startMonth: number
+  endYear: number | null
+  endMonth: number | null
+  isCurrent: boolean
+  description: string | null
+  location: string | null
+  skills: { skillId: string; name: string }[]
+  createdAt: string
+  updatedAt: string
+}
+
 // ─── Requests ─────────────────────────────────────────────────────────────────
 
 export interface MentorApplicationRequest {
@@ -77,6 +103,8 @@ export interface MentorApplicationResponse {
   proposedHourlyPriceInrPaise: number | null
   /** Proposed hourly session price in USD cents. Null if not provided. */
   proposedHourlyPriceUsdCents: number | null
+  /** Work experience entries from the applicant's profile at time of review. */
+  experiences: ExperienceResponse[]
 }
 
 // ─── Limits ───────────────────────────────────────────────────────────────────

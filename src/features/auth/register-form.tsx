@@ -29,7 +29,7 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 import { REGISTER_BRAND_FEATURES } from "@/core/constants/auth-constants"
-import { useInitiateEmailOtp, useRegister, useVerifyEmailOtp } from "./api/auth.hooks"
+import { useInitiateEmailOtp, useRegister, useResendOtp, useVerifyEmailOtp } from "./api/auth.hooks"
 import SocialAuthButtons from "@/components/social-auth-buttons"
 import CentralizedLoader from "@/components/centralized-loader"
 
@@ -72,6 +72,8 @@ export default function RegisterForm() {
   const [registerMode, setRegisterMode] = useState<RegisterMode>("password")
   const [otpStep, setOtpStep] = useState<OtpStep>("email")
   const [otpEmail, setOtpEmail] = useState("")
+  const [otpEmailExists, setOtpEmailExists] = useState<boolean | null>(null)
+  const [otpUserId, setOtpUserId] = useState<string | null>(null)
   const [otp, setOtp] = useState("")
   const [otpError, setOtpError] = useState<string | null>(null)
   const [cooldown, setCooldown] = useState(OTP_INITIAL_COOLDOWN)
@@ -108,6 +110,7 @@ export default function RegisterForm() {
 
   const { mutate: registerUser, isPending, isRedirecting: isRegisterRedirecting } = useRegister(setError)
   const { mutate: initiateOtp, isPending: isInitiating } = useInitiateEmailOtp()
+  const { mutate: resendEmailOtp, isPending: isResending } = useResendOtp()
   const { mutate: verifyOtp, isPending: isVerifying, isRedirecting: isOtpRedirecting } = useVerifyEmailOtp()
 
   const passwordValue = watch("password") ?? ""
@@ -150,16 +153,25 @@ export default function RegisterForm() {
     setOtpStep("email")
     setOtp("")
     setOtpError(null)
+    setOtpEmailExists(null)
+    setOtpUserId(null)
     if (intervalRef.current) clearInterval(intervalRef.current)
   }
 
   // ── OTP initiate handler ───────────────────────────────────────────────────
   const handleSendOtp = handleOtpEmailSubmit((data) => {
+    // GAP-07: Block @revquix.com from Email OTP — auto-switch to password mode
+    if (data.email.trim().toLowerCase().endsWith("@revquix.com")) {
+      switchToPassword()
+      return
+    }
     initiateOtp(
       { email: data.email },
       {
         onSuccess: (res) => {
           setOtpEmail(data.email)
+          setOtpEmailExists(res.emailExists)
+          setOtpUserId(res.userId)
           setOtpExpiresIn(res.otpExpiresInSeconds)
           setOtp("")
           setOtpError(null)
@@ -172,9 +184,10 @@ export default function RegisterForm() {
 
   // ── OTP resend handler ─────────────────────────────────────────────────────
   const handleResendOtp = () => {
-    if (cooldown > 0 || isInitiating) return
-    initiateOtp(
-      { email: otpEmail },
+    if (cooldown > 0 || isResending) return
+    const purpose = otpEmailExists ? "EMAIL_OTP_LOGIN" : "EMAIL_OTP_REGISTER"
+    resendEmailOtp(
+      { userId: otpUserId!, purpose },
       {
         onSuccess: (res) => {
           setOtpExpiresIn(res.otpExpiresInSeconds)
