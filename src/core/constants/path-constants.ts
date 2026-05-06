@@ -82,7 +82,9 @@ export const PATH_CONSTANTS = {
   MOCK_INTERVIEW: `${DASHBOARD_URL}/mock-interview`,
   MOCK_INTERVIEW_BROWSE: `${DASHBOARD_URL}/mock-interview/browse`,
   MOCK_INTERVIEW_BOOK: `${DASHBOARD_URL}/mock-interview/book`,
-  MOCK_INTERVIEW_MY_BOOKINGS: `${DASHBOARD_URL}/mock-interview/my-bookings`,
+  MY_BOOKINGS: `${DASHBOARD_URL}/my-bookings`,
+  MY_BOOKINGS_MOCK_INTERVIEW: `${DASHBOARD_URL}/my-bookings/mock-interview`,
+  MY_BOOKINGS_HOURLY_SESSION: `${DASHBOARD_URL}/my-bookings/hourly-session`,
   MOCK_INTERVIEW_MENTOR_DETAIL: `${DASHBOARD_URL}/mock-interview/browse`,
 
   // Professional Mentor (user-facing — cross-app links)

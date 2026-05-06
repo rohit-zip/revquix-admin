@@ -152,7 +152,7 @@ interface MockFeedbackViewProps {
 
 export default function MockFeedbackView({
   bookingId,
-  backPath = PATH_CONSTANTS.MOCK_INTERVIEW_MY_BOOKINGS,
+  backPath = PATH_CONSTANTS.MY_BOOKINGS_MOCK_INTERVIEW,
   backLabel = "My Bookings",
 }: MockFeedbackViewProps) {
   const { data: feedback, isLoading, isError } = useMockFeedback(bookingId)

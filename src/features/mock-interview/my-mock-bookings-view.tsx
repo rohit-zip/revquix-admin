@@ -41,6 +41,7 @@ import type {
   MockInterviewBookingResponse,
   MockInterviewBookingStatus,
 } from "./api/mock-interview.types"
+import {PATH_CONSTANTS} from "@/core/constants/path-constants";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -150,7 +151,7 @@ export default function MyMockBookingsView() {
           </p>
         </div>
         <Button asChild>
-          <Link href="/mock-interview/browse">Browse Mentors</Link>
+          <Link href="/mentors">Browse Mentors</Link>
         </Button>
       </div>
 
@@ -167,7 +168,7 @@ export default function MyMockBookingsView() {
           <TableRow
             key={booking.bookingId}
             className="cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={() => router.push(`/mock-interview/my-bookings/${booking.bookingId}`)}
+            onClick={() => router.push(`${PATH_CONSTANTS.MY_BOOKINGS_MOCK_INTERVIEW}/${booking.bookingId}`)}
           >
             <TableCell>
               <p className="font-medium">{booking.mentorName}</p>

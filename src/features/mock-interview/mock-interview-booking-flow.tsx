@@ -235,7 +235,7 @@ export default function MockInterviewBookingFlow({ mentorProfileId }: BookingFlo
   const uploadResumeMutation = useUploadIntakeResume()
   const reserveSlotMutation = useReserveSlot()
   const confirmPaymentMutation = useConfirmPayment(() => {
-    router.push(PATH_CONSTANTS.MOCK_INTERVIEW_MY_BOOKINGS)
+    router.push(PATH_CONSTANTS.MY_BOOKINGS)
   })
 
   // ── Step 1: Submit intake ─────────────────────────────────────────────────

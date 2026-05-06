@@ -596,7 +596,7 @@ interface BookingDetailViewProps {
 
 export default function BookingDetailView({
   bookingId,
-  backPath = PATH_CONSTANTS.MOCK_INTERVIEW_MY_BOOKINGS,
+  backPath = PATH_CONSTANTS.MY_BOOKINGS_MOCK_INTERVIEW,
   backLabel = "My Bookings",
   hideCancelAction = false,
   isMentorView = false,
@@ -930,7 +930,7 @@ export default function BookingDetailView({
                         </p>
                       </div>
                       <Button variant="outline" size="sm" asChild>
-                        <Link href={`${PATH_CONSTANTS.MOCK_INTERVIEW_MY_BOOKINGS}/${booking.bookingId}/feedback`}>
+                        <Link href={`${PATH_CONSTANTS.MY_BOOKINGS_MOCK_INTERVIEW}/${booking.bookingId}/feedback`}>
                           View Feedback Report →
                         </Link>
                       </Button>
@@ -954,7 +954,7 @@ export default function BookingDetailView({
                         </p>
                       </div>
                       <Button asChild>
-                        <Link href={`${PATH_CONSTANTS.MOCK_INTERVIEW_MY_BOOKINGS}/${booking.bookingId}/feedback`}>
+                        <Link href={`${PATH_CONSTANTS.MY_BOOKINGS_MOCK_INTERVIEW}/${booking.bookingId}/feedback`}>
                           View Full Report →
                         </Link>
                       </Button>
