@@ -1,5 +1,7 @@
-import { Bell } from "lucide-react"
+import { Bell, Settings2 } from "lucide-react"
 import { AdminNotificationInbox } from "@/features/notifications/components/admin-notification-inbox"
+import { NotificationPreferences } from "@/features/notifications/components/notification-preferences"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export const metadata = {
   title: "Notifications | Revquix Admin",
@@ -19,7 +21,26 @@ export default function NotificationsPage() {
         </p>
       </div>
 
-      <AdminNotificationInbox />
+      <Tabs defaultValue="inbox">
+        <TabsList>
+          <TabsTrigger value="inbox" className="gap-1.5">
+            <Bell className="h-3.5 w-3.5" />
+            Inbox
+          </TabsTrigger>
+          <TabsTrigger value="preferences" className="gap-1.5">
+            <Settings2 className="h-3.5 w-3.5" />
+            Preferences
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="inbox" className="mt-4">
+          <AdminNotificationInbox />
+        </TabsContent>
+
+        <TabsContent value="preferences" className="mt-4">
+          <NotificationPreferences />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

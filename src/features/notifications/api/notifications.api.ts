@@ -8,8 +8,10 @@
 import { apiClient } from "@/lib/axios"
 import type { GenericFilterRequest, GenericFilterResponse } from "@/core/filters/filter.types"
 import type {
+  NotificationCategorySchema,
   NotificationResponse,
   PageResponse,
+  SavePreferenceRequest,
   SendNotificationRequest,
   SseTicketResponse,
   UnreadCountResponse,
@@ -34,13 +36,31 @@ export const getMyNotifications = (
     .get<PageResponse<NotificationResponse>>(BASE, { params: { page, size } })
     .then((r) => r.data)
 
-/** POST /notifications/{id}/read — Mark a single notification as read */
+/** PATCH /notifications/{id}/read — Mark a single notification as read */
 export const markNotificationRead = (id: string): Promise<void> =>
-  apiClient.post(`${BASE}/${id}/read`).then(() => undefined)
+  apiClient.patch(`${BASE}/${id}/read`).then(() => undefined)
 
-/** POST /notifications/read-all — Mark every notification as read */
+/** PATCH /notifications/read-all — Mark every notification as read */
 export const markAllNotificationsRead = (): Promise<void> =>
-  apiClient.post(`${BASE}/read-all`).then(() => undefined)
+  apiClient.patch(`${BASE}/read-all`).then(() => undefined)
+
+/** DELETE /notifications/{id} — Permanently delete a single notification */
+export const deleteNotification = (id: string): Promise<void> =>
+  apiClient.delete(`${BASE}/${id}`).then(() => undefined)
+
+// ─── Preferences ──────────────────────────────────────────────────────────────
+
+/** GET /notifications/preferences/schema — Role-filtered category schema with current preferences */
+export const getPreferencesSchema = (): Promise<NotificationCategorySchema[]> =>
+  apiClient
+    .get<NotificationCategorySchema[]>(`${BASE}/preferences/schema`)
+    .then((r) => r.data)
+
+/** PUT /notifications/preferences — Save preference for a single category */
+export const savePreference = (request: SavePreferenceRequest): Promise<void> =>
+  apiClient
+    .put(`${BASE}/preferences`, request)
+    .then(() => undefined)
 
 // ─── Admin endpoints ──────────────────────────────────────────────────────────
 

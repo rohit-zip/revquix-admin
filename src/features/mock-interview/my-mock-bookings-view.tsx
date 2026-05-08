@@ -75,7 +75,12 @@ const BOOKING_FILTER_CONFIG: FilterConfig = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getStatusBadge(status: MockInterviewBookingStatus) {
+function getStatusBadge(status: MockInterviewBookingStatus, feedbackSubmitted?: boolean | null) {
+  // When feedback is already submitted but the booking is stuck in PENDING_FEEDBACK
+  // (e.g. dispute was resolved after feedback was provided), display as Completed.
+  const effectiveStatus: MockInterviewBookingStatus =
+    status === "PENDING_FEEDBACK" && feedbackSubmitted ? "COMPLETED" : status
+
   const map: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
     PENDING_PAYMENT: { variant: "secondary", label: "Pending Payment" },
     CONFIRMED: { variant: "default", label: "Confirmed" },
@@ -87,8 +92,9 @@ function getStatusBadge(status: MockInterviewBookingStatus) {
     NO_SHOW_MENTOR: { variant: "destructive", label: "Mentor No Show" },
     PAYMENT_FAILED: { variant: "destructive", label: "Payment Failed" },
     EXPIRED: { variant: "outline", label: "Expired" },
+    PENDING_FEEDBACK: { variant: "outline", label: "Pending Feedback" },
   }
-  const info = map[status] ?? { variant: "outline", label: status }
+  const info = map[effectiveStatus] ?? { variant: "outline", label: effectiveStatus }
   return <Badge variant={info.variant}>{info.label}</Badge>
 }
 
@@ -178,7 +184,7 @@ export default function MyMockBookingsView() {
             </TableCell>
             <TableCell>{formatDate(booking.slotStartUtc)}</TableCell>
             <TableCell>{formatAmount(booking.finalAmountMinor, booking.currency)}</TableCell>
-            <TableCell>{getStatusBadge(booking.status)}</TableCell>
+            <TableCell>{getStatusBadge(booking.status, booking.feedbackSubmitted)}</TableCell>
             <TableCell>
               <MeetingLinkStatus
                 meetingProvider={booking.meetingProvider}

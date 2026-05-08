@@ -17,15 +17,20 @@ import {
   adminGetHistory,
   adminSearchNotifications,
   adminSendNotification,
+  deleteNotification,
+  getPreferencesSchema,
   getStreamTicket,
   getUnreadCount,
   getMyNotifications,
   markNotificationRead,
   markAllNotificationsRead,
+  savePreference,
 } from "./notifications.api"
 import type {
+  NotificationCategorySchema,
   NotificationResponse,
   PageResponse,
+  SavePreferenceRequest,
   SendNotificationRequest,
   SseNotificationEvent,
   SseUnreadCountEvent,
@@ -38,6 +43,7 @@ export const notificationKeys = {
   history: (page: number, size: number) => ["notifications", "admin-history", page, size] as const,
   myNotifications: (page: number, size: number) => ["notifications", "my-inbox", page, size] as const,
   unreadCount: ["notifications", "unread-count"] as const,
+  preferences: ["notifications", "preferences"] as const,
 }
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
@@ -409,6 +415,62 @@ export function useMarkAllNotificationsRead() {
     },
     onError: (error: ApiError) => {
       showErrorToast(error)
+    },
+  })
+}
+
+export function useDeleteNotification() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => deleteNotification(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all })
+    },
+    onError: (error: ApiError) => {
+      showErrorToast(error)
+    },
+  })
+}
+
+// ─── Preferences ──────────────────────────────────────────────────────────────
+
+export function useNotificationPreferencesSchema() {
+  return useQuery<NotificationCategorySchema[]>({
+    queryKey: notificationKeys.preferences,
+    queryFn: getPreferencesSchema,
+  })
+}
+
+export function useSaveNotificationPreference() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (request: SavePreferenceRequest) => savePreference(request),
+    // Optimistic update: apply the change immediately in the cache
+    onMutate: async (request) => {
+      await queryClient.cancelQueries({ queryKey: notificationKeys.preferences })
+      const previous = queryClient.getQueryData<NotificationCategorySchema[]>(
+        notificationKeys.preferences,
+      )
+      queryClient.setQueryData<NotificationCategorySchema[]>(
+        notificationKeys.preferences,
+        (old) =>
+          old?.map((schema) =>
+            schema.category === request.category
+              ? { ...schema, currentPreference: { inApp: request.inApp, email: request.email } }
+              : schema,
+          ) ?? [],
+      )
+      return { previous }
+    },
+    onError: (_err, _req, context) => {
+      // Roll back on failure
+      if (context?.previous) {
+        queryClient.setQueryData(notificationKeys.preferences, context.previous)
+      }
+      showErrorToast(new Error("Failed to save preference. Please try again."))
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationKeys.preferences })
     },
   })
 }

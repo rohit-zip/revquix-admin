@@ -127,6 +127,28 @@ export interface UnreadCountResponse {
   count: number
 }
 
+// ─── Preferences ──────────────────────────────────────────────────────────────
+
+export interface PreferenceEntry {
+  inApp: boolean
+  email: boolean
+}
+
+export interface NotificationCategorySchema {
+  category: NotificationCategory
+  label: string
+  description: string
+  canDisableInApp: boolean
+  canDisableEmail: boolean
+  currentPreference: PreferenceEntry
+}
+
+export interface SavePreferenceRequest {
+  category: NotificationCategory
+  inApp: boolean
+  email: boolean
+}
+
 // ─── Admin: Send Notification Request ─────────────────────────────────────────
 
 export interface SendNotificationRequest {

@@ -21,6 +21,7 @@ export const PATH_CONSTANTS = {
   // ── Dashboard ────────────────────────────────────────────────────────────
   DASHBOARD: "/",
   UNAUTHORIZED: "/unauthorized",
+  NOTIFICATIONS: "/notifications",
 
   // ── Access Control ────────────────────────────────────────────────────────
   ADMIN_USERS: "/users",

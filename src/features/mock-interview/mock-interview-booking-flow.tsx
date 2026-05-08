@@ -89,10 +89,9 @@ function formatSlotTime(iso: string) {
   })
 }
 
-function formatPrice(paise: number | null, cents: number | null) {
-  if (paise) return `₹${(paise / 100).toLocaleString("en-IN")}`
-  if (cents) return `$${(cents / 100).toFixed(2)}`
-  return "—"
+function formatPrice(paise: number | null | undefined) {
+  if (paise == null) return "—"
+  return `₹${(paise / 100).toLocaleString("en-IN")}`
 }
 
 // ─── Calendar Helpers ─────────────────────────────────────────────────────────
@@ -262,8 +261,8 @@ export default function MockInterviewBookingFlow({ mentorProfileId }: BookingFlo
     try {
       const result = await validateCoupon({
         couponCode: couponCode.trim(),
-        amountMinor: selectedSlot.priceInrPaise ?? selectedSlot.priceUsdCents ?? 0,
-        currency: selectedSlot.priceInrPaise ? "INR" : "USD",
+        amountMinor: selectedSlot.priceInrPaise ?? 0,
+        currency: "INR",
         mentorProfileId,
       })
       setCouponResult(result)
@@ -440,7 +439,7 @@ export default function MockInterviewBookingFlow({ mentorProfileId }: BookingFlo
                 60 min
               </span>
               <span className="font-semibold">
-                {formatPrice(mentor.priceInrPaise, mentor.priceUsdCents)}
+                {formatPrice(mentor.priceInrPaise)}
               </span>
             </div>
           </div>
@@ -864,7 +863,7 @@ export default function MockInterviewBookingFlow({ mentorProfileId }: BookingFlo
                                     isSlotSelected ? "text-primary" : "text-muted-foreground",
                                   )}
                                 >
-                                  {formatPrice(gs.slot.priceInrPaise, gs.slot.priceUsdCents)} · {gs.slot.durationMinutes}min
+                                  {formatPrice(gs.slot.priceInrPaise)} · {gs.slot.durationMinutes}min
                                 </span>
                               </div>
 
@@ -943,7 +942,7 @@ export default function MockInterviewBookingFlow({ mentorProfileId }: BookingFlo
               </div>
               <div className="flex justify-between text-sm font-medium">
                 <span>Amount</span>
-                <span>{formatPrice(selectedSlot.priceInrPaise, selectedSlot.priceUsdCents)}</span>
+                <span>{formatPrice(selectedSlot.priceInrPaise)}</span>
               </div>
 
               {couponResult?.isValid && (
@@ -1014,7 +1013,7 @@ export default function MockInterviewBookingFlow({ mentorProfileId }: BookingFlo
                 Pay{" "}
                 {couponResult?.isValid
                   ? couponResult.finalAmountDisplay
-                  : formatPrice(selectedSlot.priceInrPaise, selectedSlot.priceUsdCents)}
+                  : formatPrice(selectedSlot.priceInrPaise)}
               </Button>
             </div>
           </CardContent>

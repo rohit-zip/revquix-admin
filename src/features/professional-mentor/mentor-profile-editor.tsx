@@ -188,7 +188,7 @@ export default function MentorProfileEditor() {
         <CardHeader>
           <CardTitle className="text-base">Pricing</CardTitle>
           <CardDescription>
-            Set your session price in both INR and USD. Amounts in minor units (paise/cents).
+            Set your INR session price. USD reference price is optional and stored for future international billing.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -212,7 +212,7 @@ export default function MentorProfileEditor() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Price (USD $)</Label>
+              <Label>USD Reference Price <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
               <div className="flex items-center gap-2">
                 <Input
                   type="number"

@@ -423,12 +423,33 @@ export default function MockFeedbackFormView({
     )
   }
 
-  if (booking.status !== "COMPLETED") {
+  // Feedback can be submitted from PENDING_FEEDBACK (primary flow), COMPLETED (re-submission
+  // or late submission), DISPUTED (resolves a FEEDBACK_NOT_SUBMITTED dispute), or IN_PROGRESS
+  // (edge case where the booking status hasn't been updated by the scheduler yet).
+  const feedbackAllowed = (
+    booking.status === "PENDING_FEEDBACK" ||
+    booking.status === "COMPLETED" ||
+    booking.status === "DISPUTED" ||
+    booking.status === "IN_PROGRESS"
+  )
+  if (!feedbackAllowed) {
+    const isCancelled = ["CANCELLED_BY_USER", "CANCELLED_BY_MENTOR", "CANCELLED_BY_SYSTEM"].includes(booking.status)
+    const isNoShow = ["NO_SHOW_USER", "NO_SHOW_MENTOR"].includes(booking.status)
+    const blockedMessage = isCancelled
+      ? "This session was cancelled — feedback cannot be submitted."
+      : isNoShow
+      ? "This session ended as a no-show — feedback cannot be submitted."
+      : "Feedback cannot be submitted for a session in its current state."
     return (
-      <Alert>
-        <AlertTitle>Session Not Completed</AlertTitle>
-        <AlertDescription>Feedback can only be submitted after the mock interview session is completed.</AlertDescription>
-      </Alert>
+      <div className="max-w-4xl mx-auto space-y-4">
+        <Button variant="ghost" size="sm" asChild>
+          <Link href={backPath}><ArrowLeft className="mr-2 h-4 w-4" />{backLabel}</Link>
+        </Button>
+        <Alert>
+          <AlertTitle>Feedback Unavailable</AlertTitle>
+          <AlertDescription>{blockedMessage}</AlertDescription>
+        </Alert>
+      </div>
     )
   }
 
