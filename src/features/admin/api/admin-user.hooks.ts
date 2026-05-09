@@ -13,12 +13,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { showErrorToast, showSuccessToast } from "@/lib/show-toast"
 import type { ApiError, NetworkError } from "@/lib/api-error"
-import type { GrantPermissionRequest } from "./admin-user.types"
+import type { AdminSetQuotaRequest, GrantPermissionRequest } from "./admin-user.types"
 import {
   adminRevokeAllUserSessions,
   adminRevokeUserSession,
   assignRoleToUser,
   denyPermission,
+  getAdminSearchQuota,
   getAdminUser,
   getAdminUserDetail,
   getAdminUserSessionHistory,
@@ -27,6 +28,8 @@ import {
   grantPermission,
   removeOverride,
   removeRoleFromUser,
+  resetAdminSearchQuota,
+  setAdminSearchQuota,
 } from "./admin-user.api"
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
@@ -190,5 +193,48 @@ export function useAdminRevokeAllSessions(userId: string) {
   })
 }
 
+// ─── Search Quota ─────────────────────────────────────────────────────────────
+
+export const adminQuotaKeys = {
+  detail: (userId: string) => ["admin", "user", userId, "search-quota"] as const,
+}
+
+export function useAdminSearchQuota(userId: string) {
+  return useQuery({
+    queryKey: adminQuotaKeys.detail(userId),
+    queryFn: () => getAdminSearchQuota(userId),
+    enabled: !!userId,
+    staleTime: 30_000,
+    retry: false,
+  })
+}
+
+export function useSetAdminSearchQuota(userId: string, onSuccess?: () => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: AdminSetQuotaRequest) => setAdminSearchQuota(userId, data),
+    retry: false,
+    onSuccess: () => {
+      showSuccessToast("Search quota updated")
+      qc.invalidateQueries({ queryKey: adminQuotaKeys.detail(userId) })
+      onSuccess?.()
+    },
+    onError: (error: ApiError | NetworkError) => showErrorToast(error),
+  })
+}
+
+export function useResetAdminSearchQuota(userId: string, onSuccess?: () => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => resetAdminSearchQuota(userId),
+    retry: false,
+    onSuccess: () => {
+      showSuccessToast("Search quota reset to system default (10 / month)")
+      qc.invalidateQueries({ queryKey: adminQuotaKeys.detail(userId) })
+      onSuccess?.()
+    },
+    onError: (error: ApiError | NetworkError) => showErrorToast(error),
+  })
+}
 
 

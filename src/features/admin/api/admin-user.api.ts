@@ -10,6 +10,8 @@ import { apiClient } from "@/lib/axios"
 import type { AdminUserResponse } from "@/features/user/api/user-search.types"
 import type { AdminUserDetailResponse } from "@/features/user/api/session.types"
 import type {
+  AdminQuotaDetail,
+  AdminSetQuotaRequest,
   GrantPermissionRequest,
   UserPermissionOverrideResponse,
   UserRoleResponse,
@@ -132,5 +134,41 @@ export const adminRevokeUserSession = (
 export const adminRevokeAllUserSessions = (userId: string): Promise<void> =>
   apiClient
     .delete(`/admin/users/${userId}/sessions`)
+    .then(() => undefined)
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SEARCH QUOTA
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * GET /admin/users/{userId}/search-quota
+ * Retrieve full quota history for a user (requires PERM_MANAGE_SEARCH_QUOTA).
+ */
+export const getAdminSearchQuota = (userId: string): Promise<AdminQuotaDetail> =>
+  apiClient
+    .get<AdminQuotaDetail>(`/admin/users/${userId}/search-quota`)
+    .then((r) => r.data)
+
+/**
+ * PATCH /admin/users/{userId}/search-quota
+ * Set a custom monthly quota. quota=-1 → unlimited, quota>0 → custom cap.
+ * Requires PERM_MANAGE_SEARCH_QUOTA.
+ */
+export const setAdminSearchQuota = (
+  userId: string,
+  data: AdminSetQuotaRequest,
+): Promise<AdminQuotaDetail> =>
+  apiClient
+    .patch<AdminQuotaDetail>(`/admin/users/${userId}/search-quota`, data)
+    .then((r) => r.data)
+
+/**
+ * DELETE /admin/users/{userId}/search-quota
+ * Reset user's quota to system default (10/month).
+ * Requires PERM_MANAGE_SEARCH_QUOTA.
+ */
+export const resetAdminSearchQuota = (userId: string): Promise<void> =>
+  apiClient
+    .delete(`/admin/users/${userId}/search-quota`)
     .then(() => undefined)
 

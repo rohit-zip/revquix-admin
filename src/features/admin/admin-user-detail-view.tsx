@@ -35,6 +35,7 @@ import {
   Clock,
   History,
   Monitor,
+  Search,
   UserCircle,
 } from "lucide-react"
 
@@ -51,6 +52,7 @@ import { useAdminUser } from "@/features/admin/api/admin-user.hooks"
 import UserRolesTab from "@/features/admin/components/user-roles-tab"
 import UserPermissionOverridesTab from "@/features/admin/components/user-permission-overrides-tab"
 import UserProfileTab from "@/features/admin/components/user-profile-tab"
+import UserSearchQuotaTab from "@/features/admin/components/user-search-quota-tab"
 import UserSessionsTab from "@/features/admin/components/user-sessions-tab"
 import UserLoginHistoryTab from "@/features/admin/components/user-login-history-tab"
 
@@ -115,6 +117,7 @@ export default function AdminUserDetailView({ userId }: AdminUserDetailViewProps
   const canManageRoles = hasAnyAuthority(["PERM_MANAGE_ROLES"])
   const canManageUserPermissions = hasAnyAuthority(["PERM_MANAGE_USER_ROLES"])
   const canManageUsers = hasAnyAuthority(["PERM_MANAGE_USERS", "PERM_MANAGE_ROLES", "PERM_MANAGE_USER_ROLES"])
+  const canManageSearchQuota = hasAnyAuthority(["PERM_MANAGE_SEARCH_QUOTA"])
   // Future tabs
   // const canViewBookings = hasAnyAuthority(["PERM_VIEW_ALL_BOOKINGS"])
 
@@ -302,6 +305,12 @@ export default function AdminUserDetailView({ userId }: AdminUserDetailViewProps
               <span className="hidden sm:inline">Login History</span>
             </TabsTrigger>
           )}
+          {canManageSearchQuota && (
+            <TabsTrigger value="search-quota" className="gap-1.5">
+              <Search className="size-4" />
+              <span className="hidden sm:inline">Search Quota</span>
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* ── Profile Tab ────────────────────────────────────────────────── */}
@@ -342,7 +351,12 @@ export default function AdminUserDetailView({ userId }: AdminUserDetailViewProps
             <UserLoginHistoryTab userId={userId} />
           </TabsContent>
         )}
-      </Tabs>
+        {/* ── Search Quota Tab ─────────────────────────────────────────────── */}
+        {canManageSearchQuota && (
+          <TabsContent value="search-quota" className="mt-6">
+            <UserSearchQuotaTab userId={userId} />
+          </TabsContent>
+        )}      </Tabs>
     </div>
   )
 }
