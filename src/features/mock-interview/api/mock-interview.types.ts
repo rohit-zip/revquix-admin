@@ -133,6 +133,8 @@ export interface CancellationPreviewResponse {
   refundEligible: boolean
   /** True when the session has already started — no refund possible */
   sessionAlreadyStarted: boolean
+  /** True when the booking is in PENDING_PAYMENT state — payment was never completed, no refund applicable */
+  paymentNotCompleted?: boolean
 }
 
 // ─── Requests ─────────────────────────────────────────────────────────────────
