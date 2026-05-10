@@ -9,10 +9,12 @@ import {
   Lock,
   Mail,
   Megaphone,
+  ShoppingBag,
   Smartphone,
   Sparkles,
   TrendingUp,
   UserCheck,
+  Users,
   Video,
   Wallet,
 } from "lucide-react"
@@ -42,7 +44,9 @@ const CATEGORY_VISUAL: Record<NotificationCategory, CategoryVisual> = {
   MENTOR_APPLICATION: { Icon: UserCheck,  bg: "bg-indigo-100 dark:bg-indigo-950",   text: "text-indigo-600 dark:text-indigo-400" },
   MENTOR_EARNINGS:    { Icon: Wallet,     bg: "bg-teal-100 dark:bg-teal-950",       text: "text-teal-600 dark:text-teal-400" },
   MENTOR_STATUS:      { Icon: TrendingUp, bg: "bg-orange-100 dark:bg-orange-950",   text: "text-orange-600 dark:text-orange-400" },
-  PLATFORM:           { Icon: Megaphone,  bg: "bg-pink-100 dark:bg-pink-950",       text: "text-pink-600 dark:text-pink-400" },
+  PLATFORM:           { Icon: Megaphone,   bg: "bg-pink-100 dark:bg-pink-950",       text: "text-pink-600 dark:text-pink-400" },
+  SOCIAL:             { Icon: Users,        bg: "bg-purple-100 dark:bg-purple-950",   text: "text-purple-600 dark:text-purple-400" },
+  OFFER_ORDERS:       { Icon: ShoppingBag,  bg: "bg-amber-100 dark:bg-amber-950",     text: "text-amber-600 dark:text-amber-400" },
 }
 
 const DEFAULT_VISUAL: CategoryVisual = {

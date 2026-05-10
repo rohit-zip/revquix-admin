@@ -76,6 +76,8 @@ const NOTIFICATION_FILTER_CONFIG: FilterConfig = {
         { label: "Mentor Earnings", value: "MENTOR_EARNINGS" },
         { label: "Mentor Status", value: "MENTOR_STATUS" },
         { label: "Platform", value: "PLATFORM" },
+        { label: "Social", value: "SOCIAL" },
+        { label: "Offer Orders", value: "OFFER_ORDERS" },
       ],
     },
     {
