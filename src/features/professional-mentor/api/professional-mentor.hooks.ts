@@ -19,6 +19,7 @@ import type {
 } from "./professional-mentor.types"
 import {
   bulkCancelProfessionalSlots,
+  bulkProcessPayouts,
   cancelProfessionalSlot,
   completePayout,
   createCoupon,
@@ -31,10 +32,14 @@ import {
   getAdminMentorRatings,
   getMyPayouts,
   getMyProfessionalSlots,
+  getPayoutAuditLog,
   getPayoutByBooking,
+  getPayoutStats,
   getProfessionalSlotStats,
+  holdPayout,
   openProfessionalSlots,
   processPayout,
+  releasePayout,
   toggleAvailability,
   updateMentorProfile,
   updatePricing,
@@ -50,7 +55,9 @@ export const proMentorKeys = {
   slotStats: ["pro-mentor", "slot-stats"] as const,
   coupons: ["pro-mentor", "coupons"] as const,
   payouts: ["pro-mentor", "payouts"] as const,
+  payoutStats: ["pro-mentor", "payout-stats"] as const,
   payoutByBooking: (bookingId: string) => ["pro-mentor", "payout-by-booking", bookingId] as const,
+  payoutAuditLog: (payoutId: string) => ["pro-mentor", "payout-audit-log", payoutId] as const,
   mentorDetail: (id: string) => ["mentor-discovery", id] as const,
   mentorSlots: (id: string) => ["mentor-discovery", id, "slots"] as const,
   mentorSearch: ["mentor-discovery", "search"] as const,
@@ -355,6 +362,88 @@ export function useAdminMentorRatings(mentorProfileId: string | undefined) {
     queryKey: ["admin", "mentor-ratings", mentorProfileId],
     queryFn: () => getAdminMentorRatings(mentorProfileId!),
     enabled: !!mentorProfileId,
+  })
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PAYOUTS — Phase 2 Additions
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Fetches aggregate payout statistics (counts + amounts by status).
+ * Used for the admin payout analytics cards.
+ */
+export function usePayoutStats() {
+  return useQuery({
+    queryKey: proMentorKeys.payoutStats,
+    queryFn: getPayoutStats,
+    staleTime: 30_000, // stats are relatively stable; refresh every 30s
+  })
+}
+
+/**
+ * Fetches the full audit trail for a specific payout.
+ */
+export function usePayoutAuditLog(payoutId: string | null) {
+  return useQuery({
+    queryKey: proMentorKeys.payoutAuditLog(payoutId ?? ""),
+    queryFn: () => getPayoutAuditLog(payoutId!),
+    enabled: !!payoutId,
+  })
+}
+
+/**
+ * Bulk-processes a list of PENDING payout IDs (transitions them to PROCESSING).
+ */
+export function useBulkProcessPayouts(onSuccess?: (processed: number) => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payoutIds: string[]) => bulkProcessPayouts(payoutIds),
+    retry: false,
+    onSuccess: (data) => {
+      showSuccessToast(`${data.processed} payout(s) moved to Processing${data.skipped > 0 ? ` (${data.skipped} skipped)` : ""}`)
+      qc.invalidateQueries({ queryKey: proMentorKeys.payouts })
+      qc.invalidateQueries({ queryKey: proMentorKeys.payoutStats })
+      onSuccess?.(data.processed)
+    },
+    onError: (error: ApiError | NetworkError) => showErrorToast(error),
+  })
+}
+
+/**
+ * Manually places a payout ON_HOLD (admin).
+ */
+export function useHoldPayout(onSuccess?: () => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ payoutId, reason }: { payoutId: string; reason?: string }) =>
+      holdPayout(payoutId, reason),
+    retry: false,
+    onSuccess: () => {
+      showSuccessToast("Payout placed on hold")
+      qc.invalidateQueries({ queryKey: proMentorKeys.payouts })
+      qc.invalidateQueries({ queryKey: proMentorKeys.payoutStats })
+      onSuccess?.()
+    },
+    onError: (error: ApiError | NetworkError) => showErrorToast(error),
+  })
+}
+
+/**
+ * Releases a payout from ON_HOLD back to PENDING (admin).
+ */
+export function useReleasePayout(onSuccess?: () => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payoutId: string) => releasePayout(payoutId),
+    retry: false,
+    onSuccess: () => {
+      showSuccessToast("Payout released — status restored to Pending")
+      qc.invalidateQueries({ queryKey: proMentorKeys.payouts })
+      qc.invalidateQueries({ queryKey: proMentorKeys.payoutStats })
+      onSuccess?.()
+    },
+    onError: (error: ApiError | NetworkError) => showErrorToast(error),
   })
 }
 

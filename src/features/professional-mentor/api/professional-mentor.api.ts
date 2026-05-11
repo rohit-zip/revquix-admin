@@ -11,6 +11,7 @@ import type {
   AdminUpdateServiceFlagsRequest,
   ApplyCouponRequest,
   BulkCancelSlotsRequest,
+  BulkProcessPayoutsResponse,
   CouponResponse,
   CouponValidationResponse,
   CreateCouponRequest,
@@ -18,6 +19,8 @@ import type {
   MentorProfileResponse,
   MentorRatingResponse,
   OpenSlotsRequest,
+  PayoutAuditLogEntry,
+  PayoutStatsResponse,
   ProfessionalSlotResponse,
   PublicMentorCard,
   SlotStatsResponse,
@@ -239,6 +242,37 @@ export const searchPayouts = (
       `${PAYOUTS}/admin/search?page=${params.page}&size=${params.size}`,
       request,
     )
+    .then((r) => r.data)
+
+/** GET /payouts/admin/stats — Aggregate payout statistics by status (admin) */
+export const getPayoutStats = (): Promise<PayoutStatsResponse> =>
+  apiClient.get<PayoutStatsResponse>(`${PAYOUTS}/admin/stats`).then((r) => r.data)
+
+/** POST /payouts/admin/bulk-process — Bulk transition PENDING payouts to PROCESSING (admin) */
+export const bulkProcessPayouts = (
+  payoutIds: string[],
+): Promise<BulkProcessPayoutsResponse> =>
+  apiClient
+    .post<BulkProcessPayoutsResponse>(`${PAYOUTS}/admin/bulk-process`, { payoutIds })
+    .then((r) => r.data)
+
+/** PUT /payouts/{payoutId}/hold — Manually place a payout ON_HOLD (admin) */
+export const holdPayout = (
+  payoutId: string,
+  reason?: string,
+): Promise<MentorPayoutResponse> =>
+  apiClient
+    .put<MentorPayoutResponse>(`${PAYOUTS}/${payoutId}/hold`, reason ? { reason } : {})
+    .then((r) => r.data)
+
+/** PUT /payouts/{payoutId}/release — Release payout from ON_HOLD back to PENDING (admin) */
+export const releasePayout = (payoutId: string): Promise<MentorPayoutResponse> =>
+  apiClient.put<MentorPayoutResponse>(`${PAYOUTS}/${payoutId}/release`).then((r) => r.data)
+
+/** GET /payouts/{payoutId}/audit-log — Full audit trail for a payout (admin) */
+export const getPayoutAuditLog = (payoutId: string): Promise<PayoutAuditLogEntry[]> =>
+  apiClient
+    .get<PayoutAuditLogEntry[]>(`${PAYOUTS}/${payoutId}/audit-log`)
     .then((r) => r.data)
 
 // ═══════════════════════════════════════════════════════════════════════════════

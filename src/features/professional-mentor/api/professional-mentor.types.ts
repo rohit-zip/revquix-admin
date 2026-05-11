@@ -262,6 +262,8 @@ export interface ApplyCouponRequest {
 export interface MentorPayoutResponse {
   payoutId: string
   mentorUserId: string
+  mentorName: string | null
+  mentorEmail: string | null
   paymentOrderId: string
   grossAmountMinor: number | null
   platformFeeMinor: number | null
@@ -274,5 +276,55 @@ export interface MentorPayoutResponse {
   paidAt: string | null
   adminNote: string | null
   createdAt: string
+  updatedAt: string
+}
+
+// ── Phase 2 — Payout Stats ───────────────────────────────────────────────────
+
+export interface PayoutStatsResponse {
+  totalCount: number
+  pendingCount: number
+  processingCount: number
+  completedCount: number
+  failedCount: number
+  onHoldCount: number
+  pendingAmountMinor: number
+  processingAmountMinor: number
+  completedAmountMinor: number
+  failedAmountMinor: number
+  onHoldAmountMinor: number
+  /** Sum of pending + processing + onHold amounts (total outstanding obligation). */
+  pendingObligationMinor: number
+}
+
+// ── Phase 2 — Audit Log ──────────────────────────────────────────────────────
+
+export type PayoutAction =
+  | "PROCESS_INITIATED"
+  | "COMPLETED"
+  | "HELD_BY_ADMIN"
+  | "RELEASED_BY_ADMIN"
+  | "AUTO_FAILED"
+  | "BULK_PROCESSED"
+  | "HELD_FOR_FEEDBACK"
+  | "RELEASED_AFTER_FEEDBACK"
+
+export interface PayoutAuditLogEntry {
+  auditLogId: string
+  payoutId: string
+  action: PayoutAction
+  previousStatus: PayoutStatus | null
+  newStatus: PayoutStatus
+  performedByUserId: string | null
+  note: string | null
+  createdAt: string
+}
+
+// ── Phase 2 — Bulk Process ───────────────────────────────────────────────────
+
+export interface BulkProcessPayoutsResponse {
+  total: number
+  processed: number
+  skipped: number
 }
 
