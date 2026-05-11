@@ -277,6 +277,17 @@ export interface MentorPayoutResponse {
   adminNote: string | null
   createdAt: string
   updatedAt: string
+  // Phase 5: Override & Review Fields
+  /** Non-null when admin has set an override amount; used on completion. */
+  adminOverrideAmountMinor: number | null
+  /** Human-readable justification for the override. */
+  adminOverrideReason: string | null
+  /** True when this payout requires explicit admin acknowledgement before processing. */
+  requiresReview: boolean
+  /** True if at least one refund was issued against the linked payment order. */
+  refundIssued: boolean
+  /** Cumulative refunded amount in minor units. Null if no refund has been issued. */
+  refundAmountMinor: number | null
 }
 
 // ── Phase 2 — Payout Stats ───────────────────────────────────────────────────
@@ -308,6 +319,7 @@ export type PayoutAction =
   | "BULK_PROCESSED"
   | "HELD_FOR_FEEDBACK"
   | "RELEASED_AFTER_FEEDBACK"
+  | "AMOUNT_OVERRIDDEN"
 
 export interface PayoutAuditLogEntry {
   auditLogId: string
@@ -320,11 +332,54 @@ export interface PayoutAuditLogEntry {
   createdAt: string
 }
 
+// ── Phase 5 — Payout Override ────────────────────────────────────────────────
+
+export interface OverridePayoutAmountRequest {
+  overrideAmountMinor: number
+  reason: string
+}
+
 // ── Phase 2 — Bulk Process ───────────────────────────────────────────────────
 
 export interface BulkProcessPayoutsResponse {
   total: number
   processed: number
   skipped: number
+}
+
+// ── Phase 8 — Reports & Export ──────────────────────────────────────────────
+
+export interface MonthlyPayoutSummaryRow {
+  year: number
+  month: number
+  completedCount: number
+  totalPayoutMinor: number
+  totalGrossMinor: number
+  totalPlatformFeeMinor: number
+  totalGstMinor: number
+}
+
+export interface CommissionRevenueRow {
+  year: number
+  month: number
+  transactionCount: number
+  platformFeeMinor: number
+  gstMinor: number
+  totalRevenueMinor: number
+}
+
+export interface MentorEarningsBreakdownRow {
+  mentorUserId: string
+  mentorName: string
+  mentorEmail: string
+  completedPayouts: number
+  totalPayoutMinor: number
+  totalGrossMinor: number
+  totalPlatformFeeMinor: number
+}
+
+export interface PayoutReportDateRange {
+  from?: string
+  to?: string
 }
 

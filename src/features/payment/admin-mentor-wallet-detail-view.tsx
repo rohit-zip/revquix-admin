@@ -14,9 +14,14 @@ import { useRouter } from "nextjs-toploader/app"
 import {
   ArrowLeft,
   Banknote,
+  BadgeCheck,
+  Building2,
+  CircleCheck,
+  Clock,
   IndianRupee,
   Loader2,
   Percent,
+  Smartphone,
   TrendingUp,
   Video,
   Wallet,
@@ -31,6 +36,14 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -41,11 +54,20 @@ import {
 import {
   useMentorWallet,
   useUpdateMentorCommission,
+  usePayoutAccountsForMentor,
+  useVerifyPayoutAccount,
 } from "@/features/payment/api/payment.hooks"
+import { useMentorPayouts } from "@/features/professional-mentor/api/professional-mentor.hooks"
+import type { PayoutAccountResponse } from "@/features/payment/api/payment.types"
+import type { MentorPayoutResponse } from "@/features/professional-mentor/api/professional-mentor.types"
 
 function formatAmount(minor: number, currency: string) {
   if (currency === "INR") return `₹${(minor / 100).toLocaleString("en-IN")}`
   return `$${(minor / 100).toFixed(2)}`
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
 }
 
 interface AdminMentorWalletDetailViewProps {
@@ -55,8 +77,13 @@ interface AdminMentorWalletDetailViewProps {
 export default function AdminMentorWalletDetailView({ mentorUserId }: AdminMentorWalletDetailViewProps) {
   const router = useRouter()
   const { data: wallet, isLoading, refetch } = useMentorWallet(mentorUserId)
+  const { data: accounts, isLoading: accountsLoading } = usePayoutAccountsForMentor(mentorUserId)
+  const [payoutPage, setPayoutPage] = useState(0)
+  const { data: payoutsData, isLoading: payoutsLoading } = useMentorPayouts(mentorUserId, payoutPage)
   const [commissionDialogOpen, setCommissionDialogOpen] = useState(false)
   const [commissionInput, setCommissionInput] = useState("")
+
+  const verifyMutation = useVerifyPayoutAccount()
 
   const commissionMutation = useUpdateMentorCommission(() => {
     setCommissionDialogOpen(false)
@@ -212,6 +239,93 @@ export default function AdminMentorWalletDetailView({ mentorUserId }: AdminMento
         </CardContent>
       </Card>
 
+      {/* ── Payout Accounts ── */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Building2 className="h-4 w-4" /> Registered Payout Accounts
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {accountsLoading ? (
+            <div className="space-y-2">
+              {[0, 1].map((i) => <Skeleton key={i} className="h-14 rounded-lg" />)}
+            </div>
+          ) : !accounts?.length ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              No payout accounts registered yet.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {accounts.map((account) => (
+                <PayoutAccountCard
+                  key={account.payoutAccountId}
+                  account={account}
+                  onVerify={() => verifyMutation.mutate(account.payoutAccountId)}
+                  verifying={verifyMutation.isPending}
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Payout History ── */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Clock className="h-4 w-4" /> Payout History
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Payout ID</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Reference</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {payoutsLoading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <TableRow key={i}>
+                    {Array.from({ length: 5 }).map((_, j) => (
+                      <TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : !payoutsData?.content.length ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-6 text-center text-muted-foreground text-sm">
+                    No payouts found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                payoutsData.content.map((payout) => (
+                  <PayoutRow key={payout.payoutId} payout={payout} currency={currency} />
+                ))
+              )}
+            </TableBody>
+          </Table>
+          {payoutsData && payoutsData.totalPages > 1 && (
+            <div className="flex items-center justify-center gap-4 p-4">
+              <Button variant="outline" size="sm" disabled={payoutsData.first} onClick={() => setPayoutPage(p => p - 1)}>
+                Previous
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {payoutsData.number + 1} of {payoutsData.totalPages}
+              </span>
+              <Button variant="outline" size="sm" disabled={payoutsData.last} onClick={() => setPayoutPage(p => p + 1)}>
+                Next
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* ── Commission Dialog ── */}
       <Dialog open={commissionDialogOpen} onOpenChange={setCommissionDialogOpen}>
         <DialogContent>
@@ -286,6 +400,89 @@ function DetailRow({
   )
 }
 
+function PayoutAccountCard({
+  account,
+  onVerify,
+  verifying,
+}: {
+  account: PayoutAccountResponse
+  onVerify: () => void
+  verifying: boolean
+}) {
+  const isBank = account.accountType === "BANK_ACCOUNT"
+  return (
+    <div className="flex items-center justify-between rounded-lg border p-3">
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
+          {isBank ? (
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <Smartphone className="h-4 w-4 text-muted-foreground" />
+          )}
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium">
+              {account.displayName ?? (isBank ? "Bank Account" : "UPI")}
+            </p>
+            {account.isPrimary && (
+              <Badge variant="outline" className="text-xs px-1.5 py-0">Primary</Badge>
+            )}
+            {account.isVerified && (
+              <CircleCheck className="h-3.5 w-3.5 text-green-600" />
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {isBank
+              ? `${account.bankName ?? ""} · ${account.maskedAccountNumber ?? "—"} · ${account.ifscCode ?? "—"}`
+              : account.upiId ?? "—"
+            }
+          </p>
+        </div>
+      </div>
+      {!account.isVerified && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          disabled={verifying}
+          onClick={onVerify}
+        >
+          {verifying ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <BadgeCheck className="h-3.5 w-3.5" />
+          )}
+          Verify
+        </Button>
+      )}
+    </div>
+  )
+}
 
+function getPayoutStatusBadge(status: string) {
+  switch (status) {
+    case "PENDING": return <Badge variant="secondary">Pending</Badge>
+    case "PROCESSING": return <Badge className="bg-blue-600 text-white">Processing</Badge>
+    case "COMPLETED": return <Badge className="bg-green-600 text-white">Completed</Badge>
+    case "FAILED": return <Badge variant="destructive">Failed</Badge>
+    case "ON_HOLD": return <Badge variant="outline">On Hold</Badge>
+    default: return <Badge variant="outline">{status}</Badge>
+  }
+}
 
-
+function PayoutRow({ payout, currency }: { payout: MentorPayoutResponse; currency: string }) {
+  return (
+    <TableRow>
+      <TableCell className="font-mono text-xs">{payout.payoutId}</TableCell>
+      <TableCell className="font-medium">
+        {formatAmount(payout.payoutAmountMinor, currency)}
+      </TableCell>
+      <TableCell>{getPayoutStatusBadge(payout.status)}</TableCell>
+      <TableCell className="text-sm">{formatDate(payout.createdAt)}</TableCell>
+      <TableCell className="text-xs text-muted-foreground">
+        {payout.payoutReference ?? "—"}
+      </TableCell>
+    </TableRow>
+  )
+}

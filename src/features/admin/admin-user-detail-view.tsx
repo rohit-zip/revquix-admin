@@ -37,6 +37,7 @@ import {
   Monitor,
   Search,
   UserCircle,
+  Briefcase,
 } from "lucide-react"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -55,6 +56,7 @@ import UserProfileTab from "@/features/admin/components/user-profile-tab"
 import UserSearchQuotaTab from "@/features/admin/components/user-search-quota-tab"
 import UserSessionsTab from "@/features/admin/components/user-sessions-tab"
 import UserLoginHistoryTab from "@/features/admin/components/user-login-history-tab"
+import UserProfessionalMentorTab from "@/features/admin/components/user-professional-mentor-tab"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -120,6 +122,13 @@ export default function AdminUserDetailView({ userId }: AdminUserDetailViewProps
   const canManageSearchQuota = hasAnyAuthority(["PERM_MANAGE_SEARCH_QUOTA"])
   // Future tabs
   // const canViewBookings = hasAnyAuthority(["PERM_VIEW_ALL_BOOKINGS"])
+
+  // Show the Professional Mentor tab when the user has that role and admin can manage them
+  const isProfessionalMentor = user?.roles?.includes("ROLE_PROFESSIONAL_MENTOR") ?? false
+  const canViewProfessionalMentor = isProfessionalMentor && hasAnyAuthority([
+    "ROLE_ADMIN",
+    "PERM_MANAGE_PROFESSIONAL_MENTORS",
+  ])
 
   // ── Compute the default tab ───────────────────────────────────────────────
   const defaultTab = "profile"
@@ -311,6 +320,12 @@ export default function AdminUserDetailView({ userId }: AdminUserDetailViewProps
               <span className="hidden sm:inline">Search Quota</span>
             </TabsTrigger>
           )}
+          {canViewProfessionalMentor && (
+            <TabsTrigger value="professional-mentor" className="gap-1.5">
+              <Briefcase className="size-4" />
+              <span className="hidden sm:inline">Professional Mentor</span>
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* ── Profile Tab ────────────────────────────────────────────────── */}
@@ -355,6 +370,12 @@ export default function AdminUserDetailView({ userId }: AdminUserDetailViewProps
         {canManageSearchQuota && (
           <TabsContent value="search-quota" className="mt-6">
             <UserSearchQuotaTab userId={userId} />
+          </TabsContent>
+        )}
+        {/* ── Professional Mentor Tab ───────────────────────────────────────── */}
+        {canViewProfessionalMentor && (
+          <TabsContent value="professional-mentor" className="mt-6">
+            <UserProfessionalMentorTab userId={userId} />
           </TabsContent>
         )}      </Tabs>
     </div>

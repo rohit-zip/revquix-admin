@@ -21,10 +21,13 @@ import {
   getMyWallet,
   getAllMentorWallets,
   getMentorWallet,
+  getMentorWalletsPaginated,
   updateMentorCommission,
   adminRefund,
   getRefundHistory,
   getRemainingRefundable,
+  getPayoutAccountsForMentor,
+  verifyPayoutAccount,
 } from "./payment.api"
 import type { GenericFilterRequest } from "@/core/filters/filter.types"
 import { useGenericSearch } from "@/core/filters"
@@ -42,9 +45,11 @@ export const paymentKeys = {
   webhookDetail: (id: number) => ["payments", "admin", "webhooks", id] as const,
   myWallet: ["wallets", "my"] as const,
   allWallets: ["wallets", "admin", "summary"] as const,
+  allWalletsPaginated: (page: number, size: number) => ["wallets", "admin", "paginated", page, size] as const,
   mentorWallet: (id: string) => ["wallets", "admin", id] as const,
   refundHistory: (id: string) => ["payments", "admin", "refunds", id] as const,
   refundable: (id: string) => ["payments", "admin", "refundable", id] as const,
+  payoutAccounts: (mentorUserId: string) => ["wallets", "admin", "payout-accounts", mentorUserId] as const,
 }
 
 export function usePendingPayments() {
@@ -209,6 +214,14 @@ export function useAllMentorWallets() {
   })
 }
 
+/** Admin: get paginated mentor wallet summaries */
+export function useMentorWalletsPaginated(page: number, size: number = 20) {
+  return useQuery({
+    queryKey: paymentKeys.allWalletsPaginated(page, size),
+    queryFn: () => getMentorWalletsPaginated(page, size),
+  })
+}
+
 /** Admin: get wallet summary for a specific mentor */
 export function useMentorWallet(mentorUserId: string) {
   return useQuery({
@@ -282,4 +295,27 @@ export function useRemainingRefundable(paymentOrderId: string) {
   })
 }
 
+/** Admin: list payout accounts for a mentor */
+export function usePayoutAccountsForMentor(mentorUserId: string) {
+  return useQuery({
+    queryKey: paymentKeys.payoutAccounts(mentorUserId),
+    queryFn: () => getPayoutAccountsForMentor(mentorUserId),
+    enabled: !!mentorUserId,
+  })
+}
+
+/** Admin: verify a payout account */
+export function useVerifyPayoutAccount(onSuccess?: () => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payoutAccountId: string) => verifyPayoutAccount(payoutAccountId),
+    onSuccess: (_, payoutAccountId) => {
+      showSuccessToast("Payout account verified")
+      // Invalidate all payout-accounts queries
+      qc.invalidateQueries({ queryKey: ["wallets", "admin", "payout-accounts"] })
+      onSuccess?.()
+    },
+    onError: (error: ApiError | NetworkError) => showErrorToast(error),
+  })
+}
 

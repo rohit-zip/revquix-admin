@@ -3,6 +3,7 @@
  *
  * Admin dashboard for viewing all professional mentors' wallet summaries.
  * Shows interviews conducted, current balance, total earnings, pending payouts.
+ * Uses server-side pagination (20 per page) via POST /wallets/admin/search.
  *
  * Route: /admin/wallets
  */
@@ -12,7 +13,6 @@
 import React, { useState } from "react"
 import { useRouter } from "nextjs-toploader/app"
 import {
-  ArrowUpDown,
   Clock,
   Search,
   TrendingUp,
@@ -35,7 +35,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-import { useAllMentorWallets } from "@/features/payment/api/payment.hooks"
+import { useMentorWalletsPaginated } from "@/features/payment/api/payment.hooks"
 import type { MentorWalletSummaryResponse } from "@/features/payment/api/payment.types"
 
 function formatAmount(minor: number, currency: string) {
@@ -43,42 +43,31 @@ function formatAmount(minor: number, currency: string) {
   return `$${(minor / 100).toFixed(2)}`
 }
 
+const PAGE_SIZE = 20
+
 export default function AdminMentorWalletsView() {
   const router = useRouter()
-  const { data: wallets, isLoading } = useAllMentorWallets()
+  const [page, setPage] = useState(0)
+  const { data, isLoading } = useMentorWalletsPaginated(page, PAGE_SIZE)
   const [searchQuery, setSearchQuery] = useState("")
-  const [sortField, setSortField] = useState<string>("currentBalanceMinor")
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
+
+  const wallets = data?.content ?? []
 
   const filtered = React.useMemo(() => {
-    if (!wallets) return []
-    const result = wallets.filter(
+    if (!searchQuery.trim()) return wallets
+    const q = searchQuery.toLowerCase()
+    return wallets.filter(
       (w) =>
-        w.mentorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        w.mentorEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        w.mentorUserId.toLowerCase().includes(searchQuery.toLowerCase()),
+        w.mentorName.toLowerCase().includes(q) ||
+        w.mentorEmail.toLowerCase().includes(q) ||
+        w.mentorUserId.toLowerCase().includes(q),
     )
-    result.sort((a, b) => {
-      const aVal = (a as unknown as Record<string, unknown>)[sortField] as number ?? 0
-      const bVal = (b as unknown as Record<string, unknown>)[sortField] as number ?? 0
-      return sortDir === "desc" ? bVal - aVal : aVal - bVal
-    })
-    return result
-  }, [wallets, searchQuery, sortField, sortDir])
+  }, [wallets, searchQuery])
 
-  const toggleSort = (field: string) => {
-    if (sortField === field) {
-      setSortDir((d) => (d === "desc" ? "asc" : "desc"))
-    } else {
-      setSortField(field)
-      setSortDir("desc")
-    }
-  }
-
-  // Aggregate stats
-  const totalPending = wallets?.reduce((s, w) => s + w.pendingPayoutMinor, 0) ?? 0
-  const totalEarnings = wallets?.reduce((s, w) => s + w.totalEarningsMinor, 0) ?? 0
-  const totalInterviews = wallets?.reduce((s, w) => s + w.totalInterviewsConducted, 0) ?? 0
+  // Aggregate stats for current page
+  const totalPending = wallets.reduce((s, w) => s + w.pendingPayoutMinor, 0)
+  const totalEarnings = wallets.reduce((s, w) => s + w.totalEarningsMinor, 0)
+  const totalInterviews = wallets.reduce((s, w) => s + w.totalInterviewsConducted, 0)
 
   return (
     <div className="space-y-6">
@@ -89,7 +78,7 @@ export default function AdminMentorWalletsView() {
         </p>
       </div>
 
-      {/* ── Aggregate Summary Cards ── */}
+      {/* ── Aggregate Summary Cards (current page) ── */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardContent className="flex items-center gap-4 p-5">
@@ -98,7 +87,7 @@ export default function AdminMentorWalletsView() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total Mentors</p>
-              <p className="text-2xl font-bold">{wallets?.length ?? 0}</p>
+              <p className="text-2xl font-bold">{data?.totalElements ?? 0}</p>
             </div>
           </CardContent>
         </Card>
@@ -109,7 +98,7 @@ export default function AdminMentorWalletsView() {
               <TrendingUp className="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Total Earnings</p>
+              <p className="text-sm text-muted-foreground">Page Earnings</p>
               <p className="text-2xl font-bold">{formatAmount(totalEarnings, "INR")}</p>
             </div>
           </CardContent>
@@ -121,7 +110,7 @@ export default function AdminMentorWalletsView() {
               <Clock className="h-6 w-6 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Pending Payouts</p>
+              <p className="text-sm text-muted-foreground">Page Pending</p>
               <p className="text-2xl font-bold">{formatAmount(totalPending, "INR")}</p>
             </div>
           </CardContent>
@@ -133,14 +122,14 @@ export default function AdminMentorWalletsView() {
               <Video className="h-6 w-6 text-purple-600 dark:text-purple-400" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Total Interviews</p>
+              <p className="text-sm text-muted-foreground">Page Interviews</p>
               <p className="text-2xl font-bold">{totalInterviews}</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* ── Search ── */}
+      {/* ── Search (client-side filter on current page) ── */}
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -158,21 +147,11 @@ export default function AdminMentorWalletsView() {
             <TableHeader>
               <TableRow>
                 <TableHead>Mentor</TableHead>
-                <TableHead className="cursor-pointer" onClick={() => toggleSort("totalInterviewsConducted")}>
-                  <span className="flex items-center gap-1">Interviews <ArrowUpDown className="h-3 w-3" /></span>
-                </TableHead>
-                <TableHead className="cursor-pointer" onClick={() => toggleSort("currentBalanceMinor")}>
-                  <span className="flex items-center gap-1">Current Balance <ArrowUpDown className="h-3 w-3" /></span>
-                </TableHead>
-                <TableHead className="cursor-pointer" onClick={() => toggleSort("pendingPayoutMinor")}>
-                  <span className="flex items-center gap-1">Pending <ArrowUpDown className="h-3 w-3" /></span>
-                </TableHead>
-                <TableHead className="cursor-pointer" onClick={() => toggleSort("totalPaidOutMinor")}>
-                  <span className="flex items-center gap-1">Total Paid <ArrowUpDown className="h-3 w-3" /></span>
-                </TableHead>
-                <TableHead className="cursor-pointer" onClick={() => toggleSort("totalEarningsMinor")}>
-                  <span className="flex items-center gap-1">Total Earnings <ArrowUpDown className="h-3 w-3" /></span>
-                </TableHead>
+                <TableHead>Interviews</TableHead>
+                <TableHead>Current Balance</TableHead>
+                <TableHead>Pending</TableHead>
+                <TableHead>Total Paid</TableHead>
+                <TableHead>Total Earnings</TableHead>
                 <TableHead>Commission</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -206,6 +185,32 @@ export default function AdminMentorWalletsView() {
               )}
             </TableBody>
           </Table>
+
+          {/* ── Pagination ── */}
+          {data && data.totalPages > 1 && (
+            <div className="flex items-center justify-center gap-4 border-t p-4">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={data.first}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {data.number + 1} of {data.totalPages}
+                {" "}· {data.totalElements} mentors
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={data.last}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -258,7 +263,3 @@ function WalletRow({
     </TableRow>
   )
 }
-
-
-
-

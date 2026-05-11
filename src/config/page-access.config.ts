@@ -101,6 +101,11 @@ export const PAGE_ACCESS_CONFIG: Record<string, PageAccessRule> = {
     label: "Payouts",
   },
 
+  [PATH_CONSTANTS.ADMIN_PAYOUT_REPORTS]: {
+    anyOf: ["ROLE_ADMIN", "PERM_MANAGE_PAYOUTS"],
+    label: "Payout Reports",
+  },
+
   [PATH_CONSTANTS.ADMIN_WALLETS]: {
     anyOf: ["ROLE_ADMIN", "PERM_MANAGE_PAYOUTS"],
     label: "Mentor Wallets",

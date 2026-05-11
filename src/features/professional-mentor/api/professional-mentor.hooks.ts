@@ -25,6 +25,9 @@ import {
   createCoupon,
   deactivateCoupon,
   deleteMentorResume,
+  downloadPayoutsCsv,
+  getCommissionRevenue,
+  getMentorEarningsBreakdown,
   getMentorProfile,
   getMentorSlots,
   getMyCoupons,
@@ -35,11 +38,16 @@ import {
   getPayoutAuditLog,
   getPayoutByBooking,
   getPayoutStats,
+  getMonthlyPayoutSummary,
   getProfessionalSlotStats,
   holdPayout,
   openProfessionalSlots,
+  overridePayoutAmount,
   processPayout,
   releasePayout,
+  searchPayouts,
+  getPayoutsForMentor,
+  getMentorProfileByUserId,
   toggleAvailability,
   updateMentorProfile,
   updatePricing,
@@ -58,9 +66,16 @@ export const proMentorKeys = {
   payoutStats: ["pro-mentor", "payout-stats"] as const,
   payoutByBooking: (bookingId: string) => ["pro-mentor", "payout-by-booking", bookingId] as const,
   payoutAuditLog: (payoutId: string) => ["pro-mentor", "payout-audit-log", payoutId] as const,
+  mentorPayouts: (mentorUserId: string, page: number) =>
+    ["pro-mentor", "mentor-payouts", mentorUserId, page] as const,
+  mentorProfileByUserId: (userId: string) => ["pro-mentor", "profile-by-userid", userId] as const,
   mentorDetail: (id: string) => ["mentor-discovery", id] as const,
   mentorSlots: (id: string) => ["mentor-discovery", id, "slots"] as const,
   mentorSearch: ["mentor-discovery", "search"] as const,
+  // Phase 8 — Reports
+  monthlySummary: (from?: string, to?: string) => ["pro-mentor", "reports", "monthly-summary", from, to] as const,
+  commissionRevenue: (from?: string, to?: string) => ["pro-mentor", "reports", "commission-revenue", from, to] as const,
+  mentorEarnings: (from?: string, to?: string) => ["pro-mentor", "reports", "mentor-earnings", from, to] as const,
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -447,3 +462,103 @@ export function useReleasePayout(onSuccess?: () => void) {
   })
 }
 
+/**
+ * Admin: override the payout amount for a PENDING or ON_HOLD payout (Phase 5).
+ */
+export function useOverridePayoutAmount(onSuccess?: () => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ payoutId, overrideAmountMinor, reason }: {
+      payoutId: string
+      overrideAmountMinor: number
+      reason: string
+    }) => overridePayoutAmount(payoutId, { overrideAmountMinor, reason }),
+    retry: false,
+    onSuccess: () => {
+      showSuccessToast("Payout amount override saved")
+      qc.invalidateQueries({ queryKey: proMentorKeys.payouts })
+      onSuccess?.()
+    },
+    onError: (error: ApiError | NetworkError) => showErrorToast(error),
+  })
+}
+
+/**
+ * Fetches paginated payout history for a specific mentor (admin wallet detail).
+ */
+export function useMentorPayouts(mentorUserId: string, page: number = 0, size: number = 10) {
+  return useQuery({
+    queryKey: proMentorKeys.mentorPayouts(mentorUserId, page),
+    queryFn: () => getPayoutsForMentor(mentorUserId, page, size),
+    enabled: !!mentorUserId,
+  })
+}
+
+/**
+ * Admin: fetch a professional mentor's full profile by their userId.
+ */
+export function useMentorProfileByUserId(userId: string) {
+  return useQuery({
+    queryKey: proMentorKeys.mentorProfileByUserId(userId),
+    queryFn: () => getMentorProfileByUserId(userId),
+    enabled: !!userId,
+  })
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PAYOUT REPORTS (Phase 8)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** Monthly COMPLETED payout aggregate (count, amounts) grouped by year/month. */
+export function useMonthlyPayoutSummary(from?: string, to?: string) {
+  return useQuery({
+    queryKey: proMentorKeys.monthlySummary(from, to),
+    queryFn: () => getMonthlyPayoutSummary(from, to),
+    staleTime: 5 * 60 * 1000, // 5 min — reports are not real-time
+  })
+}
+
+/** Platform commission revenue grouped by year/month. */
+export function useCommissionRevenue(from?: string, to?: string) {
+  return useQuery({
+    queryKey: proMentorKeys.commissionRevenue(from, to),
+    queryFn: () => getCommissionRevenue(from, to),
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+/** Per-mentor cumulative earnings from COMPLETED payouts. */
+export function useMentorEarningsBreakdown(from?: string, to?: string) {
+  return useQuery({
+    queryKey: proMentorKeys.mentorEarnings(from, to),
+    queryFn: () => getMentorEarningsBreakdown(from, to),
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+/** Trigger a CSV download of payouts (client-side blob save). */
+export function useDownloadPayoutsCsv() {
+  return useMutation({
+    mutationFn: ({
+      from,
+      to,
+      status,
+    }: {
+      from?: string
+      to?: string
+      status?: string
+    }) => downloadPayoutsCsv(from, to, status),
+    onSuccess: (blob) => {
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `payouts-export-${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      showSuccessToast("CSV downloaded successfully")
+    },
+    onError: (error: ApiError | NetworkError) => showErrorToast(error),
+  })
+}

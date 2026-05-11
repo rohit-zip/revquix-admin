@@ -12,13 +12,17 @@ import type {
   ApplyCouponRequest,
   BulkCancelSlotsRequest,
   BulkProcessPayoutsResponse,
+  CommissionRevenueRow,
   CouponResponse,
   CouponValidationResponse,
   CreateCouponRequest,
+  MentorEarningsBreakdownRow,
   MentorPayoutResponse,
   MentorProfileResponse,
   MentorRatingResponse,
+  MonthlyPayoutSummaryRow,
   OpenSlotsRequest,
+  OverridePayoutAmountRequest,
   PayoutAuditLogEntry,
   PayoutStatsResponse,
   ProfessionalSlotResponse,
@@ -269,10 +273,32 @@ export const holdPayout = (
 export const releasePayout = (payoutId: string): Promise<MentorPayoutResponse> =>
   apiClient.put<MentorPayoutResponse>(`${PAYOUTS}/${payoutId}/release`).then((r) => r.data)
 
+/** PUT /payouts/{payoutId}/override-amount — Admin: override payout amount (Phase 5) */
+export const overridePayoutAmount = (
+  payoutId: string,
+  data: OverridePayoutAmountRequest,
+): Promise<MentorPayoutResponse> =>
+  apiClient
+    .put<MentorPayoutResponse>(`${PAYOUTS}/${payoutId}/override-amount`, data)
+    .then((r) => r.data)
+
 /** GET /payouts/{payoutId}/audit-log — Full audit trail for a payout (admin) */
 export const getPayoutAuditLog = (payoutId: string): Promise<PayoutAuditLogEntry[]> =>
   apiClient
     .get<PayoutAuditLogEntry[]>(`${PAYOUTS}/${payoutId}/audit-log`)
+    .then((r) => r.data)
+
+/** GET /payouts/admin/by-mentor/{mentorUserId} — Payout history for a specific mentor (admin) */
+export const getPayoutsForMentor = (
+  mentorUserId: string,
+  page = 0,
+  size = 10,
+): Promise<SpringPageResponse<MentorPayoutResponse>> =>
+  apiClient
+    .get<SpringPageResponse<MentorPayoutResponse>>(
+      `${PAYOUTS}/admin/by-mentor/${mentorUserId}`,
+      { params: { page, size } },
+    )
     .then((r) => r.data)
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -286,3 +312,75 @@ export const getAdminMentorRatings = (
   apiClient
     .get<MentorRatingResponse[]>(`/admin/mentor-ratings/${mentorProfileId}`)
     .then((r) => r.data)
+
+/** GET /professional-mentor/profile/admin/by-user/{userId} — Admin: full mentor profile by userId */
+export const getMentorProfileByUserId = (
+  userId: string,
+): Promise<MentorProfileResponse> =>
+  apiClient
+    .get<MentorProfileResponse>(`${ADMIN_PROFILE}/by-user/${userId}`)
+    .then((r) => r.data)
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PAYOUT REPORTS (Phase 8)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const PAYOUT_REPORTS = "/payouts/admin/reports"
+
+/**
+ * GET /payouts/admin/reports/monthly-summary
+ * Monthly aggregate of COMPLETED payouts.
+ */
+export const getMonthlyPayoutSummary = (
+  from?: string,
+  to?: string,
+): Promise<MonthlyPayoutSummaryRow[]> =>
+  apiClient
+    .get<MonthlyPayoutSummaryRow[]>(`${PAYOUT_REPORTS}/monthly-summary`, {
+      params: { from, to },
+    })
+    .then((r) => r.data)
+
+/**
+ * GET /payouts/admin/reports/commission-revenue
+ * Platform commission revenue grouped by calendar month.
+ */
+export const getCommissionRevenue = (
+  from?: string,
+  to?: string,
+): Promise<CommissionRevenueRow[]> =>
+  apiClient
+    .get<CommissionRevenueRow[]>(`${PAYOUT_REPORTS}/commission-revenue`, {
+      params: { from, to },
+    })
+    .then((r) => r.data)
+
+/**
+ * GET /payouts/admin/reports/mentor-earnings
+ * Per-mentor cumulative earnings from COMPLETED payouts.
+ */
+export const getMentorEarningsBreakdown = (
+  from?: string,
+  to?: string,
+): Promise<MentorEarningsBreakdownRow[]> =>
+  apiClient
+    .get<MentorEarningsBreakdownRow[]>(`${PAYOUT_REPORTS}/mentor-earnings`, {
+      params: { from, to },
+    })
+    .then((r) => r.data)
+
+/**
+ * GET /payouts/admin/reports/export.csv
+ * Returns the raw CSV blob for download.
+ */
+export const downloadPayoutsCsv = (
+  from?: string,
+  to?: string,
+  status?: string,
+): Promise<Blob> =>
+  apiClient
+    .get(`${PAYOUT_REPORTS}/export.csv`, {
+      params: { from, to, status },
+      responseType: "blob",
+    })
+    .then((r) => r.data as Blob)

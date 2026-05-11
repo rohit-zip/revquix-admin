@@ -154,4 +154,41 @@ export interface MentorWalletSummaryResponse {
   currency: CurrencyCode
 }
 
+// ─── Mentor Payout Accounts ───────────────────────────────────────────────────
+
+export type PayoutAccountType = "BANK_ACCOUNT" | "UPI"
+
+export interface PayoutAccountResponse {
+  payoutAccountId: string
+  mentorUserId: string
+  accountType: PayoutAccountType
+  displayName: string | null
+  isPrimary: boolean
+  isVerified: boolean
+  // Bank account fields
+  accountHolderName: string | null
+  bankName: string | null
+  maskedAccountNumber: string | null
+  ifscCode: string | null
+  bankAccountType: string | null
+  // UPI fields
+  upiId: string | null
+  // Audit
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PayoutAccountRequest {
+  accountType: PayoutAccountType
+  displayName?: string
+  isPrimary?: boolean
+  // Bank fields
+  accountHolderName?: string
+  bankName?: string
+  accountNumber?: string
+  ifscCode?: string
+  bankAccountType?: "SAVINGS" | "CURRENT"
+  // UPI fields
+  upiId?: string
+}
 

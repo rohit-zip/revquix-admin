@@ -244,6 +244,7 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         PERMISSIONS.PERM_VIEW_MENTOR_APPLICATIONS,
         PERMISSIONS.PERM_MANAGE_PROFESSIONAL_MENTORS,
         PERMISSIONS.PERM_VIEW_ALL_COUPONS,
+        PERMISSIONS.PERM_MANAGE_PAYOUTS,
       ],
     },
     items: [
@@ -307,26 +308,12 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
           anyOf: [PERMISSIONS.ROLE_ADMIN],
         },
       },
-    ],
-  },
-
-  // ── Payments Admin ────────────────────────────────────────────────────────
-  {
-    title: "Payments",
-    access: {
-      anyOf: [
-        PERMISSIONS.ROLE_ADMIN,
-        PERMISSIONS.PERM_VIEW_ALL_PAYMENTS,
-        PERMISSIONS.PERM_MANAGE_PAYOUTS,
-      ],
-    },
-    items: [
       {
-        Icon: CreditCard,
-        label: "All Payments",
-        href: PATH_CONSTANTS.ADMIN_PAYMENTS,
+        Icon: Users,
+        label: "All Mentors",
+        href: PATH_CONSTANTS.ADMIN_PROFESSIONAL_MENTORS,
         access: {
-          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_ALL_PAYMENTS],
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_PROFESSIONAL_MENTORS],
         },
       },
       {
@@ -343,6 +330,35 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         href: PATH_CONSTANTS.ADMIN_WALLETS,
         access: {
           anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_PAYOUTS],
+        },
+      },
+      {
+        Icon: BarChart3,
+        label: "Payout Reports",
+        href: PATH_CONSTANTS.ADMIN_PAYOUT_REPORTS,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_PAYOUTS],
+        },
+      },
+    ],
+  },
+
+  // ── Finance ───────────────────────────────────────────────────────────────
+  {
+    title: "Finance",
+    access: {
+      anyOf: [
+        PERMISSIONS.ROLE_ADMIN,
+        PERMISSIONS.PERM_VIEW_ALL_PAYMENTS,
+      ],
+    },
+    items: [
+      {
+        Icon: CreditCard,
+        label: "All Payments",
+        href: PATH_CONSTANTS.ADMIN_PAYMENTS,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_ALL_PAYMENTS],
         },
       },
       {

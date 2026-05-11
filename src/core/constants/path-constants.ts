@@ -39,10 +39,12 @@ export const PATH_CONSTANTS = {
   ADMIN_COUPONS: "/coupons",
   ADMIN_MENTOR_REPORTS: "/mentor-reports",
   ADMIN_SESSION_DISPUTES: "/session-disputes",
+  ADMIN_PROFESSIONAL_MENTORS: "/professional-mentor/mentors",
 
   // ── Payments Admin ────────────────────────────────────────────────────────
   ADMIN_PAYMENTS: "/payments",
   ADMIN_PAYOUTS: "/payouts",
+  ADMIN_PAYOUT_REPORTS: "/payouts/reports",
   ADMIN_WALLETS: "/wallets",
   ADMIN_WEBHOOKS: "/webhooks",
 

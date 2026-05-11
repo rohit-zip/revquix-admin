@@ -6,7 +6,23 @@
 
 import { apiClient } from "@/lib/axios"
 import type { GenericFilterRequest, GenericFilterResponse } from "@/core/filters/filter.types"
-import type { PaymentOrderResponse, PaymentWebhookLogResponse, MentorWalletSummaryResponse } from "./payment.types"
+import type {
+  PaymentOrderResponse,
+  PaymentWebhookLogResponse,
+  MentorWalletSummaryResponse,
+  PayoutAccountResponse,
+  PayoutAccountRequest,
+} from "./payment.types"
+
+export interface SpringPage<T> {
+  content: T[]
+  totalElements: number
+  totalPages: number
+  size: number
+  number: number
+  first: boolean
+  last: boolean
+}
 
 const BASE = "/payments"
 
@@ -76,6 +92,17 @@ export const getMyWallet = (): Promise<MentorWalletSummaryResponse> =>
 export const getAllMentorWallets = (): Promise<MentorWalletSummaryResponse[]> =>
   apiClient.get<MentorWalletSummaryResponse[]>(`${WALLETS}/admin/summary`).then((r) => r.data)
 
+/** POST /wallets/admin/search — Admin: get paginated mentor wallet summaries */
+export const getMentorWalletsPaginated = (
+  page: number,
+  size: number,
+): Promise<SpringPage<MentorWalletSummaryResponse>> =>
+  apiClient
+    .post<SpringPage<MentorWalletSummaryResponse>>(
+      `${WALLETS}/admin/search?page=${page}&size=${size}`,
+    )
+    .then((r) => r.data)
+
 /** GET /wallets/admin/{mentorUserId} — Admin: get wallet for a specific mentor */
 export const getMentorWallet = (mentorUserId: string): Promise<MentorWalletSummaryResponse> =>
   apiClient.get<MentorWalletSummaryResponse>(`${WALLETS}/admin/${mentorUserId}`).then((r) => r.data)
@@ -120,5 +147,21 @@ export const getRemainingRefundable = (
 ): Promise<{ remainingRefundable: number }> =>
   apiClient
     .get<{ remainingRefundable: number }>(`${BASE}/admin/${paymentOrderId}/refundable`)
+    .then((r) => r.data)
+
+// ─── Mentor Payout Accounts ───────────────────────────────────────────────────
+
+const PAYOUT_ACCOUNTS = "/mentor/payout-accounts"
+
+/** GET /mentor/payout-accounts/admin/{mentorUserId} — Admin: list payout accounts for a mentor */
+export const getPayoutAccountsForMentor = (mentorUserId: string): Promise<PayoutAccountResponse[]> =>
+  apiClient
+    .get<PayoutAccountResponse[]>(`${PAYOUT_ACCOUNTS}/admin/${mentorUserId}`)
+    .then((r) => r.data)
+
+/** PUT /mentor/payout-accounts/admin/{payoutAccountId}/verify — Admin: verify a payout account */
+export const verifyPayoutAccount = (payoutAccountId: string): Promise<PayoutAccountResponse> =>
+  apiClient
+    .put<PayoutAccountResponse>(`${PAYOUT_ACCOUNTS}/admin/${payoutAccountId}/verify`)
     .then((r) => r.data)
 

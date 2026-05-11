@@ -1,5 +1,5 @@
 /**
- * ─── ADMIN PAYOUTS VIEW (Phase 2) ────────────────────────────────────────────
+ * ─── ADMIN PAYOUTS VIEW (Phase 2 + Phase 5) ──────────────────────────────────
  *
  * Admin panel for managing mentor payouts.
  *
@@ -11,12 +11,23 @@
  *   • ON_HOLD actions — "Hold" button for PENDING/PROCESSING, "Release" for
  *     ON_HOLD
  *   • Hold dialog — optional reason input before placing a payout on hold
+ *
+ * Phase 5 additions:
+ *   • "Needs Review" quick-filter tab — surfaces requiresReview=true payouts
+ *   • Warning badge on table rows + detail sheet for payouts requiring review
+ *   • Override amount dialog — admin can set a custom payout amount with a reason
+ *   • Process confirmation dialog — blocks processing requiresReview payouts
+ *     until admin explicitly acknowledges the associated refund
+ *   • Refund info section in detail sheet — shows refundIssued, refundAmountMinor
+ *   • Override info section in detail sheet — shows adminOverrideAmountMinor,
+ *     adminOverrideReason, effective payout amount on completion
  */
 
 "use client"
 
 import { useState, useCallback } from "react"
 import {
+  AlertTriangle,
   CheckCircle2,
   Clock,
   Loader2,
@@ -34,6 +45,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert"
 import {
   Dialog,
   DialogContent,
@@ -58,6 +74,7 @@ import {
   useBulkProcessPayouts,
   useCompletePayout,
   useHoldPayout,
+  useOverridePayoutAmount,
   usePayoutAuditLog,
   usePayoutStats,
   useProcessPayout,
@@ -152,14 +169,15 @@ function formatDateTime(iso: string | null | undefined) {
 
 function actionLabel(action: string) {
   const map: Record<string, string> = {
-    PROCESS_INITIATED: "Moved to Processing",
-    COMPLETED: "Marked Completed",
-    HELD_BY_ADMIN: "Placed On Hold (Admin)",
-    RELEASED_BY_ADMIN: "Released from Hold (Admin)",
-    AUTO_FAILED: "Auto-Failed",
-    BULK_PROCESSED: "Bulk Processed",
-    HELD_FOR_FEEDBACK: "Held — Awaiting Feedback",
+    PROCESS_INITIATED:       "Moved to Processing",
+    COMPLETED:               "Marked Completed",
+    HELD_BY_ADMIN:           "Placed On Hold (Admin)",
+    RELEASED_BY_ADMIN:       "Released from Hold (Admin)",
+    AUTO_FAILED:             "Auto-Failed",
+    BULK_PROCESSED:          "Bulk Processed",
+    HELD_FOR_FEEDBACK:       "Held — Awaiting Feedback",
     RELEASED_AFTER_FEEDBACK: "Released after Feedback",
+    AMOUNT_OVERRIDDEN:       "Payout Amount Overridden",
   }
   return map[action] ?? action
 }
@@ -209,11 +227,26 @@ export default function AdminPayoutsView() {
   const [holdPayoutId, setHoldPayoutId] = useState("")
   const [holdReason, setHoldReason] = useState("")
 
+  // ── Phase 5: Override amount dialog state ─────────────────────────────────
+  const [overrideDialogOpen, setOverrideDialogOpen] = useState(false)
+  const [overridePayoutId, setOverridePayoutId] = useState("")
+  const [overrideAmount, setOverrideAmount] = useState("")
+  const [overrideReason, setOverrideReason] = useState("")
+  /** The gross amount (INR minor) of the payout being overridden — for display */
+  const [overrideGross, setOverrideGross] = useState<number | null>(null)
+
+  // ── Phase 5: Process confirmation dialog (requiresReview) ─────────────────
+  const [processConfirmOpen, setProcessConfirmOpen] = useState(false)
+  const [processConfirmPayout, setProcessConfirmPayout] = useState<MentorPayoutResponse | null>(null)
+
   // ── Detail sheet state ─────────────────────────────────────────────────────
   const [detailPayout, setDetailPayout] = useState<MentorPayoutResponse | null>(null)
 
   // ── Bulk selection ─────────────────────────────────────────────────────────
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+
+  // ── Phase 5: Needs Review quick-filter ────────────────────────────────────
+  const [needsReviewOnly, setNeedsReviewOnly] = useState(false)
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -231,6 +264,9 @@ export default function AdminPayoutsView() {
     queryKey: "admin-payouts",
     searchFn: searchPayouts,
     config: PAYOUT_FILTER_CONFIG,
+    permanentFilters: needsReviewOnly
+      ? [{ field: "requiresReview", operator: "EQUALS" as const, value: "true" }]
+      : undefined,
   })
 
   const { data: stats } = usePayoutStats()
@@ -256,13 +292,22 @@ export default function AdminPayoutsView() {
     setHoldPayoutId("")
     setHoldReason("")
     search.refetch()
-    // Update detail sheet if the held payout is open
     if (detailPayout?.payoutId === holdPayoutId) setDetailPayout(null)
   })
 
   const releaseMutation = useReleasePayout(() => {
     search.refetch()
     if (detailPayout) setDetailPayout(null)
+  })
+
+  const overrideMutation = useOverridePayoutAmount(() => {
+    setOverrideDialogOpen(false)
+    setOverridePayoutId("")
+    setOverrideAmount("")
+    setOverrideReason("")
+    setOverrideGross(null)
+    search.refetch()
+    if (detailPayout?.payoutId === overridePayoutId) setDetailPayout(null)
   })
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -279,14 +324,63 @@ export default function AdminPayoutsView() {
     setHoldDialogOpen(true)
   }
 
+  const openOverrideDialog = (payout: MentorPayoutResponse) => {
+    setOverridePayoutId(payout.payoutId)
+    setOverrideAmount(
+      payout.adminOverrideAmountMinor != null
+        ? String(payout.adminOverrideAmountMinor)
+        : String(payout.payoutAmountMinor),
+    )
+    setOverrideReason(payout.adminOverrideReason ?? "")
+    setOverrideGross(payout.grossAmountMinor)
+    setOverrideDialogOpen(true)
+  }
+
+  const handleProcessClick = (payout: MentorPayoutResponse) => {
+    if (payout.requiresReview) {
+      setProcessConfirmPayout(payout)
+      setProcessConfirmOpen(true)
+    } else {
+      processMutation.mutate(payout.payoutId)
+    }
+  }
+
   const selectedCount = selectedIds.size
 
   return (
     <div className="space-y-6">
       {/* ── Page Header ──────────────────────────────────────────────────── */}
-      <div>
-        <h1 className="text-2xl font-bold">Payout Management</h1>
-        <p className="text-muted-foreground">Process and manage mentor payouts.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Payout Management</h1>
+          <p className="text-muted-foreground">Process and manage mentor payouts.</p>
+        </div>
+        {/* Phase 5: Needs Review quick-filter */}
+        <div className="flex gap-2 shrink-0">
+          <Button
+            size="sm"
+            variant={needsReviewOnly ? "default" : "outline"}
+            className={needsReviewOnly
+              ? "bg-amber-600 hover:bg-amber-700 border-amber-600"
+              : "border-amber-500 text-amber-600 hover:bg-amber-50"}
+            onClick={() => {
+              setNeedsReviewOnly((v) => !v)
+              clearSelection()
+            }}
+          >
+            <AlertTriangle className="h-3.5 w-3.5 mr-1.5" />
+            {needsReviewOnly ? "Showing: Needs Review" : "Needs Review"}
+          </Button>
+          {needsReviewOnly && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => { setNeedsReviewOnly(false); clearSelection() }}
+            >
+              Clear
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* ── Analytics Cards ──────────────────────────────────────────────── */}
@@ -367,10 +461,12 @@ export default function AdminPayoutsView() {
         renderRow={(payout) => {
           const isSelected = selectedIds.has(payout.payoutId)
           const isPending = payout.status === "PENDING"
+          const needsReview = !!payout.requiresReview
+          const hasOverride = payout.adminOverrideAmountMinor != null
           return (
             <TableRow
               key={payout.payoutId}
-              className="cursor-pointer transition-colors hover:bg-muted/50"
+              className={`cursor-pointer transition-colors hover:bg-muted/50 ${needsReview ? "bg-amber-50/40 dark:bg-amber-950/10" : ""}`}
               onClick={(e) => {
                 const target = e.target as HTMLElement
                 if (target.closest("button") || target.closest('[role="checkbox"]')) return
@@ -393,7 +489,15 @@ export default function AdminPayoutsView() {
               </TableCell>
 
               <TableCell className="text-xs">
-                <div className="font-medium">{payout.mentorName ?? "—"}</div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-medium">{payout.mentorName ?? "—"}</span>
+                  {needsReview && (
+                    <AlertTriangle
+                      className="h-3.5 w-3.5 text-amber-500 shrink-0"
+                      aria-label="Needs review — refund issued"
+                    />
+                  )}
+                </div>
                 <div className="text-muted-foreground">{payout.mentorUserId}</div>
               </TableCell>
 
@@ -406,30 +510,55 @@ export default function AdminPayoutsView() {
               </TableCell>
 
               <TableCell className="font-medium">
-                {formatAmount(payout.payoutAmountMinor, payout.currency)}
+                {hasOverride ? (
+                  <div>
+                    <span className="line-through text-muted-foreground text-xs mr-1">
+                      {formatAmount(payout.payoutAmountMinor, payout.currency)}
+                    </span>
+                    <span className="text-amber-600">
+                      {formatAmount(payout.adminOverrideAmountMinor, payout.currency)}
+                    </span>
+                  </div>
+                ) : (
+                  formatAmount(payout.payoutAmountMinor, payout.currency)
+                )}
               </TableCell>
 
               <TableCell className="text-xs">{payout.commissionPercentage}%</TableCell>
 
-              <TableCell>{getPayoutBadge(payout.status)}</TableCell>
+              <TableCell>
+                <div className="flex flex-col gap-0.5">
+                  {getPayoutBadge(payout.status)}
+                  {needsReview && (
+                    <Badge
+                      variant="outline"
+                      className="border-amber-500 text-amber-600 text-[10px] px-1 py-0"
+                    >
+                      Needs Review
+                    </Badge>
+                  )}
+                </div>
+              </TableCell>
 
               <TableCell className="text-xs">{formatDate(payout.createdAt)}</TableCell>
 
               {/* Actions */}
               <TableCell onClick={(e) => e.stopPropagation()}>
-                <div className="flex gap-1">
+                <div className="flex gap-1 flex-wrap">
                   {payout.status === "PENDING" && (
                     <>
                       <Button
                         size="sm"
-                        variant="outline"
-                        className="h-7"
-                        onClick={() => processMutation.mutate(payout.payoutId)}
+                        variant={needsReview ? "outline" : "outline"}
+                        className={`h-7 ${needsReview ? "border-amber-500 text-amber-700 hover:bg-amber-50" : ""}`}
+                        onClick={() => handleProcessClick(payout)}
                         disabled={processMutation.isPending}
                       >
                         {processMutation.isPending
                           ? <Loader2 className="h-3 w-3 animate-spin" />
-                          : "Process"}
+                          : needsReview
+                            ? <><AlertTriangle className="h-3 w-3 mr-1" />Process</>
+                            : "Process"}
                       </Button>
                       <Button
                         size="sm"
@@ -440,6 +569,17 @@ export default function AdminPayoutsView() {
                         Hold
                       </Button>
                     </>
+                  )}
+
+                  {(payout.status === "PENDING" || payout.status === "ON_HOLD") && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => openOverrideDialog(payout)}
+                    >
+                      Override
+                    </Button>
                   )}
 
                   {payout.status === "PROCESSING" && (
@@ -491,6 +631,15 @@ export default function AdminPayoutsView() {
                 <SheetTitle className="flex items-center gap-2">
                   Payout Details
                   {getPayoutBadge(detailPayout.status)}
+                  {detailPayout.requiresReview && (
+                    <Badge
+                      variant="outline"
+                      className="border-amber-500 text-amber-600"
+                    >
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      Needs Review
+                    </Badge>
+                  )}
                 </SheetTitle>
               </SheetHeader>
 
@@ -532,11 +681,51 @@ export default function AdminPayoutsView() {
                   )}
                   <Separator />
                   <Row
-                    label="Net Payout to Mentor"
+                    label="Original Net Payout"
                     value={formatAmount(detailPayout.payoutAmountMinor, detailPayout.currency)}
-                    valueClass="font-bold text-green-600"
+                    valueClass={detailPayout.adminOverrideAmountMinor != null ? "line-through text-muted-foreground" : "font-bold text-green-600"}
                   />
+                  {detailPayout.adminOverrideAmountMinor != null && (
+                    <Row
+                      label="Effective Payout (override)"
+                      value={formatAmount(detailPayout.adminOverrideAmountMinor, detailPayout.currency)}
+                      valueClass="font-bold text-amber-600"
+                    />
+                  )}
                 </div>
+
+                {/* ── Phase 5: Refund Info ──────────────────────────────── */}
+                {detailPayout.refundIssued && (
+                  <div className="rounded-md border border-amber-200 bg-amber-50 dark:bg-amber-950/20 p-3 space-y-2 text-sm">
+                    <p className="font-semibold text-xs text-amber-700 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      Refund Issued
+                    </p>
+                    <Row
+                      label="Total Refunded"
+                      value={formatAmount(detailPayout.refundAmountMinor, detailPayout.currency ?? "INR")}
+                      valueClass="text-amber-700 font-medium"
+                    />
+                  </div>
+                )}
+
+                {/* ── Phase 5: Override Info ────────────────────────────── */}
+                {detailPayout.adminOverrideAmountMinor != null && (
+                  <div className="rounded-md border p-3 space-y-2 text-sm">
+                    <p className="font-semibold text-xs text-muted-foreground uppercase tracking-wide">Override Details</p>
+                    <Row
+                      label="Override Amount"
+                      value={formatAmount(detailPayout.adminOverrideAmountMinor, detailPayout.currency)}
+                      valueClass="font-medium text-amber-600"
+                    />
+                    {detailPayout.adminOverrideReason && (
+                      <div>
+                        <span className="text-muted-foreground text-xs">Reason</span>
+                        <p className="text-xs mt-0.5">{detailPayout.adminOverrideReason}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* ── Dates ─────────────────────────────────────────────── */}
                 <div className="rounded-md border p-3 space-y-2 text-sm">
@@ -598,9 +787,15 @@ export default function AdminPayoutsView() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => { processMutation.mutate(detailPayout.payoutId); setDetailPayout(null) }}
+                        className={detailPayout.requiresReview
+                          ? "border-amber-500 text-amber-700"
+                          : ""}
+                        onClick={() => { handleProcessClick(detailPayout); setDetailPayout(null) }}
                         disabled={processMutation.isPending}
                       >
+                        {detailPayout.requiresReview && (
+                          <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+                        )}
                         Process
                       </Button>
                       <Button
@@ -612,6 +807,15 @@ export default function AdminPayoutsView() {
                         Hold
                       </Button>
                     </>
+                  )}
+                  {(detailPayout.status === "PENDING" || detailPayout.status === "ON_HOLD") && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => { openOverrideDialog(detailPayout); setDetailPayout(null) }}
+                    >
+                      Set Override Amount
+                    </Button>
                   )}
                   {detailPayout.status === "PROCESSING" && (
                     <>
@@ -735,6 +939,143 @@ export default function AdminPayoutsView() {
             >
               {holdMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Place On Hold
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Phase 5: Override Amount Dialog ──────────────────────────────── */}
+      <Dialog open={overrideDialogOpen} onOpenChange={setOverrideDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Override Payout Amount</DialogTitle>
+            <DialogDescription>
+              Set a custom payout amount for this payout. The override is used when the payout is
+              completed. Gross amount:{" "}
+              {overrideGross != null
+                ? formatAmount(overrideGross, "INR")
+                : "—"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Override Amount (minor units — e.g. paisa for INR) *</Label>
+              <Input
+                type="number"
+                min={0}
+                max={overrideGross ?? undefined}
+                placeholder="e.g. 85000 for ₹850"
+                value={overrideAmount}
+                onChange={(e) => setOverrideAmount(e.target.value)}
+              />
+              {overrideAmount && !isNaN(Number(overrideAmount)) && (
+                <p className="text-xs text-muted-foreground">
+                  = {formatAmount(Number(overrideAmount), "INR")}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Reason *</Label>
+              <Textarea
+                placeholder="e.g. Partial refund of ₹50 issued — net adjusted accordingly"
+                value={overrideReason}
+                onChange={(e) => setOverrideReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOverrideDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={
+                !overrideAmount.trim() ||
+                isNaN(Number(overrideAmount)) ||
+                Number(overrideAmount) < 0 ||
+                !overrideReason.trim() ||
+                overrideMutation.isPending
+              }
+              onClick={() =>
+                overrideMutation.mutate({
+                  payoutId: overridePayoutId,
+                  overrideAmountMinor: Number(overrideAmount),
+                  reason: overrideReason,
+                })
+              }
+            >
+              {overrideMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Override
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Phase 5: Process Confirmation Dialog (requiresReview) ─────────── */}
+      <Dialog open={processConfirmOpen} onOpenChange={setProcessConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Confirm: Process Payout with Refund
+            </DialogTitle>
+            <DialogDescription>
+              This payout has been flagged for review because a refund was issued against the
+              linked payment order.
+            </DialogDescription>
+          </DialogHeader>
+          {processConfirmPayout && (
+            <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertTitle className="text-amber-700">Refund on record</AlertTitle>
+              <AlertDescription className="text-amber-700">
+                <p>
+                  Refunded:{" "}
+                  <strong>
+                    {formatAmount(processConfirmPayout.refundAmountMinor, processConfirmPayout.currency)}
+                  </strong>
+                </p>
+                <p className="mt-1">
+                  Effective payout:{" "}
+                  <strong>
+                    {processConfirmPayout.adminOverrideAmountMinor != null
+                      ? formatAmount(processConfirmPayout.adminOverrideAmountMinor, processConfirmPayout.currency)
+                      : formatAmount(processConfirmPayout.payoutAmountMinor, processConfirmPayout.currency)}
+                  </strong>
+                  {processConfirmPayout.adminOverrideAmountMinor != null && (
+                    <span className="text-xs ml-1">(override applied)</span>
+                  )}
+                </p>
+              </AlertDescription>
+            </Alert>
+          )}
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to proceed with processing this payout?
+          </p>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setProcessConfirmOpen(false)
+                setProcessConfirmPayout(null)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              className="border-amber-500 text-amber-700 hover:bg-amber-50"
+              disabled={processMutation.isPending}
+              onClick={() => {
+                if (processConfirmPayout) {
+                  processMutation.mutate(processConfirmPayout.payoutId)
+                }
+                setProcessConfirmOpen(false)
+                setProcessConfirmPayout(null)
+              }}
+            >
+              {processMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Yes, Process Anyway
             </Button>
           </DialogFooter>
         </DialogContent>
