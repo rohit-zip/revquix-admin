@@ -23,6 +23,7 @@ import React from "react"
 import { useRouter } from "next/navigation"
 import {
   ArrowLeft,
+  BarChart2,
   Shield,
   Key,
   Mail,
@@ -57,6 +58,7 @@ import UserSearchQuotaTab from "@/features/admin/components/user-search-quota-ta
 import UserSessionsTab from "@/features/admin/components/user-sessions-tab"
 import UserLoginHistoryTab from "@/features/admin/components/user-login-history-tab"
 import UserProfessionalMentorTab from "@/features/admin/components/user-professional-mentor-tab"
+import UserMentorReportTab from "@/features/admin/components/user-mentor-report-tab"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -123,12 +125,14 @@ export default function AdminUserDetailView({ userId }: AdminUserDetailViewProps
   // Future tabs
   // const canViewBookings = hasAnyAuthority(["PERM_VIEW_ALL_BOOKINGS"])
 
-  // Show the Professional Mentor tab when the user has that role and admin can manage them
-  const isProfessionalMentor = user?.roles?.includes("ROLE_PROFESSIONAL_MENTOR") ?? false
-  const canViewProfessionalMentor = isProfessionalMentor && hasAnyAuthority([
-    "ROLE_ADMIN",
-    "PERM_MANAGE_PROFESSIONAL_MENTORS",
-  ])
+  // ── Professional-mentor-specific tabs (visible to any admin viewing a mentor) ──
+  // user.roles may be returned with or without the ROLE_ prefix depending on the
+  // backend endpoint, so we normalise by stripping the prefix before comparing.
+  const isProfessionalMentor =
+    user?.roles?.some(
+      (r) => r === "ROLE_PROFESSIONAL_MENTOR" || r === "PROFESSIONAL_MENTOR",
+    ) ?? false
+  const canViewProfessionalMentor = isProfessionalMentor
 
   // ── Compute the default tab ───────────────────────────────────────────────
   const defaultTab = "profile"
@@ -326,6 +330,12 @@ export default function AdminUserDetailView({ userId }: AdminUserDetailViewProps
               <span className="hidden sm:inline">Professional Mentor</span>
             </TabsTrigger>
           )}
+          {canViewProfessionalMentor && (
+            <TabsTrigger value="mentor-report" className="gap-1.5">
+              <BarChart2 className="size-4" />
+              <span className="hidden sm:inline">Mentor Report</span>
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* ── Profile Tab ────────────────────────────────────────────────── */}
@@ -372,10 +382,16 @@ export default function AdminUserDetailView({ userId }: AdminUserDetailViewProps
             <UserSearchQuotaTab userId={userId} />
           </TabsContent>
         )}
-        {/* ── Professional Mentor Tab ───────────────────────────────────────── */}
+        {/* ── Professional Mentor Tab ───────────────────────────────────── */}
         {canViewProfessionalMentor && (
           <TabsContent value="professional-mentor" className="mt-6">
             <UserProfessionalMentorTab userId={userId} />
+          </TabsContent>
+        )}
+        {/* ── Mentor Report Tab ───────────────────────────────────────── */}
+        {canViewProfessionalMentor && (
+          <TabsContent value="mentor-report" className="mt-6">
+            <UserMentorReportTab userId={userId} />
           </TabsContent>
         )}      </Tabs>
     </div>

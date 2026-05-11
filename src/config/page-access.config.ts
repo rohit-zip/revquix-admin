@@ -84,10 +84,6 @@ export const PAGE_ACCESS_CONFIG: Record<string, PageAccessRule> = {
     label: "All Coupons",
   },
 
-  [PATH_CONSTANTS.ADMIN_MENTOR_REPORTS]: {
-    anyOf: ["ROLE_ADMIN", "PERM_MANAGE_PROFESSIONAL_MENTORS"],
-    label: "Mentor Reports",
-  },
 
   // ── Payments Admin ────────────────────────────────────────────────────────
 
