@@ -104,6 +104,12 @@ function BookingStatusBadge({ status }: { status: BookingStatus }) {
           <CheckCircle2 className="size-3" /> Confirmed
         </Badge>
       )
+    case "IN_PROGRESS":
+      return (
+        <Badge variant="outline" className="gap-1 text-xs border-blue-500/30 text-blue-600 dark:text-blue-400">
+          <CheckCircle2 className="size-3" /> In Progress
+        </Badge>
+      )
     case "COMPLETED":
       return (
         <Badge variant="secondary" className="gap-1 text-xs">

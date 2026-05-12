@@ -62,6 +62,8 @@ function statusBadgeVariant(status: BookingStatus): "default" | "secondary" | "d
   switch (status) {
     case "CONFIRMED":
       return "default"
+    case "IN_PROGRESS":
+      return "outline"
     case "COMPLETED":
       return "secondary"
     case "CANCELLED_BY_USER":

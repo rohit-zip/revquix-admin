@@ -14,6 +14,7 @@ export type { SpringPageResponse }
 
 export const BOOKING_STATUS = {
   CONFIRMED: "CONFIRMED",
+  IN_PROGRESS: "IN_PROGRESS",
   COMPLETED: "COMPLETED",
   CANCELLED_BY_USER: "CANCELLED_BY_USER",
   CANCELLED_BY_MENTOR: "CANCELLED_BY_MENTOR",
@@ -23,6 +24,7 @@ export type BookingStatus = (typeof BOOKING_STATUS)[keyof typeof BOOKING_STATUS]
 
 export const BOOKING_STATUS_OPTIONS: { label: string; value: BookingStatus }[] = [
   { label: "Confirmed", value: "CONFIRMED" },
+  { label: "In Progress", value: "IN_PROGRESS" },
   { label: "Completed", value: "COMPLETED" },
   { label: "Cancelled by User", value: "CANCELLED_BY_USER" },
   { label: "Cancelled by Mentor", value: "CANCELLED_BY_MENTOR" },

@@ -4,6 +4,7 @@
 
 export type BookingStatus =
   | "CONFIRMED"
+  | "IN_PROGRESS"
   | "COMPLETED"
   | "CANCELLED_BY_USER"
   | "CANCELLED_BY_MENTOR"
