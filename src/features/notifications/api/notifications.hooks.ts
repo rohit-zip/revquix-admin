@@ -9,10 +9,15 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useAuth } from "@/hooks/useAuth"
+import { useAppDispatch } from "@/hooks/useRedux"
 import { showErrorToast, showSuccessToast } from "@/lib/show-toast"
 import type { ApiError } from "@/lib/api-error"
 import { useGenericSearch } from "@/core/filters"
 import type { FilterConfig } from "@/core/filters/filter.types"
+import { refreshToken as refreshAuthToken } from "@/features/auth/api/auth.api"
+import { clearCredentials, setCredentials } from "@/core/slices/auth.slice"
+import { clearSessionCookie } from "@/lib/session-cookie"
+import { store } from "@/core/store"
 import {
   adminGetHistory,
   adminSearchNotifications,
@@ -170,7 +175,8 @@ type CrossTabMessage =
   | { kind: "invalidate" }
 
 export function useNotificationStream(options: UseNotificationStreamOptions = {}) {
-  const { accessToken, isLoggedIn } = useAuth()
+  const { isLoggedIn } = useAuth()
+  const dispatch = useAppDispatch()
   const queryClient = useQueryClient()
   const [connected, setConnected] = useState(false)
 
@@ -179,8 +185,13 @@ export function useNotificationStream(options: UseNotificationStreamOptions = {}
   const retryCountRef = useRef(0)
   const closedByUserRef = useRef(false)
   const channelRef = useRef<BroadcastChannel | null>(null)
+  const refreshPromiseRef = useRef<Promise<boolean> | null>(null)
   const optionsRef = useRef(options)
-  optionsRef.current = options
+  const connectRef = useRef<() => Promise<void>>(async () => {})
+
+  useEffect(() => {
+    optionsRef.current = options
+  }, [options])
 
   const handleNotification = useCallback(
     (payload: SseNotificationEvent, broadcast: boolean) => {
@@ -223,6 +234,9 @@ export function useNotificationStream(options: UseNotificationStreamOptions = {}
   const scheduleReconnect = useCallback(
     (connectFn: () => void) => {
       if (closedByUserRef.current) return
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current)
+      }
       const attempt = retryCountRef.current
       retryCountRef.current = attempt + 1
       const exponential = SSE_BASE_RECONNECT_MS * Math.pow(2, attempt)
@@ -237,8 +251,45 @@ export function useNotificationStream(options: UseNotificationStreamOptions = {}
     [],
   )
 
+  const handleAuthFailure = useCallback(() => {
+    closedByUserRef.current = true
+    closeCurrent()
+    dispatch(clearCredentials())
+    clearSessionCookie()
+    if (typeof window !== "undefined") {
+      window.location.href = "/auth/login"
+    }
+  }, [closeCurrent, dispatch])
+
+  const refreshSession = useCallback(async (): Promise<boolean> => {
+    if (refreshPromiseRef.current) {
+      return refreshPromiseRef.current
+    }
+
+    const refreshPromise = (async () => {
+      try {
+        const response = await refreshAuthToken()
+        dispatch(setCredentials(response))
+        return true
+      } catch {
+        handleAuthFailure()
+        return false
+      } finally {
+        refreshPromiseRef.current = null
+      }
+    })()
+
+    refreshPromiseRef.current = refreshPromise
+    return refreshPromise
+  }, [dispatch, handleAuthFailure])
+
+  const triggerConnect = useCallback(() => {
+    void connectRef.current()
+  }, [])
+
   const connect = useCallback(async () => {
     if (closedByUserRef.current) return
+    const accessToken = store.getState().auth.accessToken
     if (!isLoggedIn || !accessToken) return
 
     if (reconnectTimerRef.current) {
@@ -260,10 +311,13 @@ export function useNotificationStream(options: UseNotificationStreamOptions = {}
     } catch (err) {
       const status = (err as { httpStatus?: number })?.httpStatus
       if (status === 401 || status === 403) {
-        closedByUserRef.current = true
+        const refreshed = await refreshSession()
+        if (refreshed && !closedByUserRef.current) {
+          triggerConnect()
+        }
         return
       }
-      scheduleReconnect(connect)
+      scheduleReconnect(triggerConnect)
       return
     }
 
@@ -275,13 +329,26 @@ export function useNotificationStream(options: UseNotificationStreamOptions = {}
 
     const es = new EventSource(url, { withCredentials: true })
     esRef.current = es
+    let terminalHandled = false
+
+    const beginTerminalTransition = () => {
+      if (terminalHandled) return false
+      terminalHandled = true
+      if (esRef.current === es) {
+        esRef.current = null
+      }
+      setConnected(false)
+      return true
+    }
 
     es.addEventListener("open", () => {
+      if (terminalHandled || esRef.current !== es) return
       retryCountRef.current = 0
       setConnected(true)
     })
 
     es.addEventListener("connected", () => {
+      if (terminalHandled || esRef.current !== es) return
       retryCountRef.current = 0
       setConnected(true)
     })
@@ -304,28 +371,32 @@ export function useNotificationStream(options: UseNotificationStreamOptions = {}
       }
     })
 
-    es.addEventListener("reauth", () => {
+    es.addEventListener("reauth", async () => {
+      if (!beginTerminalTransition()) return
       try { es.close() } catch { /* noop */ }
-      esRef.current = null
-      setConnected(false)
       retryCountRef.current = 0
-      void connect()
+      const refreshed = await refreshSession()
+      if (refreshed && !closedByUserRef.current) {
+        triggerConnect()
+      }
     })
 
     es.addEventListener("shutdown", () => {
+      if (!beginTerminalTransition()) return
       try { es.close() } catch { /* noop */ }
-      esRef.current = null
-      setConnected(false)
-      scheduleReconnect(connect)
+      scheduleReconnect(triggerConnect)
     })
 
     es.addEventListener("error", () => {
+      if (!beginTerminalTransition()) return
       try { es.close() } catch { /* noop */ }
-      esRef.current = null
-      setConnected(false)
-      scheduleReconnect(connect)
+      scheduleReconnect(triggerConnect)
     })
-  }, [accessToken, isLoggedIn, handleNotification, handleUnreadCount, scheduleReconnect])
+  }, [isLoggedIn, handleNotification, handleUnreadCount, scheduleReconnect, refreshSession, triggerConnect])
+
+  useEffect(() => {
+    connectRef.current = connect
+  }, [connect])
 
   useEffect(() => {
     if (typeof window === "undefined") return
