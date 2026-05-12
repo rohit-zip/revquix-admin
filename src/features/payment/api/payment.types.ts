@@ -178,6 +178,27 @@ export interface PayoutAccountResponse {
   updatedAt: string
 }
 
+/** Admin-only: full (unmasked) payout account details for fund transfer processing */
+export interface AdminPayoutAccountDetailResponse {
+  payoutAccountId: string
+  mentorUserId: string
+  accountType: PayoutAccountType
+  displayName: string | null
+  isPrimary: boolean
+  isVerified: boolean
+  // Bank account fields (full, unmasked)
+  accountHolderName: string | null
+  bankName: string | null
+  accountNumber: string | null
+  ifscCode: string | null
+  bankAccountType: string | null
+  // UPI fields
+  upiId: string | null
+  // Audit
+  createdAt: string
+  updatedAt: string
+}
+
 export interface PayoutAccountRequest {
   accountType: PayoutAccountType
   displayName?: string

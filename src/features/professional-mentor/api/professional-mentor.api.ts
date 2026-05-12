@@ -57,7 +57,7 @@ export const toggleAvailability = (): Promise<MentorProfileResponse> =>
 // ADMIN — PER-MENTOR OVERRIDES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const ADMIN_PROFILE = "/professional-mentor/admin"
+const ADMIN_PROFILE = "/professional-mentor/profile/admin"
 
 /**
  * Admin override: set per-service availability flags for any mentor.

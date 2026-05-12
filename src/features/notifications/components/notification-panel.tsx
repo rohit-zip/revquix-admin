@@ -10,10 +10,12 @@ import {
   ExternalLink,
   Gavel,
   Megaphone,
+  ShoppingBag,
   Sparkles,
   Trash2,
   TrendingUp,
   UserCheck,
+  Users,
   Video,
   Wallet,
 } from "lucide-react"
@@ -49,6 +51,8 @@ const CATEGORY_CONFIG: Record<NotificationCategory, CategoryConfig> = {
   MENTOR_EARNINGS:    { Icon: Wallet,     bg: "bg-teal-100 dark:bg-teal-950",       text: "text-teal-600 dark:text-teal-400" },
   MENTOR_STATUS:      { Icon: TrendingUp, bg: "bg-orange-100 dark:bg-orange-950",   text: "text-orange-600 dark:text-orange-400" },
   PLATFORM:           { Icon: Megaphone,  bg: "bg-pink-100 dark:bg-pink-950",       text: "text-pink-600 dark:text-pink-400" },
+  SOCIAL:             { Icon: Users,      bg: "bg-cyan-100 dark:bg-cyan-950",       text: "text-cyan-600 dark:text-cyan-400" },
+  OFFER_ORDERS:       { Icon: ShoppingBag, bg: "bg-amber-100 dark:bg-amber-950",    text: "text-amber-600 dark:text-amber-400" },
 }
 
 const DEFAULT_CATEGORY_CONFIG: CategoryConfig = {

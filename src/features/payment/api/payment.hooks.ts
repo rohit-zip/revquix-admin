@@ -28,6 +28,7 @@ import {
   getRemainingRefundable,
   getPayoutAccountsForMentor,
   verifyPayoutAccount,
+  getAdminPayoutAccountFullDetails,
 } from "./payment.api"
 import type { GenericFilterRequest } from "@/core/filters/filter.types"
 import { useGenericSearch } from "@/core/filters"
@@ -315,6 +316,14 @@ export function useVerifyPayoutAccount(onSuccess?: () => void) {
       qc.invalidateQueries({ queryKey: ["wallets", "admin", "payout-accounts"] })
       onSuccess?.()
     },
+    onError: (error: ApiError | NetworkError) => showErrorToast(error),
+  })
+}
+
+/** Admin: fetch full unmasked payout account details for fund transfer processing */
+export function useAdminPayoutAccountFullDetails() {
+  return useMutation({
+    mutationFn: (payoutAccountId: string) => getAdminPayoutAccountFullDetails(payoutAccountId),
     onError: (error: ApiError | NetworkError) => showErrorToast(error),
   })
 }

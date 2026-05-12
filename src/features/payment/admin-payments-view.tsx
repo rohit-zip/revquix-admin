@@ -132,7 +132,7 @@ export default function AdminPaymentsView() {
           <TableRow
             key={payment.paymentOrderId}
             className="cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={() => router.push(`/admin/payments/${payment.paymentOrderId}`)}
+            onClick={() => router.push(`/payments/${payment.paymentOrderId}`)}
           >
             <TableCell className="font-mono text-xs">{payment.paymentOrderId}</TableCell>
             <TableCell className="font-mono text-xs">

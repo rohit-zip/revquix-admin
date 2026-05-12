@@ -17,6 +17,7 @@ export interface ExceptionResponse {
   path?: string | null
   retryAfterSeconds?: number | null
   requestId: string
+  details?: Record<string, unknown> | null
 }
 
 // ─── Typed API Error ───────────────────────────────────────────────────────────
@@ -26,6 +27,7 @@ export class ApiError extends Error {
   public readonly errorType: ErrorType
   public readonly requestId: string
   public readonly retryAfterSeconds?: number | null
+  public readonly details?: Record<string, unknown> | null
   private readonly rawMessage: ExceptionResponse["message"]
 
   constructor(response: ExceptionResponse) {
@@ -44,6 +46,7 @@ export class ApiError extends Error {
     this.errorType = response.errorType ?? "DATA_ERROR"
     this.requestId = response.requestId ?? "unknown"
     this.retryAfterSeconds = response.retryAfterSeconds
+    this.details = response.details
   }
 
   /** true when message is Record<string, string> — should go on form fields */
@@ -125,6 +128,7 @@ export function parseAxiosError(error: AxiosError): ApiError | NetworkError {
     path: data.path,
     retryAfterSeconds: data.retryAfterSeconds,
     localizedMessage: data.localizedMessage,
+    details: data.details,
   })
 }
 

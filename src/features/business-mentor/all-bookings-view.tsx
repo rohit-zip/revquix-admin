@@ -69,6 +69,11 @@ const STATUS_CONFIG: Record<
     variant: "default",
     icon: <CheckCircle2 className="size-3" />,
   },
+  IN_PROGRESS: {
+    label: "In Progress",
+    variant: "outline",
+    icon: <CheckCircle2 className="size-3" />,
+  },
   COMPLETED: {
     label: "Completed",
     variant: "secondary",

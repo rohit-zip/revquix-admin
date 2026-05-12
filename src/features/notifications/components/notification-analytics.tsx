@@ -82,6 +82,8 @@ const CATEGORY_LABEL: Record<NotificationCategory, string> = {
   MENTOR_EARNINGS: "Mentor Earnings",
   MENTOR_STATUS: "Mentor Status",
   PLATFORM: "Platform Announcements",
+  SOCIAL: "Social",
+  OFFER_ORDERS: "Offer Orders",
 }
 
 const CATEGORY_COLORS: Record<NotificationCategory, string> = {
@@ -94,6 +96,8 @@ const CATEGORY_COLORS: Record<NotificationCategory, string> = {
   MENTOR_EARNINGS:    "bg-teal-500",
   MENTOR_STATUS:      "bg-orange-500",
   PLATFORM:           "bg-pink-500",
+  SOCIAL:             "bg-cyan-500",
+  OFFER_ORDERS:       "bg-amber-500",
 }
 
 // ─── Skeleton sections ────────────────────────────────────────────────────────

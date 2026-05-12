@@ -6,7 +6,7 @@
  * granular method details (card network/issuer, UPI VPA, bank, wallet),
  * and all Razorpay reference IDs needed for manual refunds.
  *
- * Route: /admin/payments/[paymentOrderId]
+ * Route: /payments/[paymentOrderId]
  */
 
 "use client"
@@ -246,7 +246,7 @@ export default function AdminPaymentDetailView({ paymentOrderId }: AdminPaymentD
   if (isError || !payment) {
     return (
       <div className="space-y-6">
-        <Button variant="ghost" size="sm" className="gap-2" onClick={() => router.push("/admin/payments")}>
+        <Button variant="ghost" size="sm" className="gap-2" onClick={() => router.push("/payments")}>
           <ArrowLeft className="h-4 w-4" /> Back to All Payments
         </Button>
         <Card>
@@ -274,7 +274,7 @@ export default function AdminPaymentDetailView({ paymentOrderId }: AdminPaymentD
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" className="gap-2" onClick={() => router.push("/admin/payments")}>
+          <Button variant="ghost" size="sm" className="gap-2" onClick={() => router.push("/payments")}>
             <ArrowLeft className="h-4 w-4" /> Back
           </Button>
           <div>

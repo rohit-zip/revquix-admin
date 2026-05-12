@@ -12,6 +12,7 @@ import type {
   MentorWalletSummaryResponse,
   PayoutAccountResponse,
   PayoutAccountRequest,
+  AdminPayoutAccountDetailResponse,
 } from "./payment.types"
 
 export interface SpringPage<T> {
@@ -163,5 +164,11 @@ export const getPayoutAccountsForMentor = (mentorUserId: string): Promise<Payout
 export const verifyPayoutAccount = (payoutAccountId: string): Promise<PayoutAccountResponse> =>
   apiClient
     .put<PayoutAccountResponse>(`${PAYOUT_ACCOUNTS}/admin/${payoutAccountId}/verify`)
+    .then((r) => r.data)
+
+/** GET /mentor/payout-accounts/admin/{payoutAccountId}/full-details — Admin: get full unmasked account details for fund transfer */
+export const getAdminPayoutAccountFullDetails = (payoutAccountId: string): Promise<AdminPayoutAccountDetailResponse> =>
+  apiClient
+    .get<AdminPayoutAccountDetailResponse>(`${PAYOUT_ACCOUNTS}/admin/${payoutAccountId}/full-details`)
     .then((r) => r.data)
 

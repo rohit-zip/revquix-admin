@@ -5,7 +5,7 @@
  * Shows interviews conducted, current balance, total earnings, pending payouts.
  * Uses server-side pagination (20 per page) via POST /wallets/admin/search.
  *
- * Route: /admin/wallets
+ * Route: /wallets
  */
 
 "use client"
@@ -179,7 +179,7 @@ export default function AdminMentorWalletsView() {
                   <WalletRow
                     key={wallet.mentorUserId}
                     wallet={wallet}
-                    onClick={() => router.push(`/admin/wallets/${wallet.mentorUserId}`)}
+                    onClick={() => router.push(`/wallets/${wallet.mentorUserId}`)}
                   />
                 ))
               )}
