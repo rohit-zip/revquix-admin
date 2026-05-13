@@ -24,6 +24,7 @@ import {
   ClipboardCheck,
   CreditCard,
   FileText,
+  Flag,
   History,
   Key,
   LayoutDashboard,
@@ -89,6 +90,9 @@ export const PERMISSIONS = {
   PERM_MANAGE_OFFER_ORDERS: "PERM_MANAGE_OFFER_ORDERS",
   PERM_REVIEW_OFFER_ORDERS: "PERM_REVIEW_OFFER_ORDERS",
   PERM_MANAGE_PLATFORM_COUPONS: "PERM_MANAGE_PLATFORM_COUPONS",
+
+  // ── Blog / Content ─────────────────────────────────────────────────────
+  PERM_MANAGE_BLOG_CONTENT: "EDIT_POST",
 
 } as const
 
@@ -434,6 +438,32 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         href: PATH_CONSTANTS.ADMIN_OFFER_COUPONS,
         access: {
           anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_PLATFORM_COUPONS],
+        },
+      },
+    ],
+  },
+
+  // ── Content / Blog Management ─────────────────────────────────────────────
+  {
+    title: "Content",
+    access: {
+      anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_BLOG_CONTENT],
+    },
+    items: [
+      {
+        Icon: FileText,
+        label: "All Posts",
+        href: PATH_CONSTANTS.ADMIN_BLOGS,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_BLOG_CONTENT],
+        },
+      },
+      {
+        Icon: Flag,
+        label: "Reports Queue",
+        href: PATH_CONSTANTS.ADMIN_BLOG_REPORTS,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN],
         },
       },
     ],

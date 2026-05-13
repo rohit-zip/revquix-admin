@@ -81,6 +81,16 @@ function formatDiscount(coupon: CouponResponse) {
 
 // ─── Create Coupon Dialog ──────────────────────────────────────────────────────
 
+/**
+ * Converts a datetime-local input value ("YYYY-MM-DDTHH:mm") to a full ISO 8601
+ * string ("YYYY-MM-DDTHH:mm:ss.sssZ") that Spring's Jackson deserialiser can parse.
+ * Without this, the backend throws: "Text '...' could not be parsed at index 16"
+ */
+function toIsoString(dtLocal: string): string {
+  if (!dtLocal) return dtLocal
+  return new Date(dtLocal).toISOString()
+}
+
 const DISCOUNT_TYPE_OPTIONS = [
   { label: "Percentage", value: "PERCENTAGE" },
   { label: "Flat INR", value: "FLAT_INR" },
@@ -268,7 +278,16 @@ function CreateCouponDialog({ open, onClose }: CreateCouponDialogProps) {
 
         <DialogFooter>
           <Button variant="outline" onClick={handleClose}>Cancel</Button>
-          <Button onClick={() => create(form)} disabled={isPending || !isValid}>
+          <Button
+            onClick={() =>
+              create({
+                ...form,
+                validFrom: toIsoString(form.validFrom),
+                validUntil: toIsoString(form.validUntil),
+              })
+            }
+            disabled={isPending || !isValid}
+          >
             {isPending ? "Creating…" : "Create Coupon"}
           </Button>
         </DialogFooter>

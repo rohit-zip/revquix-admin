@@ -39,7 +39,6 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -337,12 +336,16 @@ function PlansTab({ serviceId, plans }: PlansTabProps) {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Price (USD cents) *</Label>
+                <Label className="flex items-center gap-1">
+                  Price (USD cents)
+                  <span className="text-xs font-normal text-muted-foreground">(not active)</span>
+                </Label>
                 <Input
                   type="number"
                   min={0}
                   value={newPlan.priceUsdCents}
                   onChange={(e) => setNewPlan((p) => ({ ...p, priceUsdCents: parseInt(e.target.value, 10) }))}
+                  disabled
                 />
               </div>
             </div>
@@ -451,12 +454,16 @@ function EditPlanForm({ plan, onSave, onCancel, isPending }: EditPlanFormProps) 
           />
         </div>
         <div className="space-y-1.5">
-          <Label>Price (USD cents)</Label>
+          <Label className="flex items-center gap-1">
+            Price (USD cents)
+            <span className="text-xs font-normal text-muted-foreground">(not active)</span>
+          </Label>
           <Input
             type="number"
             min={0}
             value={form.priceUsdCents}
             onChange={(e) => setForm((p) => ({ ...p, priceUsdCents: parseInt(e.target.value, 10) }))}
+            disabled
           />
         </div>
       </div>
@@ -578,8 +585,13 @@ function AddOnsTab({ serviceId, addOns }: AddOnsTabProps) {
                 <Input type="number" min={0} value={form.priceInrPaise} onChange={(e) => setForm((p) => ({ ...p, priceInrPaise: parseInt(e.target.value, 10) }))} />
               </div>
               <div className="space-y-1.5">
-                <Label>Price (USD cents) *</Label>
-                <Input type="number" min={0} value={form.priceUsdCents} onChange={(e) => setForm((p) => ({ ...p, priceUsdCents: parseInt(e.target.value, 10) }))} />
+                <Label className="flex items-center gap-1">
+                  Price (USD cents)
+                  <span className="text-xs font-normal text-muted-foreground">(not active)</span>
+                </Label>
+                <Input type="number" min={0} value={form.priceUsdCents} onChange={(e) => setForm((p) => ({ ...p, priceUsdCents: parseInt(e.target.value, 10) }))}
+                  disabled
+                />
               </div>
             </div>
             <div className="space-y-1.5">
@@ -650,8 +662,21 @@ function EditAddOnForm({ addOn, onSave, onCancel, isPending }: EditAddOnFormProp
           <Input type="number" min={0} value={form.priceInrPaise} onChange={(e) => setForm((p) => ({ ...p, priceInrPaise: parseInt(e.target.value, 10) }))} />
         </div>
         <div className="space-y-1.5">
-          <Label>Price (USD cents)</Label>
-          <Input type="number" min={0} value={form.priceUsdCents} onChange={(e) => setForm((p) => ({ ...p, priceUsdCents: parseInt(e.target.value, 10) }))} />
+          <Label className="flex items-center gap-1">
+            Price (USD cents)
+            <span className="text-xs font-normal text-muted-foreground">(not active)</span>
+          </Label>
+          <Input type="number" min={0} value={form.priceUsdCents} onChange={(e) => setForm((p) => ({ ...p, priceUsdCents: parseInt(e.target.value, 10) }))} disabled />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label>Required Plan Tiers</Label>
+          <Input value={form.requiredPlanTiers} onChange={(e) => setForm((p) => ({ ...p, requiredPlanTiers: e.target.value }))} placeholder='["STANDARD","PREMIUM"]' />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Sort Order</Label>
+          <Input type="number" min={0} value={form.sortOrder} onChange={(e) => setForm((p) => ({ ...p, sortOrder: parseInt(e.target.value, 10) }))} />
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -680,12 +705,14 @@ function FormFieldsTab({ serviceId, fields }: FormFieldsTabProps) {
     serviceId,
     fieldKey: "",
     fieldLabel: "",
-    fieldType: "TEXT",
+    fieldType: "TEXT_INPUT",
     placeholder: "",
     helperText: "",
     isRequired: false,
     sortOrder: 0,
     isEnabled: true,
+    allowedMimeTypes: "",
+    maxFileSizeMb: undefined,
   })
 
   const { mutate: create, isPending: creating } = useAdminCreateOfferFormField(serviceId, () => setAddOpen(false))
@@ -768,6 +795,32 @@ function FormFieldsTab({ serviceId, fields }: FormFieldsTabProps) {
               <Label>Helper Text</Label>
               <Input value={form.helperText ?? ""} onChange={(e) => setForm((p) => ({ ...p, helperText: e.target.value }))} />
             </div>
+            {form.fieldType === "FILE_UPLOAD" && (
+              <div className="grid grid-cols-2 gap-3 rounded-md border border-dashed p-3 bg-muted/30">
+                <div className="col-span-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  File Upload Settings
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Allowed MIME Types</Label>
+                  <Input
+                    value={form.allowedMimeTypes ?? ""}
+                    onChange={(e) => setForm((p) => ({ ...p, allowedMimeTypes: e.target.value }))}
+                    placeholder="e.g. application/pdf"
+                  />
+                  <p className="text-xs text-muted-foreground">Comma-separated, e.g. <code>application/pdf,image/jpeg</code></p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Max File Size (MB)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={form.maxFileSizeMb ?? ""}
+                    onChange={(e) => setForm((p) => ({ ...p, maxFileSizeMb: e.target.value ? parseInt(e.target.value, 10) : undefined }))}
+                    placeholder="e.g. 5"
+                  />
+                </div>
+              </div>
+            )}
             <div className="flex gap-4">
               <div className="flex items-center gap-2">
                 <Switch checked={form.isRequired ?? false} onCheckedChange={(v) => setForm((p) => ({ ...p, isRequired: v }))} />
@@ -822,6 +875,8 @@ function EditFormFieldForm({ field, onSave, onCancel, isPending, fieldTypeOption
     isRequired: field.isRequired,
     isEnabled: field.isEnabled,
     sortOrder: field.sortOrder,
+    allowedMimeTypes: field.allowedMimeTypes ?? "",
+    maxFileSizeMb: field.maxFileSizeMb ?? undefined as number | undefined,
   })
 
   return (
@@ -855,6 +910,32 @@ function EditFormFieldForm({ field, onSave, onCancel, isPending, fieldTypeOption
         <Label>Helper Text</Label>
         <Input value={form.helperText} onChange={(e) => setForm((p) => ({ ...p, helperText: e.target.value }))} />
       </div>
+      {form.fieldType === "FILE_UPLOAD" && (
+        <div className="grid grid-cols-2 gap-3 rounded-md border border-dashed p-3 bg-muted/30">
+          <div className="col-span-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            File Upload Settings
+          </div>
+          <div className="space-y-1.5">
+            <Label>Allowed MIME Types</Label>
+            <Input
+              value={form.allowedMimeTypes}
+              onChange={(e) => setForm((p) => ({ ...p, allowedMimeTypes: e.target.value }))}
+              placeholder="e.g. application/pdf"
+            />
+            <p className="text-xs text-muted-foreground">Comma-separated, e.g. <code>application/pdf,image/jpeg</code></p>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Max File Size (MB)</Label>
+            <Input
+              type="number"
+              min={1}
+              value={form.maxFileSizeMb ?? ""}
+              onChange={(e) => setForm((p) => ({ ...p, maxFileSizeMb: e.target.value ? parseInt(e.target.value, 10) : undefined }))}
+              placeholder="e.g. 5"
+            />
+          </div>
+        </div>
+      )}
       <div className="flex gap-4">
         <div className="flex items-center gap-2">
           <Switch checked={form.isRequired} onCheckedChange={(v) => setForm((p) => ({ ...p, isRequired: v }))} />

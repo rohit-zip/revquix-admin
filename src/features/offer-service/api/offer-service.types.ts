@@ -46,13 +46,14 @@ export const OFFER_PLAN_TIER_OPTIONS: { label: string; value: OfferPlanTier }[] 
 ]
 
 export const OFFER_FORM_FIELD_TYPE = {
-  TEXT: "TEXT",
+  TEXT_INPUT: "TEXT_INPUT",
   TEXTAREA: "TEXTAREA",
   DROPDOWN: "DROPDOWN",
   RADIO: "RADIO",
   CHECKBOX_GROUP: "CHECKBOX_GROUP",
   FILE_UPLOAD: "FILE_UPLOAD",
-  DATE: "DATE",
+  DATE_PICKER: "DATE_PICKER",
+  NUMBER_INPUT: "NUMBER_INPUT",
 } as const
 
 export type OfferFormFieldType = (typeof OFFER_FORM_FIELD_TYPE)[keyof typeof OFFER_FORM_FIELD_TYPE]
