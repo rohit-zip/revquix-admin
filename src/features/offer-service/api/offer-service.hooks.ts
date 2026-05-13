@@ -28,6 +28,7 @@ import {
   adminCreateOfferService,
   adminCreatePlatformCoupon,
   adminDeactivatePlatformCoupon,
+  adminReactivatePlatformCoupon,
   adminGetOfferService,
   adminListPlatformCoupons,
   adminSearchOfferServices,
@@ -233,3 +234,18 @@ export function useAdminDeactivatePlatformCoupon(onSuccess?: () => void) {
     onError: (error: ApiError | NetworkError) => showErrorToast(error),
   })
 }
+
+export function useAdminReactivatePlatformCoupon(onSuccess?: () => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (couponId: string) => adminReactivatePlatformCoupon(couponId),
+    retry: false,
+    onSuccess: () => {
+      showSuccessToast("Coupon reactivated")
+      qc.invalidateQueries({ queryKey: ["offer-services", "coupons"] })
+      onSuccess?.()
+    },
+    onError: (error: ApiError | NetworkError) => showErrorToast(error),
+  })
+}
+

@@ -136,3 +136,10 @@ export const adminDeactivatePlatformCoupon = (couponId: string): Promise<CouponR
   apiClient
     .put<CouponResponse>(`${BASE}/coupons/${couponId}/deactivate`)
     .then((r) => r.data)
+
+/** PUT /admin/offers/coupons/{couponId}/reactivate — Reactivate a platform coupon */
+export const adminReactivatePlatformCoupon = (couponId: string): Promise<CouponResponse> =>
+  apiClient
+    .put<CouponResponse>(`${BASE}/coupons/${couponId}/reactivate`)
+    .then((r) => r.data)
+

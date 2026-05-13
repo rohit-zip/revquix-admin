@@ -12,6 +12,7 @@ import {
   Tag,
   Plus,
   XCircle,
+  CheckCircle,
 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -58,6 +59,7 @@ import {
   useAdminListPlatformCoupons,
   useAdminCreatePlatformCoupon,
   useAdminDeactivatePlatformCoupon,
+  useAdminReactivatePlatformCoupon,
 } from "./api/offer-service.hooks"
 import type { CouponResponse, CreatePlatformCouponRequest } from "./api/offer-service.types"
 
@@ -303,10 +305,14 @@ export default function AdminOfferCouponsView() {
   const pageSize = 20
   const [createOpen, setCreateOpen] = useState(false)
   const [deactivateTarget, setDeactivateTarget] = useState<CouponResponse | null>(null)
+  const [reactivateTarget, setReactivateTarget] = useState<CouponResponse | null>(null)
 
   const { data, isLoading } = useAdminListPlatformCoupons(page, pageSize)
   const { mutate: deactivate, isPending: deactivating } = useAdminDeactivatePlatformCoupon(() => {
     setDeactivateTarget(null)
+  })
+  const { mutate: reactivate, isPending: reactivating } = useAdminReactivatePlatformCoupon(() => {
+    setReactivateTarget(null)
   })
 
   const coupons: CouponResponse[] = data?.content ?? []
@@ -402,7 +408,7 @@ export default function AdminOfferCouponsView() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      {coupon.isActive && (
+                      {coupon.isActive ? (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -411,6 +417,16 @@ export default function AdminOfferCouponsView() {
                         >
                           <XCircle className="h-4 w-4 mr-1" />
                           Deactivate
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          onClick={() => setReactivateTarget(coupon)}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Reactivate
                         </Button>
                       )}
                     </TableCell>
@@ -456,7 +472,7 @@ export default function AdminOfferCouponsView() {
             <AlertDialogTitle>Deactivate Coupon</AlertDialogTitle>
             <AlertDialogDescription>
               Coupon <strong className="font-mono">{deactivateTarget?.code}</strong> will be
-              deactivated and can no longer be redeemed. This action cannot be undone.
+              deactivated and can no longer be redeemed. You can reactivate it later.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -467,6 +483,28 @@ export default function AdminOfferCouponsView() {
               disabled={deactivating}
             >
               {deactivating ? "Deactivating…" : "Deactivate"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!reactivateTarget} onOpenChange={(v) => !v && setReactivateTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reactivate Coupon</AlertDialogTitle>
+            <AlertDialogDescription>
+              Coupon <strong className="font-mono">{reactivateTarget?.code}</strong> will be
+              reactivated and users will be able to redeem it again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-green-600 text-white hover:bg-green-700"
+              onClick={() => reactivateTarget && reactivate(reactivateTarget.couponId)}
+              disabled={reactivating}
+            >
+              {reactivating ? "Reactivating…" : "Reactivate"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
