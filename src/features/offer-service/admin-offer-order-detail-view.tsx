@@ -14,6 +14,9 @@ import {
   ArrowLeft,
   ChevronRight,
   Download,
+  Loader2,
+  MessageSquare,
+  Send,
   ShoppingCart,
   Trash2,
   Upload,
@@ -24,6 +27,7 @@ import {
   Clock,
 } from "lucide-react"
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -52,6 +56,7 @@ import {
 } from "@/components/ui/alert-dialog"
 
 import { PATH_CONSTANTS } from "@/core/constants/path-constants"
+import { useAuth } from "@/hooks/useAuth"
 import {
   useAdminOfferOrderDetail,
   useAdminOrderDeliverables,
@@ -61,8 +66,11 @@ import {
   useAdminCancelOfferOrder,
   useAdminUploadDeliverable,
   useAdminDeleteDeliverable,
+  useAdminOrderComments,
+  useAdminOrderCommentWindow,
+  useAdminAddOrderComment,
 } from "./api/offer-order.hooks"
-import type { OfferDeliverableResponse, OfferOrderSummaryResponse } from "./api/offer-service.types"
+import type { CommentResponse, OfferDeliverableResponse, OfferOrderDetailResponse } from "./api/offer-service.types"
 import { OfferStatusBadge } from "./components/offer-status-badge"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -90,7 +98,7 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-function isSlaBreached(order: OfferOrderSummaryResponse) {
+function isSlaBreached(order: OfferOrderDetailResponse) {
   if (!order.slaDeadline) return false
   if (["COMPLETED", "CANCELLED_BY_USER", "CANCELLED_BY_REVQUIX"].includes(order.status)) return false
   return new Date(order.slaDeadline).getTime() < Date.now()
@@ -99,11 +107,12 @@ function isSlaBreached(order: OfferOrderSummaryResponse) {
 // ─── Action Buttons ───────────────────────────────────────────────────────────
 
 interface OrderActionsProps {
-  order: OfferOrderSummaryResponse
+  order: OfferOrderDetailResponse
   orderId: string
 }
 
 function OrderActions({ order, orderId }: OrderActionsProps) {
+  const { user } = useAuth()
   const [completeOpen, setCompleteOpen] = useState(false)
   const [completeNotes, setCompleteNotes] = useState("")
   const [reviewerOpen, setReviewerOpen] = useState(false)
@@ -129,7 +138,8 @@ function OrderActions({ order, orderId }: OrderActionsProps) {
   const canComplete = order.status === "IN_PROGRESS"
   const canAssignReviewer = order.status !== "COMPLETED" &&
     order.status !== "CANCELLED_BY_USER" &&
-    order.status !== "CANCELLED_BY_REVQUIX"
+    order.status !== "CANCELLED_BY_REVQUIX" &&
+    order.reviewerUserId !== user?.userId
   const canCancel = order.status !== "COMPLETED" &&
     order.status !== "CANCELLED_BY_USER" &&
     order.status !== "CANCELLED_BY_REVQUIX"
@@ -445,6 +455,140 @@ function DeliverablesPanel({ orderId, deliverables }: DeliverablesPanelProps) {
   )
 }
 
+// ─── Comments Section ─────────────────────────────────────────────────────────
+
+function groupByAuthor(list: CommentResponse[]): { authorId: string; messages: CommentResponse[] }[] {
+  const groups: { authorId: string; messages: CommentResponse[] }[] = []
+  for (const msg of list) {
+    const last = groups[groups.length - 1]
+    if (last && last.authorId === msg.authorUserId) {
+      last.messages.push(msg)
+    } else {
+      groups.push({ authorId: msg.authorUserId, messages: [msg] })
+    }
+  }
+  return groups
+}
+
+function CommentsSection({ orderId }: { orderId: string }) {
+  const [body, setBody] = useState("")
+  const { user } = useAuth()
+  const { data: window_ } = useAdminOrderCommentWindow(orderId)
+  const { data: comments, isLoading } = useAdminOrderComments(orderId)
+  const addMutation = useAdminAddOrderComment(orderId, () => setBody(""))
+  const currentUserId = user?.userId
+
+  const isOpen = window_?.isOpen ?? false
+
+  function bubbleShape(mine: boolean, idx: number, total: number) {
+    const base = "max-w-[80%] px-4 py-2.5 text-sm leading-relaxed shadow-sm"
+    const mine_bg = "bg-primary text-primary-foreground"
+    const other_bg = "bg-muted/50 text-foreground border"
+    if (total === 1) return mine ? `${base} rounded-2xl rounded-br-sm ${mine_bg}` : `${base} rounded-2xl rounded-bl-sm ${other_bg}`
+    if (idx === 0)           return mine ? `${base} rounded-2xl rounded-br-[6px] ${mine_bg}` : `${base} rounded-2xl rounded-bl-[6px] ${other_bg}`
+    if (idx === total - 1)   return mine ? `${base} rounded-2xl rounded-br-sm ${mine_bg}` : `${base} rounded-2xl rounded-bl-sm ${other_bg}`
+    return mine ? `${base} rounded-2xl rounded-r-[6px] ${mine_bg}` : `${base} rounded-2xl rounded-l-[6px] ${other_bg}`
+  }
+
+  const groups = groupByAuthor(comments ?? [])
+
+  return (
+    <div className="flex flex-col gap-3">
+      {isLoading && (
+        <div className="space-y-2">
+          <Skeleton className="h-14 w-full rounded-2xl" />
+          <Skeleton className="h-14 w-4/5 rounded-2xl ml-auto" />
+        </div>
+      )}
+
+      {!isLoading && groups.length === 0 && (
+        <div className="flex flex-col items-center py-6 rounded-2xl border border-dashed">
+          <MessageSquare className="h-8 w-8 text-muted-foreground/40 mb-2" />
+          <p className="text-sm text-muted-foreground">No messages yet</p>
+        </div>
+      )}
+
+      {groups.map((group) => {
+        const mine = group.authorId === currentUserId
+        const firstName = group.messages[0].authorName
+        return (
+          <div key={group.messages[0].commentId} className={`flex flex-col gap-0.75 ${mine ? "items-end" : "items-start"}`}>
+            {/* Header shown once per group */}
+            <div className={`flex items-center gap-1.5 mb-0.5 ${mine ? "mr-1 flex-row-reverse" : "ml-1"}`}>
+              <Avatar size="sm" className="h-5 w-5 shrink-0">
+                {mine
+                  ? <><AvatarImage src="/svg/revquix.svg" alt="Revquix Support" /><AvatarFallback className="bg-primary text-[10px] font-bold text-primary-foreground">R</AvatarFallback></>
+                  : <><AvatarImage src={group.messages[0].authorAvatarUrl ?? undefined} alt={firstName} /><AvatarFallback className="bg-muted text-[10px] font-bold text-muted-foreground">{firstName.charAt(0).toUpperCase()}</AvatarFallback></>
+                }
+              </Avatar>
+              <span className="text-xs font-medium text-muted-foreground">{mine ? "Revquix Support" : firstName}</span>
+            </div>
+            {/* Bubbles */}
+            {group.messages.map((msg, idx) => (
+              <div key={msg.commentId} className={`flex flex-col ${mine ? "items-end" : "items-start"} gap-0.5`}>
+                <div className={bubbleShape(mine, idx, group.messages.length)}>
+                  {msg.body}
+                </div>
+                {idx === group.messages.length - 1 && (
+                  <span className="text-[10px] text-muted-foreground/60 mx-1 mt-0.5">
+                    {new Date(msg.createdAt).toLocaleString("en-US", {
+                      month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+                    })}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )
+      })}
+
+      {/* Composer */}
+      {isOpen ? (
+        <div className="mt-1 rounded-2xl border bg-background shadow-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/50 transition-all duration-200">
+          <div className="flex items-start gap-2.5 px-3.5 pt-3">
+            <Avatar size="sm" className="h-7 w-7 shrink-0 mt-0.5">
+              <AvatarImage src="/svg/revquix.svg" alt="Revquix Support" />
+              <AvatarFallback className="bg-primary text-[10px] font-bold text-primary-foreground">R</AvatarFallback>
+            </Avatar>
+            <Textarea
+              placeholder="Send a message to the customer…"
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && body.trim()) {
+                  addMutation.mutate({ contextType: "OFFER_ORDER", contextEntityId: orderId, body })
+                }
+              }}
+              rows={2}
+              className="flex-1 resize-none border-0 shadow-none p-0 focus-visible:ring-0 bg-transparent text-sm placeholder:text-muted-foreground/50 min-h-13"
+            />
+          </div>
+          <div className="flex items-center justify-between px-3.5 pb-3 pt-1.5">
+            <span className="text-[11px] text-muted-foreground/50 select-none">Ctrl+↵ to send</span>
+            <Button
+              size="sm"
+              className="h-8 rounded-xl gap-1.5 px-3"
+              onClick={() => addMutation.mutate({ contextType: "OFFER_ORDER", contextEntityId: orderId, body })}
+              disabled={!body.trim() || addMutation.isPending}
+            >
+              {addMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              Send
+            </Button>
+          </div>
+        </div>
+      ) : (
+        !isLoading && (
+          <p className="text-xs text-center text-muted-foreground py-2">
+            {window_
+              ? `Messaging window is closed.`
+              : "No comment window found. Move order to In Progress to open one."}
+          </p>
+        )
+      )}
+    </div>
+  )
+}
+
 // ─── Info Field ───────────────────────────────────────────────────────────────
 
 function InfoField({ label, value }: { label: string; value: React.ReactNode }) {
@@ -578,6 +722,81 @@ export default function AdminOfferOrderDetailView({ orderId }: AdminOfferOrderDe
 
       <Separator />
 
+      {/* Customer Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Customer</CardTitle>
+        </CardHeader>
+        <CardContent className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <InfoField label="Name" value={
+            <div className="flex items-center gap-2">
+              <Avatar size="sm" className="h-6 w-6 shrink-0">
+                <AvatarImage src={order.userAvatarUrl ?? undefined} alt={order.userName} />
+                <AvatarFallback className="text-[10px] font-bold">{order.userName?.charAt(0).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <span>{order.userName}</span>
+            </div>
+          } />
+          <InfoField label="Email" value={order.userEmail} />
+          <InfoField label="Reviewer" value={
+            order.reviewerName ? (
+              <div className="flex items-center gap-2">
+                <Avatar size="sm" className="h-6 w-6 shrink-0">
+                  <AvatarImage src="/svg/revquix.svg" alt={order.reviewerName} />
+                  <AvatarFallback className="text-[10px] font-bold">{order.reviewerName.charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <span>{order.reviewerName}</span>
+              </div>
+            ) : <span className="text-muted-foreground">Unassigned</span>
+          } />
+        </CardContent>
+      </Card>
+
+      <Separator />
+
+      {/* Form Responses */}
+      {order.formResponses && order.formResponses.length > 0 && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Customer&apos;s Submitted Details</CardTitle>
+            </CardHeader>
+            <CardContent className="grid sm:grid-cols-2 gap-5">
+              {order.formResponses.map((item) => (
+                <div key={item.fieldKey} className="flex flex-col gap-1">
+                  <span className="text-xs font-medium text-muted-foreground">{item.fieldLabel}</span>
+                  {item.fileOriginalName ? (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm text-muted-foreground">{item.fileOriginalName}</span>
+                      {item.fileDownloadUrl ? (
+                        <a
+                          href={item.fileDownloadUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          download={item.fileOriginalName}
+                        >
+                          <Button variant="outline" size="sm" className="h-7 gap-1.5">
+                            <Download className="h-3.5 w-3.5" />
+                            Download
+                          </Button>
+                        </a>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">(URL unavailable)</span>
+                      )}
+                    </div>
+                  ) : item.textValue ? (
+                    <p className="text-sm whitespace-pre-wrap wrap-break-word">{item.textValue}</p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">—</p>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          <Separator />
+        </>
+      )}
+
       {/* Deliverables */}
       <Card>
         <CardContent className="pt-5">
@@ -592,6 +811,19 @@ export default function AdminOfferOrderDetailView({ orderId }: AdminOfferOrderDe
               deliverables={deliverables ?? []}
             />
           )}
+        </CardContent>
+      </Card>
+
+      {/* Messages */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Messages
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CommentsSection orderId={orderId} />
         </CardContent>
       </Card>
     </div>

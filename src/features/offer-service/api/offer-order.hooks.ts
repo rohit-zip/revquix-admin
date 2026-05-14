@@ -11,6 +11,7 @@ import { showErrorToast, showSuccessToast } from "@/lib/show-toast"
 import type { ApiError, NetworkError } from "@/lib/api-error"
 import type { GenericFilterRequest } from "@/core/filters/filter.types"
 import type {
+  AddAdminCommentRequest,
   AssignOfferReviewerRequest,
   CompleteOfferOrderRequest,
   OfferCancelOrderRequest,
@@ -25,6 +26,9 @@ import {
   adminSearchOfferOrders,
   adminStartOfferOrderProgress,
   adminUploadDeliverable,
+  adminGetOrderComments,
+  adminAddOrderComment,
+  adminGetCommentWindow,
 } from "./offer-order.api"
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
@@ -34,6 +38,8 @@ export const offerOrderKeys = {
     ["offer-orders", "search", req, page, size] as const,
   detail: (orderId: string) => ["offer-orders", "detail", orderId] as const,
   deliverables: (orderId: string) => ["offer-orders", "deliverables", orderId] as const,
+  comments: (orderId: string) => ["offer-orders", "comments", orderId] as const,
+  commentWindow: (orderId: string) => ["offer-orders", "comment-window", orderId] as const,
 }
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
@@ -150,6 +156,37 @@ export function useAdminDeleteDeliverable(orderId: string, onSuccess?: () => voi
     onSuccess: () => {
       showSuccessToast("Deliverable deleted")
       qc.invalidateQueries({ queryKey: offerOrderKeys.deliverables(orderId) })
+      onSuccess?.()
+    },
+    onError: (error: ApiError | NetworkError) => showErrorToast(error),
+  })
+}
+
+// ─── Comment Hooks ────────────────────────────────────────────────────────────
+
+export function useAdminOrderCommentWindow(orderId: string) {
+  return useQuery({
+    queryKey: offerOrderKeys.commentWindow(orderId),
+    queryFn: () => adminGetCommentWindow(orderId),
+    enabled: !!orderId,
+  })
+}
+
+export function useAdminOrderComments(orderId: string) {
+  return useQuery({
+    queryKey: offerOrderKeys.comments(orderId),
+    queryFn: () => adminGetOrderComments(orderId),
+    enabled: !!orderId,
+  })
+}
+
+export function useAdminAddOrderComment(orderId: string, onSuccess?: () => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (request: AddAdminCommentRequest) => adminAddOrderComment(request),
+    retry: false,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: offerOrderKeys.comments(orderId) })
       onSuccess?.()
     },
     onError: (error: ApiError | NetworkError) => showErrorToast(error),

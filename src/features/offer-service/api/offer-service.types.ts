@@ -312,3 +312,77 @@ export interface CompleteOfferOrderRequest {
 export interface OfferCancelOrderRequest {
   reason?: string
 }
+
+// ─── Comments ──────────────────────────────────────────────────────────────────
+
+export interface CommentResponse {
+  commentId: string
+  contextEntityId: string
+  authorName: string
+  authorUserId: string
+  authorAvatarUrl: string | null
+  body: string
+  createdAt: string
+  replies: CommentResponse[]
+}
+
+export interface CommentWindowResponse {
+  isOpen: boolean
+  opensAt: string | null
+  closesAt: string | null
+}
+
+export interface AddAdminCommentRequest {
+  contextType: string
+  contextEntityId: string
+  body: string
+  parentCommentId?: string
+}
+
+// ─── Order Detail (full, returned by GET /admin/offers/orders/:id) ─────────────
+
+export interface OfferOrderFormResponseItem {
+  fieldKey: string
+  fieldLabel: string
+  fieldType: string | null
+  textValue: string | null
+  fileOriginalName: string | null
+  fileDownloadUrl: string | null
+}
+
+export interface OfferOrderAddOnItem {
+  addOnId: string
+  displayName: string
+  description: string | null
+  priceSnapshot: number
+}
+
+export interface OfferOrderDetailResponse extends OfferOrderSummaryResponse {
+  // Customer
+  userId: string
+  userName: string
+  userEmail: string
+  userAvatarUrl: string | null
+  // Reviewer
+  reviewerUserId: string | null
+  reviewerName: string | null
+  // Price breakdown
+  planPriceSnapshot: number
+  addOnsTotalSnapshot: number
+  couponDiscountSnapshot: number
+  appliedCouponCode: string | null
+  // Payment
+  paymentOrderId: string | null
+  razorpayOrderId: string | null
+  razorpayPaymentId: string | null
+  paymentStatus: string | null
+  paymentMethod: string | null
+  paymentMethodDetail: string | null
+  // Refund
+  refundAmountMinor: number | null
+  refundedAt: string | null
+  razorpayRefundId: string | null
+  // Content
+  formResponses: OfferOrderFormResponseItem[]
+  selectedAddOns: OfferOrderAddOnItem[]
+}

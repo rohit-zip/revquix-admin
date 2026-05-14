@@ -8,10 +8,14 @@
 import { apiClient } from "@/lib/axios"
 import type { GenericFilterRequest, GenericFilterResponse } from "@/core/filters/filter.types"
 import type {
+  AddAdminCommentRequest,
   AssignOfferReviewerRequest,
   CompleteOfferOrderRequest,
+  CommentResponse,
+  CommentWindowResponse,
   OfferCancelOrderRequest,
   OfferDeliverableResponse,
+  OfferOrderDetailResponse,
   OfferOrderSummaryResponse,
 } from "./offer-service.types"
 
@@ -30,8 +34,8 @@ export const adminSearchOfferOrders = (
     .then((r) => r.data)
 
 /** GET /admin/offers/orders/{orderId} — Get a single order (admin) */
-export const adminGetOfferOrder = (orderId: string): Promise<OfferOrderSummaryResponse> =>
-  apiClient.get<OfferOrderSummaryResponse>(`${BASE}/${orderId}`).then((r) => r.data)
+export const adminGetOfferOrder = (orderId: string): Promise<OfferOrderDetailResponse> =>
+  apiClient.get<OfferOrderDetailResponse>(`${BASE}/${orderId}`).then((r) => r.data)
 
 /** GET /admin/offers/orders/{orderId}/deliverables — List deliverables for an order */
 export const adminListOrderDeliverables = (
@@ -93,3 +97,25 @@ export const adminUploadDeliverable = (
 /** DELETE /admin/offers/orders/deliverables/{deliverableId} — Delete a deliverable */
 export const adminDeleteDeliverable = (deliverableId: string): Promise<void> =>
   apiClient.delete(`${BASE}/deliverables/${deliverableId}`).then(() => undefined)
+
+// ─── Comments (shared /api/v1/comments endpoint) ──────────────────────────────
+
+/** GET /comments?contextType=OFFER_ORDER&contextEntityId={orderId} */
+export const adminGetOrderComments = (orderId: string): Promise<CommentResponse[]> =>
+  apiClient
+    .get<CommentResponse[]>("/comments", {
+      params: { contextType: "OFFER_ORDER", contextEntityId: orderId },
+    })
+    .then((r) => r.data)
+
+/** POST /comments */
+export const adminAddOrderComment = (request: AddAdminCommentRequest): Promise<CommentResponse> =>
+  apiClient.post<CommentResponse>("/comments", request).then((r) => r.data)
+
+/** GET /comments/window?contextType=OFFER_ORDER&contextEntityId={orderId} */
+export const adminGetCommentWindow = (orderId: string): Promise<CommentWindowResponse> =>
+  apiClient
+    .get<CommentWindowResponse>("/comments/window", {
+      params: { contextType: "OFFER_ORDER", contextEntityId: orderId },
+    })
+    .then((r) => r.data)
