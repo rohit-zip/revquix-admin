@@ -57,32 +57,64 @@ export const EXPERIENCE_LEVEL = {
 export type ExperienceLevel = (typeof EXPERIENCE_LEVEL)[keyof typeof EXPERIENCE_LEVEL]
 
 export const INTERVIEW_FOCUS_AREA = {
+  // ── Technical ─────────────────────────────────────────────────────────
   DSA: "DSA",
   SYSTEM_DESIGN: "SYSTEM_DESIGN",
-  BEHAVIORAL: "BEHAVIORAL",
   TECHNICAL_DEEP_DIVE: "TECHNICAL_DEEP_DIVE",
   CODING_ROUND: "CODING_ROUND",
-  HR_ROUND: "HR_ROUND",
-  CASE_STUDY: "CASE_STUDY",
   MACHINE_CODING: "MACHINE_CODING",
   LOW_LEVEL_DESIGN: "LOW_LEVEL_DESIGN",
   HIGH_LEVEL_DESIGN: "HIGH_LEVEL_DESIGN",
+  FRONTEND: "FRONTEND",
+  BACKEND: "BACKEND",
+  DATABASE_DESIGN: "DATABASE_DESIGN",
+  API_DESIGN: "API_DESIGN",
+  CLOUD_DEVOPS: "CLOUD_DEVOPS",
   DOMAIN_SPECIFIC: "DOMAIN_SPECIFIC",
+  // ── Behavioral & Soft Skills ──────────────────────────────────────────
+  BEHAVIORAL: "BEHAVIORAL",
+  COMMUNICATION: "COMMUNICATION",
+  CONFIDENCE_BUILDING: "CONFIDENCE_BUILDING",
+  LEADERSHIP: "LEADERSHIP",
+  CONFLICT_RESOLUTION: "CONFLICT_RESOLUTION",
+  // ── Career & HR ───────────────────────────────────────────────────────
+  HR_ROUND: "HR_ROUND",
+  RESUME_REVIEW: "RESUME_REVIEW",
+  SALARY_NEGOTIATION: "SALARY_NEGOTIATION",
+  // ── Product & Business ────────────────────────────────────────────────
+  PRODUCT_MANAGEMENT: "PRODUCT_MANAGEMENT",
+  CASE_STUDY: "CASE_STUDY",
 } as const
 export type InterviewFocusArea = (typeof INTERVIEW_FOCUS_AREA)[keyof typeof INTERVIEW_FOCUS_AREA]
 
 export const FOCUS_AREA_OPTIONS: { label: string; value: InterviewFocusArea }[] = [
+  // Technical
   { label: "DSA / Algorithms", value: "DSA" },
   { label: "System Design", value: "SYSTEM_DESIGN" },
-  { label: "Behavioral", value: "BEHAVIORAL" },
   { label: "Technical Deep Dive", value: "TECHNICAL_DEEP_DIVE" },
   { label: "Coding Round", value: "CODING_ROUND" },
-  { label: "HR Round", value: "HR_ROUND" },
-  { label: "Case Study", value: "CASE_STUDY" },
   { label: "Machine Coding", value: "MACHINE_CODING" },
   { label: "Low Level Design", value: "LOW_LEVEL_DESIGN" },
   { label: "High Level Design", value: "HIGH_LEVEL_DESIGN" },
+  { label: "Frontend Development", value: "FRONTEND" },
+  { label: "Backend Development", value: "BACKEND" },
+  { label: "Database & SQL", value: "DATABASE_DESIGN" },
+  { label: "API Design", value: "API_DESIGN" },
+  { label: "Cloud & DevOps", value: "CLOUD_DEVOPS" },
   { label: "Domain Specific", value: "DOMAIN_SPECIFIC" },
+  // Behavioral & Soft Skills
+  { label: "Behavioral (STAR)", value: "BEHAVIORAL" },
+  { label: "Communication Skills", value: "COMMUNICATION" },
+  { label: "Confidence Building", value: "CONFIDENCE_BUILDING" },
+  { label: "Leadership & Teamwork", value: "LEADERSHIP" },
+  { label: "Conflict Resolution", value: "CONFLICT_RESOLUTION" },
+  // Career & HR
+  { label: "HR Round", value: "HR_ROUND" },
+  { label: "Resume Walkthrough", value: "RESUME_REVIEW" },
+  { label: "Salary & Offer Negotiation", value: "SALARY_NEGOTIATION" },
+  // Product & Business
+  { label: "Product Management", value: "PRODUCT_MANAGEMENT" },
+  { label: "Case Study", value: "CASE_STUDY" },
 ]
 
 export const EXPERIENCE_LEVEL_OPTIONS: { label: string; value: ExperienceLevel }[] = [
