@@ -182,15 +182,15 @@ function SectionFeedbackCard({
             <Label className="text-xs text-muted-foreground">Rating (1–10)</Label>
             <div className="flex items-center gap-3 mt-1">
               <Slider
-                value={[section.rating || 5]}
+                value={[section.rating ?? 5]}
                 onValueChange={([v]) => onUpdate({ ...section, rating: v })}
                 min={1}
                 max={10}
                 step={1}
                 className="flex-1"
               />
-              <span className={cn("text-lg font-bold w-8 text-center", getScoreColor(section.rating || 5))}>
-                {section.rating || 5}
+              <span className={cn("text-lg font-bold w-8 text-center", section.rating ? getScoreColor(section.rating) : "text-muted-foreground")}>
+                {section.rating ?? "—"}
               </span>
             </div>
           </div>
@@ -313,10 +313,10 @@ export default function MockFeedbackFormView({
 
   const [currentLevel, setCurrentLevel] = useState<string>("")
   const [recommendedRoles, setRecommendedRoles] = useState<string[]>([])
-  const [hireabilityScore, setHireabilityScore] = useState(50)
+  const [hireabilityScore, setHireabilityScore] = useState<number | null>(null)
   const [roleInput, setRoleInput] = useState("")
 
-  const [benchmarkingPercentile, setBenchmarkingPercentile] = useState(50)
+  const [benchmarkingPercentile, setBenchmarkingPercentile] = useState<number | null>(null)
   const [benchmarkingSummary, setBenchmarkingSummary] = useState("")
 
   const [bestMoment, setBestMoment] = useState("")
@@ -388,8 +388,8 @@ export default function MockFeedbackFormView({
       actionPlan: cleanList(actionPlan).length > 0 ? cleanList(actionPlan) : undefined,
       currentLevel: currentLevel || undefined,
       recommendedRoles: recommendedRoles.length > 0 ? recommendedRoles : undefined,
-      hireabilityScore,
-      benchmarkingPercentile,
+      hireabilityScore: hireabilityScore ?? undefined,
+      benchmarkingPercentile: benchmarkingPercentile ?? undefined,
       benchmarkingSummary: benchmarkingSummary || undefined,
       bestMoment: bestMoment || undefined,
       weakestMoment: weakestMoment || undefined,
@@ -659,15 +659,15 @@ export default function MockFeedbackFormView({
               <Label className="text-xs text-muted-foreground">Hireability Score</Label>
               <div className="flex items-center gap-3 mt-1">
                 <Slider
-                  value={[hireabilityScore]}
+                  value={[hireabilityScore ?? 50]}
                   onValueChange={([v]) => setHireabilityScore(v)}
                   min={0}
                   max={100}
                   step={5}
                   className="flex-1"
                 />
-                <span className={cn("text-lg font-bold w-12 text-right tabular-nums", getScoreColor(hireabilityScore / 10))}>
-                  {hireabilityScore}%
+                <span className={cn("text-lg font-bold w-12 text-right tabular-nums", hireabilityScore !== null ? getScoreColor(hireabilityScore / 10) : "text-muted-foreground")}>
+                  {hireabilityScore !== null ? `${hireabilityScore}%` : "—"}
                 </span>
               </div>
             </div>
@@ -713,7 +713,7 @@ export default function MockFeedbackFormView({
             <Label className="text-xs text-muted-foreground">Percentile (compared to other candidates)</Label>
             <div className="flex items-center gap-3 mt-1">
               <Slider
-                value={[benchmarkingPercentile]}
+                value={[benchmarkingPercentile ?? 50]}
                 onValueChange={([v]) => setBenchmarkingPercentile(v)}
                 min={0}
                 max={100}
@@ -721,11 +721,14 @@ export default function MockFeedbackFormView({
                 className="flex-1"
               />
               <span className="text-lg font-bold w-16 text-right tabular-nums">
-                Top {100 - benchmarkingPercentile}%
+                {benchmarkingPercentile !== null ? `Top ${100 - benchmarkingPercentile}%` : "—"}
               </span>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Performed better than <strong>{benchmarkingPercentile}%</strong> of candidates
+              {benchmarkingPercentile !== null
+                ? <>Performed better than <strong>{benchmarkingPercentile}%</strong> of candidates</>
+                : "Not set"
+              }
             </p>
           </div>
           <div>
