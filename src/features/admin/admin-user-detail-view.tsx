@@ -23,7 +23,6 @@ import React from "react"
 import { useRouter } from "next/navigation"
 import {
   ArrowLeft,
-  BarChart2,
   Shield,
   Key,
   Mail,
@@ -58,7 +57,6 @@ import UserSearchQuotaTab from "@/features/admin/components/user-search-quota-ta
 import UserSessionsTab from "@/features/admin/components/user-sessions-tab"
 import UserLoginHistoryTab from "@/features/admin/components/user-login-history-tab"
 import UserProfessionalMentorTab from "@/features/admin/components/user-professional-mentor-tab"
-import UserMentorReportTab from "@/features/admin/components/user-mentor-report-tab"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -327,13 +325,7 @@ export default function AdminUserDetailView({ userId }: AdminUserDetailViewProps
           {canViewProfessionalMentor && (
             <TabsTrigger value="professional-mentor" className="gap-1.5">
               <Briefcase className="size-4" />
-              <span className="hidden sm:inline">Professional Mentor</span>
-            </TabsTrigger>
-          )}
-          {canViewProfessionalMentor && (
-            <TabsTrigger value="mentor-report" className="gap-1.5">
-              <BarChart2 className="size-4" />
-              <span className="hidden sm:inline">Mentor Report</span>
+              <span className="hidden sm:inline">Mentor</span>
             </TabsTrigger>
           )}
         </TabsList>
@@ -382,18 +374,13 @@ export default function AdminUserDetailView({ userId }: AdminUserDetailViewProps
             <UserSearchQuotaTab userId={userId} />
           </TabsContent>
         )}
-        {/* ── Professional Mentor Tab ───────────────────────────────────── */}
+        {/* ── Mentor Tab ────────────────────────────────────────────────── */}
         {canViewProfessionalMentor && (
           <TabsContent value="professional-mentor" className="mt-6">
             <UserProfessionalMentorTab userId={userId} />
           </TabsContent>
         )}
-        {/* ── Mentor Report Tab ───────────────────────────────────────── */}
-        {canViewProfessionalMentor && (
-          <TabsContent value="mentor-report" className="mt-6">
-            <UserMentorReportTab userId={userId} />
-          </TabsContent>
-        )}      </Tabs>
+      </Tabs>
     </div>
   )
 }

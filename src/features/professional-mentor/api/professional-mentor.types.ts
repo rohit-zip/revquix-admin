@@ -68,7 +68,26 @@ export interface MentorProfileResponse {
   hourlySessionPriceUsdCents: number | null
   averageRating: number
   totalSessions: number
+  totalMockInterviews: number
+  totalHourlySessions: number
   totalReviews: number
+  // Analytics fields
+  avgFeedbackTurnaroundHours: number | null
+  totalDisputesRaised: number
+  totalNoShowMentor: number
+  totalNoShowUser: number
+  totalMentorCancellations: number
+  totalUserCancellations: number
+  totalLateCancellations: number
+  lateCancellationRate: number
+  completionRate: number
+  repeatBookingRate: number
+  slotUtilizationRate: number
+  totalSlotsOpened: number
+  totalSlotsBooked: number
+  totalMockRevenuePaise: number
+  totalHourlyRevenuePaise: number
+  totalRevenuePaise: number
   isActive: boolean
   isAcceptingBookings: boolean
   /** Whether the mentor has individually enabled mock interview bookings. */

@@ -11,20 +11,40 @@ export interface MentorReportResponse {
   mentorName: string | null
   mentorEmail: string | null
 
-  // Session stats
+  // Session type split
   totalSessions: number
+  totalMockSessions: number
+  totalHourlySessions: number
   completedSessions: number
   cancelledSessions: number
   noShowSessions: number
+
+  // Cancellation breakdown
+  totalMentorCancellations: number
+  totalUserCancellations: number
+
+  // Disputes
+  totalDisputesRaised: number
+
+  // Feedback turnaround
+  avgFeedbackTurnaroundHours: number | null
 
   // Join rate
   sessionsWithMentorJoinEvent: number
   mentorJoinRatePercent: number
 
-  // Ratings
+  // Combined ratings
   averageRating: number
   totalRatingsReceived: number
   ratingDistribution: Record<number, number>
+
+  // Per-type ratings
+  mockAverageRating: number
+  mockTotalRatings: number
+  mockRatingDistribution: Record<number, number>
+  hourlyAverageRating: number
+  hourlyTotalRatings: number
+  hourlyRatingDistribution: Record<number, number>
 
   // Meeting link mode
   googleCalendarConnected: boolean
