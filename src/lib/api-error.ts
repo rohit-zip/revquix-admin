@@ -89,17 +89,26 @@ export class ApiError extends Error {
 
 // ─── Network / No-Response Error ──────────────────────────────────────────────
 export class NetworkError extends Error {
-  constructor() {
-    super("No network connection. Please check your internet and try again.")
+  public readonly isServerDown: boolean
+
+  constructor(isServerDown = false) {
+    super(
+      isServerDown
+        ? "Our server is currently under maintenance. Please try again later."
+        : "No network connection. Please check your internet and try again."
+    )
     this.name = "NetworkError"
+    this.isServerDown = isServerDown
   }
 }
 
 // ─── Parse raw AxiosError → typed error ───────────────────────────────────────
 export function parseAxiosError(error: AxiosError): ApiError | NetworkError {
-  // No response → connectivity issue
+  // No response — distinguish between no internet vs. server unreachable
   if (!error.response) {
-    return new NetworkError()
+    const isOffline =
+      typeof navigator !== "undefined" && navigator.onLine === false
+    return new NetworkError(!isOffline)
   }
 
   const data = error.response.data as Partial<ExceptionResponse>

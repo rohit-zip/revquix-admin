@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useAppDispatch } from "@/hooks/useRedux"
 import { completeAuthCheck, startAuthCheck } from "@/core/slices/authInitialization.slice"
 import { setCredentials } from "@/core/slices/auth.slice"
@@ -12,7 +12,19 @@ import { clearSessionCookie, setSessionCookie } from "@/lib/session-cookie"
 export default function AuthInitializer() {
   const dispatch = useAppDispatch()
 
+  // ─── One-shot guard ────────────────────────────────────────────────────────
+  // React Strict Mode intentionally double-invokes effects in development to
+  // surface side-effect bugs.  Without this guard, two concurrent calls to
+  // POST /auth/refresh are fired on every app start, triggering the backend's
+  // refresh-token-reuse detection and immediately invalidating the session.
+  // A ref is used instead of state because it must survive the double-invoke
+  // without causing a re-render.
+  const initialized = useRef(false)
+
   useEffect(() => {
+    if (initialized.current) return
+    initialized.current = true
+
     const performAuthCheck = async () => {
       dispatch(startAuthCheck())
 
@@ -40,5 +52,3 @@ export default function AuthInitializer() {
 
   return null
 }
-
-

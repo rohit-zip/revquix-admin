@@ -16,31 +16,15 @@ export const apiClient = axios.create({
 const TOKEN_EXPIRED_CODE = "RQ-AE-11"
 const UNAUTHORIZED_STATUS = 401
 
-// ─── Queue Pattern State (Prevent multiple simultaneous refreshes) ──────────────
-let isRefreshing = false
-let refreshSubscribers: Array<(token: string) => void> = []
-
-/**
- * Notify all waiting requests when token refresh completes
- */
-function onRefreshed(newToken: string) {
-  refreshSubscribers.forEach((callback) => {
-    try {
-      callback(newToken)
-    } catch (error) {
-      console.error("Error in refresh subscriber:", error)
-    }
-  })
-  refreshSubscribers = []
-}
-
-/**
- * Subscribe to token refresh completion
- * Returns function to execute when refresh completes
- */
-function subscribeToTokenRefresh(callback: (token: string) => void) {
-  refreshSubscribers.push(callback)
-}
+// ─── Promise Singleton Lock (prevents multiple simultaneous refresh calls) ─────
+//
+// Instead of a boolean flag + subscriber array, we store the in-flight refresh
+// Promise itself.  Any number of concurrent 401 responses all attach a .then()
+// to this same Promise — so exactly ONE POST /auth/refresh is ever issued per
+// expiry cycle.  The Promise is nulled out in its own .finally(), which is
+// atomic: no new caller can "see" the old promise and still issue a second call.
+//
+let refreshPromise: Promise<string> | null = null
 
 // ─── Helper: Check if error is token expired ──────────────────────────────────
 function isTokenExpiredError(error: ApiError | NetworkError | null): boolean {
@@ -53,15 +37,21 @@ function isTokenExpiredError(error: ApiError | NetworkError | null): boolean {
   )
 }
 
-// ─── Helper: Refresh access token ──────────────────────────────────────────────
-async function refreshAccessToken(): Promise<string> {
-  try {
-    const { refreshToken } = await import("@/features/auth/api/auth.api")
-    const response = await refreshToken()
-    return response.accessToken
-  } catch (error) {
-    throw error
-  }
+// ─── Helper: Execute one refresh cycle ────────────────────────────────────────
+// Makes a SINGLE call to POST /auth/refresh, updates Redux with the full
+// response, and returns the new access token string.
+// This function is intentionally *not* exported — it is only ever called through
+// the refreshPromise singleton below.
+async function executeTokenRefresh(): Promise<string> {
+  const { refreshToken } = await import("@/features/auth/api/auth.api")
+  const response = await refreshToken()
+
+  // Update Redux with the full refresh response (access token + user info)
+  const { store } = await import("@/core/store")
+  const { setCredentials } = await import("@/core/slices/auth.slice")
+  store.dispatch(setCredentials(response))
+
+  return response.accessToken
 }
 
 // ─── Helper: Redirect to login ─────────────────────────────────────────────────
@@ -117,8 +107,8 @@ apiClient.interceptors.request.use(
 // ─── Response interceptor with token refresh ───────────────────────────────────
 // Handles token expiry (RQ-AE-11 + 401) by:
 // 1. Detecting token expired error
-// 2. Refreshing token via queue pattern (single refresh for multiple requests)
-// 3. Retrying failed request with new token
+// 2. Refreshing token via Promise singleton (exactly one POST /auth/refresh per cycle)
+// 3. Retrying the failed request — and all other queued 401 requests — with the new token
 // 4. Redirecting to login on refresh failure
 apiClient.interceptors.response.use(
   (response) => response,
@@ -130,78 +120,46 @@ apiClient.interceptors.response.use(
     // ─── Parse error to get code and status ────────────────────────────────
     const parsedError = parseAxiosError(error)
 
-    // ─── Check if error is token expired ───────────────────────────────────
+    // ─── Not a token-expired error — pass through immediately ──────────────
     if (!isTokenExpiredError(parsedError)) {
-      // Not a token expired error, return as-is
       return Promise.reject(parsedError)
     }
 
-    // ─── Check if already retried (prevent infinite loops) ────────────────
+    // ─── Already retried once — refresh itself failed, force logout ────────
+    // This guard prevents infinite retry loops: if the retried request also
+    // returns RQ-AE-11, the refresh token is gone and we must sign out.
     if (originalRequest?.retried) {
-      // Already retried once, don't retry again
       await redirectToLogin()
       return Promise.reject(parsedError)
     }
 
-    // ─── Mark as retried ──────────────────────────────────────────────────
+    // ─── Mark this request so it is never retried a second time ───────────
     originalRequest!.retried = true
 
-    // ─── Handle token refresh with queue pattern ──────────────────────────
-    if (isRefreshing) {
-      // Refresh already in progress, queue this request
-      return new Promise((resolve) => {
-        subscribeToTokenRefresh((newToken: string) => {
-          // Retry request with new token
-          if (originalRequest?.headers) {
-            originalRequest.headers.Authorization = `Bearer ${newToken}`
-          }
-          resolve(apiClient(originalRequest))
-        })
+    // ─── Ensure exactly one refresh call is in-flight at a time ───────────
+    // If refreshPromise is already set, a refresh is in progress — attach to
+    // it instead of issuing a second POST /auth/refresh.
+    // If not set, create it now and clear it (atomically) when it settles.
+    if (!refreshPromise) {
+      refreshPromise = executeTokenRefresh().finally(() => {
+        refreshPromise = null
       })
     }
 
-    // ─── Start refresh ─────────────────────────────────────────────────────
-    isRefreshing = true
-
     try {
-      // Call refresh endpoint
-      const newToken = await refreshAccessToken()
+      // Wait for the (possibly shared) refresh to complete
+      const newToken = await refreshPromise
 
-      // Update Redux with new token
-      const { store } = await import("@/core/store")
-      const { setCredentials } = await import("@/core/slices/auth.slice")
-      const response = await refreshToken()
-      store.dispatch(setCredentials(response))
-
-      // Notify all subscribers
-      onRefreshed(newToken)
-
-      // Retry original request with new token
+      // Retry the original request with the new token
       if (originalRequest?.headers) {
         originalRequest.headers.Authorization = `Bearer ${newToken}`
       }
       return apiClient(originalRequest)
-    } catch (_refreshError) {
-      // Refresh failed, clear auth and redirect
-      isRefreshing = false
-      refreshSubscribers = []
-
+    } catch {
+      // Refresh failed — sign the user out
       await redirectToLogin()
-
-      // Return the original error
       return Promise.reject(parsedError)
-    } finally {
-      // Always clear flag
-      isRefreshing = false
     }
   },
 )
-
-// ─── Import refreshToken for use in interceptor ────────────────────────────────
-async function refreshToken() {
-  const { refreshToken: refreshTokenFn } = await import(
-    "@/features/auth/api/auth.api"
-  )
-  return refreshTokenFn()
-}
 
