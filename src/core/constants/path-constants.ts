@@ -58,6 +58,7 @@ export const PATH_CONSTANTS = {
   BUSINESS_MENTOR_INTAKES: "/business-mentor/intakes",
   // ── Platform / Content Management ────────────────────────────────────────────
   ADMIN_COMPANIES: "/companies",
+  ADMIN_SCHOOLS: "/schools",
 
   // ── Blog / Content Admin ──────────────────────────────────────────────────
   ADMIN_BLOGS: "/blogs",
