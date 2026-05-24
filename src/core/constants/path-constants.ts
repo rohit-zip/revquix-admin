@@ -60,10 +60,6 @@ export const PATH_CONSTANTS = {
   ADMIN_COMPANIES: "/companies",
   ADMIN_SCHOOLS: "/schools",
 
-  // ── Blog / Content Admin ──────────────────────────────────────────────────
-  ADMIN_BLOGS: "/blogs",
-  ADMIN_BLOG_DETAIL: "/blogs",
-  ADMIN_BLOG_REPORTS: "/blogs/reports",
 
   // ── Offer Services (Global Offer Service) ─────────────────────────────────
   ADMIN_OFFER_SERVICES: "/offer-services",

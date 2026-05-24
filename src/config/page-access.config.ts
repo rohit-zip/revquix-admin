@@ -112,16 +112,5 @@ export const PAGE_ACCESS_CONFIG: Record<string, PageAccessRule> = {
     label: "Webhook Logs",
   },
 
-  // ── Blog / Content Admin ──────────────────────────────────────────────────
-
-  [PATH_CONSTANTS.ADMIN_BLOGS]: {
-    anyOf: ["ROLE_ADMIN", "EDIT_POST"],
-    label: "Blog Management",
-  },
-
-  [PATH_CONSTANTS.ADMIN_BLOG_REPORTS]: {
-    anyOf: ["ROLE_ADMIN"],
-    label: "Blog Reports Queue",
-  },
 }
 
