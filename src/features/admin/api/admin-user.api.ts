@@ -10,6 +10,10 @@ import { apiClient } from "@/lib/axios"
 import type { AdminUserResponse } from "@/features/user/api/user-search.types"
 import type { AdminUserDetailResponse } from "@/features/user/api/session.types"
 import type {
+  AdminProjectModerationStatus,
+  AdminProjectResponse,
+} from "@/features/user/api/session.types"
+import type {
   AdminQuotaDetail,
   AdminSetQuotaRequest,
   GrantPermissionRequest,
@@ -29,6 +33,23 @@ export const getAdminUser = (userId: string): Promise<AdminUserResponse> =>
 /** GET /user/{userId}/detail — Get full admin user detail with skills, categories, auth providers */
 export const getAdminUserDetail = (userId: string): Promise<AdminUserDetailResponse> =>
   apiClient.get<AdminUserDetailResponse>(`/user/${userId}/detail`).then((r) => r.data)
+
+/**
+ * PUT /user/{userId}/projects/{projectId}/moderation
+ * Hide or restore a user's project from their public profile.
+ * Requires PERM_MANAGE_USERS.
+ */
+export const moderateUserProject = (
+  userId: string,
+  projectId: string,
+  status: AdminProjectModerationStatus,
+): Promise<AdminProjectResponse> =>
+  apiClient
+    .put<AdminProjectResponse>(
+      `/user/${userId}/projects/${projectId}/moderation`,
+      { status },
+    )
+    .then((r) => r.data)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ROLE ↔ USER ASSIGNMENT

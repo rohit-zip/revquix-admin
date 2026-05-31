@@ -60,6 +60,52 @@ export interface AuthProviderDto {
   linkedAt: string
 }
 
+export type AdminProjectType =
+  | "PERSONAL"
+  | "PROFESSIONAL"
+  | "OPEN_SOURCE"
+  | "ACADEMIC"
+  | "FREELANCE"
+  | "HACKATHON"
+  | "OTHER"
+
+export type AdminProjectStatus = "IN_PROGRESS" | "COMPLETED" | "ARCHIVED"
+
+export type AdminProjectModerationStatus = "VISIBLE" | "HIDDEN"
+
+export interface AdminProjectMedia {
+  mediaId: string
+  url: string | null
+  displayOrder: number | null
+  isPrimary: boolean | null
+  width: number | null
+  height: number | null
+}
+
+export interface AdminProjectResponse {
+  projectId: string
+  title: string
+  description: string | null
+  roleInProject: string | null
+  projectType: AdminProjectType | null
+  projectTypeLabel: string | null
+  status: AdminProjectStatus | null
+  statusLabel: string | null
+  startYear: number | null
+  startMonth: number | null
+  endYear: number | null
+  endMonth: number | null
+  isOngoing: boolean | null
+  liveUrl: string | null
+  sourceUrl: string | null
+  displayOrder: number | null
+  moderationStatus: AdminProjectModerationStatus | null
+  skills: SkillDto[]
+  media: AdminProjectMedia[]
+  createdAt: string
+  updatedAt: string
+}
+
 export interface AdminUserDetailResponse {
   userId: string
   email: string
@@ -92,6 +138,7 @@ export interface AdminUserDetailResponse {
   // Profile
   skills: SkillDto[]
   categories: CategoryDto[]
+  projects: AdminProjectResponse[]
   authProviders: AuthProviderDto[]
 }
 

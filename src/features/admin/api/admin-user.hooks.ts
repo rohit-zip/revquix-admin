@@ -14,6 +14,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { showErrorToast, showSuccessToast } from "@/lib/show-toast"
 import type { ApiError, NetworkError } from "@/lib/api-error"
 import type { AdminSetQuotaRequest, GrantPermissionRequest } from "./admin-user.types"
+import type { AdminProjectModerationStatus } from "@/features/user/api/session.types"
 import {
   adminRevokeAllUserSessions,
   adminRevokeUserSession,
@@ -26,6 +27,7 @@ import {
   getAdminUserSessions,
   getUserOverrides,
   grantPermission,
+  moderateUserProject,
   removeOverride,
   removeRoleFromUser,
   resetAdminSearchQuota,
@@ -138,6 +140,28 @@ export function useAdminUserDetail(userId: string) {
     queryKey: [...adminUserKeys.detail(userId), "full"] as const,
     queryFn: () => getAdminUserDetail(userId),
     enabled: !!userId,
+  })
+}
+
+/**
+ * Hide or restore a user's project from their public profile.
+ * Invalidates the full user-detail query so the row reflects the new state.
+ */
+export function useModerateUserProject(userId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (vars: { projectId: string; status: AdminProjectModerationStatus }) =>
+      moderateUserProject(userId, vars.projectId, vars.status),
+    retry: false,
+    onSuccess: (_data, vars) => {
+      showSuccessToast(
+        vars.status === "HIDDEN"
+          ? "Project hidden from public profile"
+          : "Project restored to public profile",
+      )
+      qc.invalidateQueries({ queryKey: adminUserKeys.detail(userId) })
+    },
+    onError: (error: ApiError | NetworkError) => showErrorToast(error),
   })
 }
 

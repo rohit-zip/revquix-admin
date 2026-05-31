@@ -26,14 +26,20 @@ import {
   CreditCard,
   Link2,
   AlertCircle,
+  FolderGit2,
+  ExternalLink,
+  Code2,
+  Eye,
+  EyeOff,
 } from "lucide-react"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Separator } from "@/components/ui/separator"
 
-import { useAdminUserDetail } from "@/features/admin/api/admin-user.hooks"
+import { useAdminUserDetail, useModerateUserProject } from "@/features/admin/api/admin-user.hooks"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -46,6 +52,16 @@ function formatDateTime(iso: string | null | undefined): string {
     hour: "2-digit",
     minute: "2-digit",
   })
+}
+
+const PROJECT_MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+]
+
+function formatProjectDate(year: number | null, month: number | null): string {
+  if (!year) return ""
+  return month ? `${PROJECT_MONTHS[month - 1]} ${year}` : String(year)
 }
 
 function BoolBadge({ value, trueLabel, falseLabel }: { value: boolean; trueLabel: string; falseLabel: string }) {
@@ -86,6 +102,7 @@ interface UserProfileTabProps {
 
 export default function UserProfileTab({ userId }: UserProfileTabProps) {
   const { data: user, isLoading, isError } = useAdminUserDetail(userId)
+  const moderateProject = useModerateUserProject(userId)
 
   if (isLoading) {
     return (
@@ -258,6 +275,143 @@ export default function UserProfileTab({ userId }: UserProfileTabProps) {
                   {cat.name}
                 </Badge>
               ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Projects ───────────────────────────────────────────────────────── */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <FolderGit2 className="size-4" />
+            Projects
+            <Badge variant="secondary" className="text-xs ml-2">
+              {user.projects?.length ?? 0}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!user.projects || user.projects.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-2">No projects added</p>
+          ) : (
+            <div className="space-y-3">
+              {user.projects.map((project) => {
+                const dateLabel = `${formatProjectDate(project.startYear, project.startMonth)}${
+                  project.isOngoing
+                    ? " – Present"
+                    : project.endYear
+                      ? ` – ${formatProjectDate(project.endYear, project.endMonth)}`
+                      : ""
+                }`
+                const isHidden = project.moderationStatus === "HIDDEN"
+                const isPending =
+                  moderateProject.isPending &&
+                  moderateProject.variables?.projectId === project.projectId
+                return (
+                  <div
+                    key={project.projectId}
+                    className={`rounded-lg border p-3 ${isHidden ? "border-destructive/40 bg-destructive/5" : ""}`}
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium text-sm">{project.title}</p>
+                      {isHidden && (
+                        <Badge variant="destructive" className="gap-1 text-xs">
+                          <EyeOff className="size-3" />
+                          Hidden
+                        </Badge>
+                      )}
+                      {project.status && (
+                        <Badge variant="outline" className="text-xs">
+                          {project.statusLabel ?? project.status}
+                        </Badge>
+                      )}
+                      {project.projectType && (
+                        <Badge variant="secondary" className="text-xs">
+                          {project.projectTypeLabel ?? project.projectType}
+                        </Badge>
+                      )}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={isHidden ? "outline" : "ghost"}
+                        disabled={isPending}
+                        onClick={() =>
+                          moderateProject.mutate({
+                            projectId: project.projectId,
+                            status: isHidden ? "VISIBLE" : "HIDDEN",
+                          })
+                        }
+                        className="ml-auto h-7 gap-1 text-xs"
+                      >
+                        {isHidden ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
+                        {isHidden ? "Restore" : "Hide"}
+                      </Button>
+                    </div>
+                    {project.roleInProject && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">{project.roleInProject}</p>
+                    )}
+                    {dateLabel.trim() && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">{dateLabel}</p>
+                    )}
+                    {(project.liveUrl || project.sourceUrl) && (
+                      <div className="mt-2 flex flex-wrap gap-3">
+                        {project.liveUrl && (
+                          <a
+                            href={project.liveUrl}
+                            target="_blank"
+                            rel="noopener noreferrer nofollow"
+                            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                          >
+                            <ExternalLink className="size-3" />
+                            Live
+                          </a>
+                        )}
+                        {project.sourceUrl && (
+                          <a
+                            href={project.sourceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer nofollow"
+                            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                          >
+                            <Code2 className="size-3" />
+                            Source
+                          </a>
+                        )}
+                      </div>
+                    )}
+                    {project.skills.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {project.skills.map((skill) => (
+                          <Badge key={skill.skillId} variant="outline" className="text-xs py-0.5 px-2">
+                            {skill.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    {project.media.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {[...project.media]
+                          .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
+                          .map((m) =>
+                            m.url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                key={m.mediaId}
+                                src={m.url}
+                                alt="Project image"
+                                loading="lazy"
+                                className={`h-12 w-16 rounded-md border object-cover ${
+                                  m.isPrimary ? "border-primary ring-1 ring-primary/40" : "border-border"
+                                }`}
+                              />
+                            ) : null,
+                          )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
         </CardContent>
