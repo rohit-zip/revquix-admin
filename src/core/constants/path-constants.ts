@@ -36,6 +36,7 @@ export const PATH_CONSTANTS = {
   ADMIN_HOURLY_BOOKINGS: "/hourly-bookings",
   ADMIN_COUPONS: "/coupons",
   ADMIN_SESSION_DISPUTES: "/session-disputes",
+  ADMIN_CONTACT_QUERIES: "/contact-queries",
   ADMIN_PROFESSIONAL_MENTORS: "/professional-mentor/mentors",
 
   // ── Payments Admin ────────────────────────────────────────────────────────

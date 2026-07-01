@@ -26,6 +26,7 @@ import {
   CreditCard,
   FileText,
   History,
+  Inbox,
   Key,
   LayoutDashboard,
   type LucideIcon,
@@ -90,6 +91,8 @@ export const PERMISSIONS = {
   PERM_MANAGE_OFFER_ORDERS: "PERM_MANAGE_OFFER_ORDERS",
   PERM_REVIEW_OFFER_ORDERS: "PERM_REVIEW_OFFER_ORDERS",
   PERM_MANAGE_PLATFORM_COUPONS: "PERM_MANAGE_PLATFORM_COUPONS",
+
+  PERM_MANAGE_CONTACT_QUERIES: "PERM_MANAGE_CONTACT_QUERIES",
 
 
 } as const
@@ -442,6 +445,24 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         href: PATH_CONSTANTS.ADMIN_OFFER_COUPONS,
         access: {
           anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_PLATFORM_COUPONS],
+        },
+      },
+    ],
+  },
+
+  // ── Support ───────────────────────────────────────────────────────────────
+  {
+    title: "Support",
+    access: {
+      anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_CONTACT_QUERIES],
+    },
+    items: [
+      {
+        Icon: Inbox,
+        label: "Contact Queries",
+        href: PATH_CONSTANTS.ADMIN_CONTACT_QUERIES,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_CONTACT_QUERIES],
         },
       },
     ],
