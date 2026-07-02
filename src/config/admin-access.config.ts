@@ -52,6 +52,7 @@ export const ADMIN_APP_ACCESS: AdminAppAccessConfig = {
     "PERM_VIEW_ALL_INTAKES",
     "PERM_MANAGE_OWN_SLOTS",
     "PERM_VIEW_OWN_BOOKINGS",
+    "PERM_MANAGE_ASSETS",
   ],
   unauthorizedRedirectPath: "/unauthorized",
 }

@@ -27,6 +27,7 @@ import {
   FileText,
   History,
   Inbox,
+  Image as ImageIcon,
   Key,
   LayoutDashboard,
   type LucideIcon,
@@ -93,6 +94,9 @@ export const PERMISSIONS = {
   PERM_MANAGE_PLATFORM_COUPONS: "PERM_MANAGE_PLATFORM_COUPONS",
 
   PERM_MANAGE_CONTACT_QUERIES: "PERM_MANAGE_CONTACT_QUERIES",
+
+  // ── Content / Assets ───────────────────────────────────────────────────────
+  PERM_MANAGE_ASSETS: "PERM_MANAGE_ASSETS",
 
 
 } as const
@@ -402,6 +406,24 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         label: "School Registry",
         href: PATH_CONSTANTS.ADMIN_SCHOOLS,
         access: { allOf: [PERMISSIONS.ROLE_ADMIN] },
+      },
+    ],
+  },
+
+  // ── Content / Assets ──────────────────────────────────────────────────────
+  {
+    title: "Content",
+    access: {
+      anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_ASSETS],
+    },
+    items: [
+      {
+        Icon: ImageIcon,
+        label: "Asset Manager",
+        href: PATH_CONSTANTS.ADMIN_ASSETS,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_ASSETS],
+        },
       },
     ],
   },
