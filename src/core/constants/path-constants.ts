@@ -69,7 +69,9 @@ export const PATH_CONSTANTS = {
   ADMIN_OFFER_ORDERS: "/offer-orders",
   ADMIN_OFFER_ORDER_DETAIL: "/offer-orders",
   ADMIN_OFFER_COUPONS: "/offer-coupons",
-  // ── Cross-app: revquix-dashboard ──────────────────────────────────────────
+  ADMIN_CUSTOM_QUOTES: "/custom-quotes",
+  ADMIN_CUSTOM_QUOTE_NEW: "/custom-quotes/new",
+  ADMIN_CUSTOM_QUOTE_DETAIL: "/custom-quotes",  // ── Cross-app: revquix-dashboard ──────────────────────────────────────────
   EXTERNAL_DASHBOARD: DASHBOARD_URL,
   EXTERNAL_PROFILE: `${DASHBOARD_URL}/profile`,
   EXTERNAL_BOOKING: `${DASHBOARD_URL}/booking`,

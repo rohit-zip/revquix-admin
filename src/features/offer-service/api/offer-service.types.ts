@@ -16,9 +16,34 @@ export const OFFER_ORDER_STATUS = {
   CANCELLED_BY_USER: "CANCELLED_BY_USER",
   CANCELLED_BY_REVQUIX: "CANCELLED_BY_REVQUIX",
   EXPIRED: "EXPIRED",
+  QUOTE_DRAFT: "QUOTE_DRAFT",
+  QUOTE_SENT: "QUOTE_SENT",
+  QUOTE_DECLINED: "QUOTE_DECLINED",
+  QUOTE_EXPIRED: "QUOTE_EXPIRED",
+  QUOTE_CANCELLED: "QUOTE_CANCELLED",
 } as const
 
 export type OfferOrderStatus = (typeof OFFER_ORDER_STATUS)[keyof typeof OFFER_ORDER_STATUS]
+
+export const OFFER_ORDER_SOURCE = {
+  CATALOG_ORDER: "CATALOG_ORDER",
+  CUSTOM_QUOTE: "CUSTOM_QUOTE",
+} as const
+
+export type OfferOrderSource = (typeof OFFER_ORDER_SOURCE)[keyof typeof OFFER_ORDER_SOURCE]
+
+/** Quote-phase statuses (source = CUSTOM_QUOTE). */
+export const QUOTE_STATUS_OPTIONS: { label: string; value: string }[] = [
+  { label: "Draft", value: "QUOTE_DRAFT" },
+  { label: "Awaiting Response", value: "QUOTE_SENT" },
+  { label: "Payment Pending", value: "PENDING_PAYMENT" },
+  { label: "Declined", value: "QUOTE_DECLINED" },
+  { label: "Expired", value: "QUOTE_EXPIRED" },
+  { label: "Cancelled", value: "QUOTE_CANCELLED" },
+  { label: "Confirmed (Paid)", value: "CONFIRMED" },
+  { label: "In Progress", value: "IN_PROGRESS" },
+  { label: "Completed", value: "COMPLETED" },
+]
 
 export const OFFER_ORDER_STATUS_OPTIONS: { label: string; value: OfferOrderStatus }[] = [
   { label: "Pending Payment", value: "PENDING_PAYMENT" },
@@ -152,6 +177,11 @@ export interface OfferOrderSummaryResponse {
   cancellationReason: string | null
   createdAt: string
   ratingEligible: boolean
+  // Custom quote fields
+  source?: OfferOrderSource | null
+  quoteNumber?: string | null
+  quoteTitle?: string | null
+  quoteValidUntil?: string | null
 }
 
 export interface OfferDeliverableResponse {
@@ -385,4 +415,64 @@ export interface OfferOrderDetailResponse extends OfferOrderSummaryResponse {
   // Content
   formResponses: OfferOrderFormResponseItem[]
   selectedAddOns: OfferOrderAddOnItem[]
+  // Custom quote (source = CUSTOM_QUOTE)
+  source?: OfferOrderSource | null
+  quoteNumber?: string | null
+  quoteTitle?: string | null
+  quoteSummary?: string | null
+  quoteValidUntil?: string | null
+  quoteRevisionNo?: number | null
+  quoteSlaHours?: number | null
+  quoteSentAt?: string | null
+  quoteViewedAt?: string | null
+  quoteAcceptedAt?: string | null
+  quoteDeclinedAt?: string | null
+  quoteDeclinedReason?: string | null
+  quoteAllowCoupon?: boolean | null
+  targetEmail?: string | null
+  quoteCreatedByName?: string | null
+  lineItems?: OfferOrderLineItem[]
+}
+
+export interface OfferOrderLineItem {
+  title: string
+  description: string | null
+  quantity: number
+  unitPriceMinor: number
+  lineTotalMinor: number
+}
+
+// ─── Custom Quote request types ───────────────────────────────────────────────
+
+export interface QuoteLineItemDto {
+  title: string
+  description?: string
+  quantity: number
+  unitPriceMinor: number
+}
+
+export interface CreateQuoteRequest {
+  targetUserId?: string
+  targetEmail?: string
+  targetName?: string
+  title: string
+  summary?: string
+  currency?: string
+  validUntil?: string
+  slaHours?: number
+  reviewerUserId?: string
+  internalNotes?: string
+  allowCoupon?: boolean
+  lineItems: QuoteLineItemDto[]
+}
+
+export interface UpdateQuoteRequest {
+  title: string
+  summary?: string
+  validUntil?: string
+  slaHours?: number
+  reviewerUserId?: string
+  internalNotes?: string
+  allowCoupon?: boolean
+  lineItems: QuoteLineItemDto[]
 }

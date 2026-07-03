@@ -23,6 +23,11 @@ const STATUS_CONFIG: Record<
   CANCELLED_BY_USER:    { variant: "outline", label: "Cancelled by User" },
   CANCELLED_BY_REVQUIX: { variant: "outline", label: "Cancelled by Revquix" },
   EXPIRED:              { variant: "secondary", label: "Expired" },
+  QUOTE_DRAFT:          { variant: "secondary", label: "Draft" },
+  QUOTE_SENT:           { variant: "default", label: "Awaiting Response" },
+  QUOTE_DECLINED:       { variant: "destructive", label: "Declined" },
+  QUOTE_EXPIRED:        { variant: "secondary", label: "Expired" },
+  QUOTE_CANCELLED:      { variant: "outline", label: "Cancelled" },
 }
 
 export function OfferStatusBadge({ status }: OfferStatusBadgeProps) {
