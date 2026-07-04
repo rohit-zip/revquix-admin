@@ -182,6 +182,9 @@ export interface OfferOrderSummaryResponse {
   quoteNumber?: string | null
   quoteTitle?: string | null
   quoteValidUntil?: string | null
+  userName?: string | null
+  targetEmail?: string | null
+  quoteCreatedByName?: string | null
 }
 
 export interface OfferDeliverableResponse {

@@ -33,6 +33,16 @@ const FILTER_CONFIG: FilterConfig = {
       options: QUOTE_STATUS_OPTIONS,
     },
     {
+      field: "source",
+      label: "Source",
+      type: "STRING",
+      operators: ["EQUALS"],
+      options: [
+        { label: "Custom Quote", value: "CUSTOM_QUOTE" },
+        { label: "Catalog Order", value: "CATALOG_ORDER" },
+      ],
+    },
+    {
       field: "currency",
       label: "Currency",
       type: "STRING",
@@ -59,9 +69,11 @@ const FILTER_CONFIG: FilterConfig = {
 const columns: DataColumn<OfferOrderSummaryResponse>[] = [
   { key: "quoteNumber", header: "Quote #", sortable: false },
   { key: "quoteTitle", header: "Title", sortable: false },
+  { key: "recipient", header: "Recipient", sortable: false },
   { key: "status", header: "Status", sortable: false },
   { key: "finalAmountCharged", header: "Amount", sortable: true },
   { key: "quoteValidUntil", header: "Valid Until", sortable: false },
+  { key: "createdBy", header: "Created By", sortable: false },
   { key: "createdAt", header: "Created", sortable: true },
 ]
 
@@ -114,6 +126,12 @@ export default function AdminQuotesView() {
           >
             <TableCell className="font-mono text-xs">{quote.quoteNumber ?? "—"}</TableCell>
             <TableCell className="font-medium text-sm">{quote.quoteTitle ?? "Custom quote"}</TableCell>
+            <TableCell className="text-xs">
+              <div className="flex flex-col">
+                <span className="font-medium text-foreground">{quote.userName ?? "—"}</span>
+                <span className="text-muted-foreground">{quote.targetEmail ?? ""}</span>
+              </div>
+            </TableCell>
             <TableCell>
               <OfferStatusBadge status={quote.status} />
             </TableCell>
@@ -122,6 +140,9 @@ export default function AdminQuotesView() {
             </TableCell>
             <TableCell className="text-xs text-muted-foreground">
               {formatDate(quote.quoteValidUntil)}
+            </TableCell>
+            <TableCell className="text-xs text-muted-foreground">
+              {quote.quoteCreatedByName ?? "—"}
             </TableCell>
             <TableCell className="text-xs text-muted-foreground">
               {formatDate(quote.createdAt)}

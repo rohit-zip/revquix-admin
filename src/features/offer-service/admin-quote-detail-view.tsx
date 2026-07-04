@@ -22,11 +22,18 @@ import {
   Clock,
   CheckCircle2,
   User,
+  Pencil,
+  Plus,
+  Trash2,
+  MessageSquare,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Dialog,
   DialogContent,
@@ -37,8 +44,20 @@ import {
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { PATH_CONSTANTS } from "@/core/constants/path-constants"
+import { useAuth } from "@/hooks/useAuth"
 import { OfferStatusBadge } from "./components/offer-status-badge"
-import { useAdminQuoteDetail, useAdminSendQuote, useAdminCancelQuote } from "./api/quote.hooks"
+import {
+  useAdminQuoteDetail,
+  useAdminSendQuote,
+  useAdminCancelQuote,
+  useAdminUpdateQuote,
+} from "./api/quote.hooks"
+import {
+  useAdminOrderComments,
+  useAdminOrderCommentWindow,
+  useAdminAddOrderComment,
+} from "./api/offer-order.hooks"
+import type { QuoteLineItemDto } from "./api/offer-service.types"
 
 function formatAmount(minor: number | null | undefined, currency: string) {
   if (minor == null) return "—"
@@ -58,11 +77,280 @@ function formatDate(iso: string | null | undefined, withTime = false) {
 
 const QUOTE_PHASE = ["QUOTE_DRAFT", "QUOTE_SENT", "QUOTE_DECLINED", "QUOTE_EXPIRED", "QUOTE_CANCELLED"]
 
+// ─── Edit / Revise Dialog ───────────────────────────────────────────────────
+
+interface EditableLineItem extends QuoteLineItemDto {
+  key: number
+}
+
+let lineKeySeq = 0
+function toEditable(items: { title: string; description?: string | null; quantity: number; unitPriceMinor: number }[]): EditableLineItem[] {
+  return items.map((li) => ({
+    key: lineKeySeq++,
+    title: li.title,
+    description: li.description ?? undefined,
+    quantity: li.quantity,
+    unitPriceMinor: li.unitPriceMinor,
+  }))
+}
+
+function EditQuoteDialog({
+  open,
+  onOpenChange,
+  quote,
+  orderId,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  quote: {
+    quoteTitle?: string | null
+    quoteSummary?: string | null
+    quoteValidUntil?: string | null
+    quoteSlaHours?: number | null
+    quoteAllowCoupon?: boolean | null
+    lineItems?: { title: string; description?: string | null; quantity: number; unitPriceMinor: number }[]
+  }
+  orderId: string
+}) {
+  const [title, setTitle] = useState(quote.quoteTitle ?? "")
+  const [summary, setSummary] = useState(quote.quoteSummary ?? "")
+  const [validUntil, setValidUntil] = useState(
+    quote.quoteValidUntil ? quote.quoteValidUntil.slice(0, 10) : "",
+  )
+  const [slaHours, setSlaHours] = useState(quote.quoteSlaHours ? String(quote.quoteSlaHours) : "")
+  const [lines, setLines] = useState<EditableLineItem[]>(() => toEditable(quote.lineItems ?? []))
+
+  const updateMutation = useAdminUpdateQuote(orderId, () => onOpenChange(false))
+
+  const updateLine = (key: number, patch: Partial<EditableLineItem>) =>
+    setLines((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)))
+  const addLine = () =>
+    setLines((prev) => [...prev, { key: lineKeySeq++, title: "", description: "", quantity: 1, unitPriceMinor: 0 }])
+  const removeLine = (key: number) => setLines((prev) => prev.filter((l) => l.key !== key))
+
+  const handleSave = () => {
+    const validLines = lines.filter((l) => l.title.trim())
+    if (!title.trim() || validLines.length === 0) return
+    updateMutation.mutate({
+      title: title.trim(),
+      summary: summary.trim() || undefined,
+      validUntil: validUntil ? new Date(validUntil).toISOString() : undefined,
+      slaHours: slaHours ? parseInt(slaHours, 10) : undefined,
+      allowCoupon: quote.quoteAllowCoupon ?? undefined,
+      lineItems: validLines.map((l) => ({
+        title: l.title.trim(),
+        description: l.description?.trim() || undefined,
+        quantity: Math.max(1, Math.floor(l.quantity || 1)),
+        unitPriceMinor: Math.max(0, Math.round(l.unitPriceMinor || 0)),
+      })),
+    })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Revise quote</DialogTitle>
+          <DialogDescription>
+            Saving will bump the revision number. If the quote was already sent, the recipient is re-notified.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label>Title</Label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Scope of Work</Label>
+            <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={4} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Valid Until</Label>
+              <Input type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>SLA (hours)</Label>
+              <Input type="number" min={1} value={slaHours} onChange={(e) => setSlaHours(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Line items</Label>
+              <Button variant="outline" size="sm" onClick={addLine} className="gap-1.5">
+                <Plus className="h-3.5 w-3.5" /> Add item
+              </Button>
+            </div>
+            {lines.map((line) => (
+              <div key={line.key} className="rounded-lg border p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={line.title}
+                    onChange={(e) => updateLine(line.key, { title: e.target.value })}
+                    placeholder="Item title"
+                    className="flex-1"
+                  />
+                  {lines.length > 1 && (
+                    <Button variant="ghost" size="icon" onClick={() => removeLine(line.key)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    value={line.quantity}
+                    onChange={(e) => updateLine(line.key, { quantity: parseInt(e.target.value, 10) || 1 })}
+                    placeholder="Qty"
+                  />
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={line.unitPriceMinor ? (line.unitPriceMinor / 100).toString() : ""}
+                    onChange={(e) =>
+                      updateLine(line.key, { unitPriceMinor: Math.round((parseFloat(e.target.value) || 0) * 100) })
+                    }
+                    placeholder="Unit price"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={updateMutation.isPending || !title.trim()}>
+            {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save revision"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ─── Comment Thread (reuses OFFER_ORDER comment context, keyed by orderId) ──
+
+function QuoteCommentsSection({ orderId }: { orderId: string }) {
+  const [body, setBody] = useState("")
+  const { user } = useAuth()
+  const { data: windowState } = useAdminOrderCommentWindow(orderId)
+  const { data: comments, isLoading } = useAdminOrderComments(orderId)
+  const addMutation = useAdminAddOrderComment(orderId, () => setBody(""))
+  const currentUserId = user?.userId
+  const isOpen = windowState?.isOpen ?? false
+
+  return (
+    <div className="flex flex-col gap-3">
+      {isLoading && (
+        <div className="space-y-2">
+          <Skeleton className="h-14 w-full rounded-2xl" />
+          <Skeleton className="h-14 w-4/5 rounded-2xl ml-auto" />
+        </div>
+      )}
+
+      {!isLoading && (!comments || comments.length === 0) && (
+        <div className="flex flex-col items-center py-6 rounded-2xl border border-dashed">
+          <MessageSquare className="h-8 w-8 text-muted-foreground/40 mb-2" />
+          <p className="text-sm text-muted-foreground">No messages yet</p>
+        </div>
+      )}
+
+      {comments?.map((msg) => {
+        const mine = msg.authorUserId === currentUserId
+        return (
+          <div key={msg.commentId} className={`flex flex-col gap-1 ${mine ? "items-end" : "items-start"}`}>
+            <div className={`flex items-center gap-1.5 ${mine ? "mr-1 flex-row-reverse" : "ml-1"}`}>
+              <Avatar size="sm" className="h-5 w-5 shrink-0">
+                {mine ? (
+                  <>
+                    <AvatarImage src="/svg/revquix.svg" alt="Revquix Support" />
+                    <AvatarFallback className="bg-primary text-[10px] font-bold text-primary-foreground">R</AvatarFallback>
+                  </>
+                ) : (
+                  <>
+                    <AvatarImage src={msg.authorAvatarUrl ?? undefined} alt={msg.authorName} />
+                    <AvatarFallback className="bg-muted text-[10px] font-bold text-muted-foreground">
+                      {msg.authorName.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </>
+                )}
+              </Avatar>
+              <span className="text-xs font-medium text-muted-foreground">{mine ? "Revquix Support" : msg.authorName}</span>
+            </div>
+            <div
+              className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm ${
+                mine ? "bg-primary text-primary-foreground" : "border bg-muted/50 text-foreground"
+              }`}
+            >
+              {msg.body}
+            </div>
+            <span className="text-[10px] text-muted-foreground/60 mx-1">
+              {new Date(msg.createdAt).toLocaleString("en-US", {
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          </div>
+        )
+      })}
+
+      {isOpen ? (
+        <div className="mt-1 rounded-2xl border bg-background shadow-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/50 transition-all duration-200">
+          <div className="flex items-start gap-2.5 px-3.5 pt-3">
+            <Avatar size="sm" className="h-7 w-7 shrink-0 mt-0.5">
+              <AvatarImage src="/svg/revquix.svg" alt="Revquix Support" />
+              <AvatarFallback className="bg-primary text-[10px] font-bold text-primary-foreground">R</AvatarFallback>
+            </Avatar>
+            <Textarea
+              placeholder="Send a message to the recipient…"
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && body.trim()) {
+                  addMutation.mutate({ contextType: "OFFER_ORDER", contextEntityId: orderId, body })
+                }
+              }}
+              rows={2}
+              className="flex-1 resize-none border-0 shadow-none p-0 focus-visible:ring-0 bg-transparent text-sm placeholder:text-muted-foreground/50 min-h-13"
+            />
+          </div>
+          <div className="flex items-center justify-between px-3.5 pb-3 pt-1.5">
+            <span className="text-[11px] text-muted-foreground/50 select-none">Ctrl+↵ to send</span>
+            <Button
+              size="sm"
+              className="h-8 rounded-xl gap-1.5 px-3"
+              onClick={() => addMutation.mutate({ contextType: "OFFER_ORDER", contextEntityId: orderId, body })}
+              disabled={!body.trim() || addMutation.isPending}
+            >
+              {addMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              Send
+            </Button>
+          </div>
+        </div>
+      ) : (
+        !isLoading && (
+          <p className="text-xs text-center text-muted-foreground py-2">
+            {windowState ? "Messaging window is closed." : "No comment window open for this quote yet."}
+          </p>
+        )
+      )}
+    </div>
+  )
+}
+
 export default function AdminQuoteDetailView({ orderId }: { orderId: string }) {
   const router = useRouter()
   const { data: quote, isLoading, isError } = useAdminQuoteDetail(orderId)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [cancelReason, setCancelReason] = useState("")
+  const [editOpen, setEditOpen] = useState(false)
 
   const sendMutation = useAdminSendQuote(orderId)
   const cancelMutation = useAdminCancelQuote(orderId, () => {
@@ -136,6 +424,12 @@ export default function AdminQuoteDetailView({ orderId }: { orderId: string }) {
                 <Send className="h-4 w-4" />
               )}
               Send Quote
+            </Button>
+          )}
+          {(isDraft || isSent) && (
+            <Button variant="outline" className="gap-2" onClick={() => setEditOpen(true)}>
+              <Pencil className="h-4 w-4" />
+              Revise
             </Button>
           )}
           {(isDraft || isSent) && (
@@ -215,6 +509,18 @@ export default function AdminQuoteDetailView({ orderId }: { orderId: string }) {
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Messages
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <QuoteCommentsSection orderId={orderId} />
+            </CardContent>
+          </Card>
         </div>
 
         {/* Sidebar */}
@@ -285,6 +591,9 @@ export default function AdminQuoteDetailView({ orderId }: { orderId: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit / revise dialog */}
+      <EditQuoteDialog open={editOpen} onOpenChange={setEditOpen} quote={quote} orderId={orderId} />
     </div>
   )
 }

@@ -84,6 +84,13 @@ export const PAGE_ACCESS_CONFIG: Record<string, PageAccessRule> = {
     label: "All Coupons",
   },
 
+  // ── Offer Services Admin ──────────────────────────────────────────────────
+
+  [PATH_CONSTANTS.ADMIN_CUSTOM_QUOTES]: {
+    anyOf: ["ROLE_ADMIN", "PERM_MANAGE_CUSTOM_QUOTES"],
+    label: "Custom Quotes",
+  },
+
 
   // ── Payments Admin ────────────────────────────────────────────────────────
 

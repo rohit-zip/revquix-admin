@@ -14,6 +14,7 @@ import type {
   OfferOrderSummaryResponse,
   UpdateQuoteRequest,
 } from "./offer-service.types"
+import type { AdminUserResponse } from "@/features/user/api/user-search.types"
 
 const BASE = "/admin/offers/quotes"
 
@@ -56,3 +57,14 @@ export const adminSearchQuotes = (
 /** GET /admin/offers/quotes/{orderId} — full quote detail (admin) */
 export const adminGetQuote = (orderId: string): Promise<OfferOrderDetailResponse> =>
   apiClient.get<OfferOrderDetailResponse>(`${BASE}/${orderId}`).then((r) => r.data)
+
+/**
+ * GET /admin/offers/quotes/users/lookup?query= — search existing users for
+ * recipient/reviewer selection. Scoped to PERM_MANAGE_CUSTOM_QUOTES (unlike
+ * POST /user/search, which requires PERM_MANAGE_USER_ROLES) so a
+ * least-privilege quote-authoring admin can resolve a recipient.
+ */
+export const lookupUsers = (query: string): Promise<AdminUserResponse[]> =>
+  apiClient
+    .get<AdminUserResponse[]>(`${BASE}/users/lookup`, { params: { query } })
+    .then((r) => r.data)

@@ -28,7 +28,9 @@ import { showErrorToast } from "@/lib/show-toast"
 import { PATH_CONSTANTS } from "@/core/constants/path-constants"
 import { adminSendQuote } from "./api/quote.api"
 import { useAdminCreateQuote } from "./api/quote.hooks"
+import { UserSearchCombobox } from "./components/user-search-combobox"
 import type { CreateQuoteRequest, QuoteLineItemDto } from "./api/offer-service.types"
+import type { AdminUserResponse } from "@/features/user/api/user-search.types"
 
 interface LineItemDraft {
   title: string
@@ -42,8 +44,11 @@ const emptyLine = (): LineItemDraft => ({ title: "", description: "", quantity: 
 export default function AdminCreateQuoteView() {
   const router = useRouter()
 
+  const [recipientMode, setRecipientMode] = useState<"existing" | "lead">("existing")
+  const [selectedRecipient, setSelectedRecipient] = useState<AdminUserResponse | null>(null)
   const [targetEmail, setTargetEmail] = useState("")
   const [targetName, setTargetName] = useState("")
+  const [selectedReviewer, setSelectedReviewer] = useState<AdminUserResponse | null>(null)
   const [title, setTitle] = useState("")
   const [summary, setSummary] = useState("")
   const [currency, setCurrency] = useState("INR")
@@ -75,7 +80,11 @@ export default function AdminCreateQuoteView() {
   const removeLine = (idx: number) => setLines((prev) => prev.filter((_, i) => i !== idx))
 
   const buildRequest = (): CreateQuoteRequest | null => {
-    if (!targetEmail.trim()) {
+    if (recipientMode === "existing" && !selectedRecipient) {
+      showErrorToast(new Error("Select a recipient") as never)
+      return null
+    }
+    if (recipientMode === "lead" && !targetEmail.trim()) {
       showErrorToast(new Error("Recipient email is required") as never)
       return null
     }
@@ -96,13 +105,15 @@ export default function AdminCreateQuoteView() {
     }))
 
     return {
-      targetEmail: targetEmail.trim(),
-      targetName: targetName.trim() || undefined,
+      targetUserId: recipientMode === "existing" ? selectedRecipient?.userId : undefined,
+      targetEmail: recipientMode === "lead" ? targetEmail.trim() : undefined,
+      targetName: recipientMode === "lead" ? targetName.trim() || undefined : undefined,
       title: title.trim(),
       summary: summary.trim() || undefined,
       currency,
       validUntil: validUntil ? new Date(validUntil).toISOString() : undefined,
       slaHours: slaHours ? parseInt(slaHours, 10) : undefined,
+      reviewerUserId: selectedReviewer?.userId,
       allowCoupon,
       internalNotes: internalNotes.trim() || undefined,
       lineItems,
@@ -159,24 +170,57 @@ export default function AdminCreateQuoteView() {
         <CardHeader>
           <CardTitle className="text-base">Recipient</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label>Email <span className="text-destructive">*</span></Label>
-            <Input
-              type="email"
-              value={targetEmail}
-              onChange={(e) => setTargetEmail(e.target.value)}
-              placeholder="client@example.com"
-            />
-            <p className="text-xs text-muted-foreground">
-              If the email isn&apos;t registered yet, a lead account is created — the quote appears
-              once they sign up.
-            </p>
+        <CardContent className="space-y-4">
+          <div className="inline-flex rounded-md border p-0.5 text-sm">
+            <button
+              type="button"
+              className={`rounded-sm px-3 py-1.5 transition-colors ${
+                recipientMode === "existing" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
+              onClick={() => setRecipientMode("existing")}
+            >
+              Existing user
+            </button>
+            <button
+              type="button"
+              className={`rounded-sm px-3 py-1.5 transition-colors ${
+                recipientMode === "lead" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
+              onClick={() => setRecipientMode("lead")}
+            >
+              New email (lead)
+            </button>
           </div>
-          <div className="space-y-1.5">
-            <Label>Name (optional)</Label>
-            <Input value={targetName} onChange={(e) => setTargetName(e.target.value)} placeholder="Full name" />
-          </div>
+
+          {recipientMode === "existing" ? (
+            <div className="space-y-1.5">
+              <Label>Search users <span className="text-destructive">*</span></Label>
+              <UserSearchCombobox selectedUser={selectedRecipient} onSelect={setSelectedRecipient} />
+              <p className="text-xs text-muted-foreground">
+                Search by name, email, or username to find a registered user.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>Email <span className="text-destructive">*</span></Label>
+                <Input
+                  type="email"
+                  value={targetEmail}
+                  onChange={(e) => setTargetEmail(e.target.value)}
+                  placeholder="client@example.com"
+                />
+                <p className="text-xs text-muted-foreground">
+                  If the email isn&apos;t registered yet, a lead account is created — the quote appears
+                  once they sign up.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Name (optional)</Label>
+                <Input value={targetName} onChange={(e) => setTargetName(e.target.value)} placeholder="Full name" />
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -233,6 +277,17 @@ export default function AdminCreateQuoteView() {
               </p>
             </div>
             <Switch checked={allowCoupon} onCheckedChange={setAllowCoupon} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Reviewer (optional)</Label>
+            <UserSearchCombobox
+              selectedUser={selectedReviewer}
+              onSelect={setSelectedReviewer}
+              placeholder="Search staff to pre-assign as reviewer…"
+            />
+            <p className="text-xs text-muted-foreground">
+              If left unassigned, a reviewer is auto-assigned once the quote is paid.
+            </p>
           </div>
         </CardContent>
       </Card>
