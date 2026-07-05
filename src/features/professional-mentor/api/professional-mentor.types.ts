@@ -179,6 +179,15 @@ export interface MentorRatingResponse {
 
 // ─── Professional Mentor Slots ────────────────────────────────────────────────
 
+/**
+ * Slot availability + live pricing preview.
+ *
+ * Price fields are resolved live from the mentor's profile at request time — never stored
+ * on the slot itself. A slot is a shared, service-agnostic availability record, so both
+ * price pairs are always returned; pick the pair relevant to the booking flow you're in
+ * (mock interview vs. hourly session). Either pair may be null if the mentor hasn't
+ * configured pricing for that service.
+ */
 export interface ProfessionalSlotResponse {
   slotId: string
   mentorUserId: string
@@ -187,8 +196,10 @@ export interface ProfessionalSlotResponse {
   durationMinutes: number
   isBooked: boolean
   isCancelled: boolean
-  priceInrPaise: number | null
-  priceUsdCents: number | null
+  mockInterviewPriceInrPaise: number | null
+  mockInterviewPriceUsdCents: number | null
+  hourlySessionPriceInrPaise: number | null
+  hourlySessionPriceUsdCents: number | null
   createdAt: string
 }
 

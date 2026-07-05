@@ -74,7 +74,6 @@ const SLOT_FILTER_CONFIG: FilterConfig = {
   sortFields: [
     { field: "slotStartUtc", label: "Slot Date" },
     { field: "durationMinutes", label: "Duration" },
-    { field: "priceInrPaise", label: "Price (INR)" },
     { field: "createdAt", label: "Created Date" },
   ],
   defaultSort: [{ field: "slotStartUtc", direction: "DESC" }],
@@ -106,7 +105,9 @@ function getTodayDate() {
 const columns: DataColumn<ProfessionalSlotResponse>[] = [
   { key: "slotStartUtc", header: "Date & Time", sortable: true },
   { key: "durationMinutes", header: "Duration", sortable: true },
-  { key: "priceInrPaise", header: "Price (INR)", sortable: true },
+  // Not sortable server-side: price is resolved live per-service from MentorProfile at
+  // read time, not stored on the slot, so there is no backend column to sort by.
+  { key: "price", header: "Price (INR)", sortable: false },
   { key: "status", header: "Status", sortable: false },
   { key: "actions", header: "", sortable: false },
 ]
@@ -256,7 +257,20 @@ export default function MentorSlotManagement() {
             <TableCell>{formatSlot(slot.slotStartUtc)}</TableCell>
             <TableCell>{slot.durationMinutes} min</TableCell>
             <TableCell>
-              {slot.priceInrPaise ? `₹${(slot.priceInrPaise / 100).toLocaleString()}` : "—"}
+              <div className="flex flex-col gap-0.5 text-xs">
+                <span>
+                  Mock:{" "}
+                  {slot.mockInterviewPriceInrPaise
+                    ? `₹${(slot.mockInterviewPriceInrPaise / 100).toLocaleString()}`
+                    : "—"}
+                </span>
+                <span className="text-muted-foreground">
+                  Hourly:{" "}
+                  {slot.hourlySessionPriceInrPaise
+                    ? `₹${(slot.hourlySessionPriceInrPaise / 100).toLocaleString()}`
+                    : "—"}
+                </span>
+              </div>
             </TableCell>
             <TableCell>{getSlotBadge(slot)}</TableCell>
             <TableCell>

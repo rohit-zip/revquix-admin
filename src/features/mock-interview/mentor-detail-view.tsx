@@ -149,7 +149,7 @@ function SlotCard({
           <span className="text-xs text-muted-foreground">· {slot.durationMinutes} min</span>
         </div>
         <span className={cn("text-sm font-bold", isSelected ? "text-primary" : "text-foreground")}>
-          {formatPrice(slot.priceInrPaise, slot.priceUsdCents)}
+          {formatPrice(slot.mockInterviewPriceInrPaise, slot.mockInterviewPriceUsdCents)}
         </span>
       </div>
     </button>
@@ -591,7 +591,7 @@ export default function MentorDetailView({
                             href={`${PATH_CONSTANTS.MOCK_INTERVIEW_BOOK}/${mentorProfileId}`}
                           >
                             <Calendar className="h-4 w-4" />
-                            Book {formatSlotTime(selectedSlot.slotStartUtc)} · {formatPrice(selectedSlot.priceInrPaise, selectedSlot.priceUsdCents)}
+                            Book {formatSlotTime(selectedSlot.slotStartUtc)} · {formatPrice(selectedSlot.mockInterviewPriceInrPaise, selectedSlot.mockInterviewPriceUsdCents)}
                           </Link>
                         </Button>
                         <p className="mt-2 text-center text-xs text-muted-foreground">

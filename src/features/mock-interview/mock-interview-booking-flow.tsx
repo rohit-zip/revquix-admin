@@ -261,7 +261,7 @@ export default function MockInterviewBookingFlow({ mentorProfileId }: BookingFlo
     try {
       const result = await validateCoupon({
         couponCode: couponCode.trim(),
-        amountMinor: selectedSlot.priceInrPaise ?? 0,
+        amountMinor: selectedSlot.mockInterviewPriceInrPaise ?? 0,
         currency: "INR",
         mentorProfileId,
       })
@@ -863,7 +863,7 @@ export default function MockInterviewBookingFlow({ mentorProfileId }: BookingFlo
                                     isSlotSelected ? "text-primary" : "text-muted-foreground",
                                   )}
                                 >
-                                  {formatPrice(gs.slot.priceInrPaise)} · {gs.slot.durationMinutes}min
+                                  {formatPrice(gs.slot.mockInterviewPriceInrPaise)} · {gs.slot.durationMinutes}min
                                 </span>
                               </div>
 
@@ -942,7 +942,7 @@ export default function MockInterviewBookingFlow({ mentorProfileId }: BookingFlo
               </div>
               <div className="flex justify-between text-sm font-medium">
                 <span>Amount</span>
-                <span>{formatPrice(selectedSlot.priceInrPaise)}</span>
+                <span>{formatPrice(selectedSlot.mockInterviewPriceInrPaise)}</span>
               </div>
 
               {couponResult?.isValid && (
@@ -1013,7 +1013,7 @@ export default function MockInterviewBookingFlow({ mentorProfileId }: BookingFlo
                 Pay{" "}
                 {couponResult?.isValid
                   ? couponResult.finalAmountDisplay
-                  : formatPrice(selectedSlot.priceInrPaise)}
+                  : formatPrice(selectedSlot.mockInterviewPriceInrPaise)}
               </Button>
             </div>
           </CardContent>
