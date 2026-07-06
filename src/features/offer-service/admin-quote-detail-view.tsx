@@ -318,7 +318,7 @@ function QuoteCommentsSection({ orderId }: { orderId: string }) {
                 }
               }}
               rows={2}
-              className="flex-1 resize-none border-0 shadow-none p-0 focus-visible:ring-0 bg-transparent text-sm placeholder:text-muted-foreground/50 min-h-13"
+              className="flex-1 resize-none border-0 shadow-none p-0 focus-visible:ring-0 bg-transparent dark:bg-transparent text-sm placeholder:text-muted-foreground/50 min-h-13"
             />
           </div>
           <div className="flex items-center justify-between px-3.5 pb-3 pt-1.5">

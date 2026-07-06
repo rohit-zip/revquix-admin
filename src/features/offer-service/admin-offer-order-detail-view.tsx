@@ -485,9 +485,9 @@ function CommentsSection({ orderId }: { orderId: string }) {
     const mine_bg = "bg-primary text-primary-foreground"
     const other_bg = "bg-muted/50 text-foreground border"
     if (total === 1) return mine ? `${base} rounded-2xl rounded-br-sm ${mine_bg}` : `${base} rounded-2xl rounded-bl-sm ${other_bg}`
-    if (idx === 0)           return mine ? `${base} rounded-2xl rounded-br-[6px] ${mine_bg}` : `${base} rounded-2xl rounded-bl-[6px] ${other_bg}`
+    if (idx === 0)           return mine ? `${base} rounded-2xl rounded-br-[10px] ${mine_bg}` : `${base} rounded-2xl rounded-bl-[10px] ${other_bg}`
     if (idx === total - 1)   return mine ? `${base} rounded-2xl rounded-br-sm ${mine_bg}` : `${base} rounded-2xl rounded-bl-sm ${other_bg}`
-    return mine ? `${base} rounded-2xl rounded-r-[6px] ${mine_bg}` : `${base} rounded-2xl rounded-l-[6px] ${other_bg}`
+    return mine ? `${base} rounded-2xl rounded-r-[10px] ${mine_bg}` : `${base} rounded-2xl rounded-l-[10px] ${other_bg}`
   }
 
   const groups = groupByAuthor(comments ?? [])
@@ -560,7 +560,7 @@ function CommentsSection({ orderId }: { orderId: string }) {
                 }
               }}
               rows={2}
-              className="flex-1 resize-none border-0 shadow-none p-0 focus-visible:ring-0 bg-transparent text-sm placeholder:text-muted-foreground/50 min-h-13"
+              className="flex-1 resize-none border-0 shadow-none p-0 focus-visible:ring-0 bg-transparent dark:bg-transparent text-sm placeholder:text-muted-foreground/50 min-h-13"
             />
           </div>
           <div className="flex items-center justify-between px-3.5 pb-3 pt-1.5">
