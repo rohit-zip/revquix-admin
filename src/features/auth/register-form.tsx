@@ -395,7 +395,15 @@ export default function RegisterForm() {
                     </div>
 
                     <div className="flex flex-col items-center gap-3">
-                      <InputOTP maxLength={6} value={otp} onChange={handleOtpChange} disabled={isVerifying} aria-label="One-time password">
+                      <InputOTP
+                        maxLength={6}
+                        value={otp}
+                        onChange={handleOtpChange}
+                        disabled={isVerifying}
+                        autoComplete="one-time-code"
+                        inputMode="numeric"
+                        aria-label="One-time password"
+                      >
                         <InputOTPGroup>
                           <InputOTPSlot index={0} />
                           <InputOTPSlot index={1} />

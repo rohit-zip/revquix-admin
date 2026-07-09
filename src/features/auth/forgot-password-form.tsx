@@ -296,7 +296,15 @@ export default function ForgotPasswordForm() {
                   <CardContent>
                     <form onSubmit={handleVerifyOtp} className="space-y-5">
                       <div className="flex flex-col items-center gap-3">
-                        <InputOTP maxLength={6} value={otp} onChange={handleOtpChange} disabled={isVerifying} aria-label="One-time password">
+                        <InputOTP
+                          maxLength={6}
+                          value={otp}
+                          onChange={handleOtpChange}
+                          disabled={isVerifying}
+                          autoComplete="one-time-code"
+                          inputMode="numeric"
+                          aria-label="One-time password"
+                        >
                           <InputOTPGroup>
                             {Array.from({ length: 6 }).map((_, i) => (
                               <InputOTPSlot key={i} index={i} className={cn(otpError && "border-destructive focus-visible:ring-destructive")} />

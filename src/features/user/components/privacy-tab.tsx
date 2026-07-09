@@ -331,6 +331,8 @@ export default function PrivacyTab() {
                     setOtpValue(val)
                     setOtpError(null)
                   }}
+                  autoComplete="one-time-code"
+                  inputMode="numeric"
                 >
                   <InputOTPGroup>
                     <InputOTPSlot index={0} />

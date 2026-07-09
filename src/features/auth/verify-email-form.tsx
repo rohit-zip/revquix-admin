@@ -238,6 +238,8 @@ export default function VerifyEmailForm({ userId, email }: VerifyEmailFormProps)
                   value={otp}
                   onChange={handleOtpChange}
                   disabled={isPending}
+                  autoComplete="one-time-code"
+                  inputMode="numeric"
                   containerClassName="gap-2"
                 >
                   <InputOTPGroup>
