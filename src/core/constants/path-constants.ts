@@ -62,6 +62,14 @@ export const PATH_CONSTANTS = {
   ADMIN_SCHOOLS: "/schools",
   ADMIN_ASSETS: "/assets",
 
+  // ── News / Editorial (admin curation control plane) ───────────────────────
+  ADMIN_NEWS: "/news",
+  ADMIN_NEWS_CURATION: "/news", // + `/${blogId}/curation`
+  ADMIN_NEWS_CATEGORIES: "/news/categories",
+  ADMIN_NEWS_END_STRIPS: "/news/end-strips",
+  ADMIN_NEWS_LANDING: "/news/landing",
+  ADMIN_NEWS_ANALYTICS: "/news/analytics",
+
 
   // ── Offer Services (Global Offer Service) ─────────────────────────────────
   ADMIN_OFFER_SERVICES: "/offer-services",
@@ -75,6 +83,12 @@ export const PATH_CONSTANTS = {
   EXTERNAL_DASHBOARD: DASHBOARD_URL,
   EXTERNAL_PROFILE: `${DASHBOARD_URL}/profile`,
   EXTERNAL_BOOKING: `${DASHBOARD_URL}/booking`,
+
+  // ── Cross-app: web editorial editor (Option C — admin deep-links out) ─────
+  WEB_EDITORIAL_LIST: `${DASHBOARD_URL}/dashboard/editorial`,
+  WEB_EDITORIAL_NEW: `${DASHBOARD_URL}/dashboard/editorial/new`,
+  WEB_EDITORIAL_EDIT: (blogId: string) => `${DASHBOARD_URL}/dashboard/editorial/${blogId}/edit`,
+  WEB_EDITORIAL_PREVIEW: (blogId: string) => `${DASHBOARD_URL}/dashboard/editorial/${blogId}/preview`,
 
   // ── User-facing external links (point to revquix-dashboard) ──────────────
   // Needed by feature files copied from revquix-dashboard that reference these paths.

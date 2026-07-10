@@ -25,13 +25,16 @@ import {
   ClipboardCheck,
   CreditCard,
   FileText,
+  FolderTree,
   History,
   Inbox,
   Image as ImageIcon,
   Key,
   LayoutDashboard,
   type LucideIcon,
+  Newspaper,
   Package,
+  PanelBottom,
   Send,
   Settings,
   ShoppingCart,
@@ -45,6 +48,7 @@ import {
   Webhook,
 } from "lucide-react"
 import { PATH_CONSTANTS } from "@/core/constants/path-constants"
+import { EDITORIAL_ENABLED } from "@/core/constants/feature-flags"
 
 // ─── Permission constants ──────────────────────────────────────────────────────
 /**
@@ -98,6 +102,10 @@ export const PERMISSIONS = {
 
   // ── Content / Assets ───────────────────────────────────────────────────────
   PERM_MANAGE_ASSETS: "PERM_MANAGE_ASSETS",
+
+  // ── News / Editorial ───────────────────────────────────────────────────────
+  PERM_WRITE_EDITORIAL: "PERM_WRITE_EDITORIAL",
+  PERM_MANAGE_EDITORIAL: "PERM_MANAGE_EDITORIAL",
 
 
 } as const
@@ -428,6 +436,72 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
       },
     ],
   },
+
+  // ── News / Editorial ──────────────────────────────────────────────────────
+  // Permission-driven: any editorial author or curator sees this section.
+  // Curation-only surfaces (landing, categories, end-strips, analytics) are
+  // gated to PERM_MANAGE_EDITORIAL; the overview also admits WRITE_EDITORIAL.
+  // The whole section is env-gated by EDITORIAL_ENABLED.
+  ...(EDITORIAL_ENABLED
+    ? [
+        {
+          title: "News / Editorial",
+          access: {
+            anyOf: [
+              PERMISSIONS.ROLE_ADMIN,
+              PERMISSIONS.PERM_WRITE_EDITORIAL,
+              PERMISSIONS.PERM_MANAGE_EDITORIAL,
+            ],
+          },
+          items: [
+            {
+              Icon: Newspaper,
+              label: "Overview",
+              href: PATH_CONSTANTS.ADMIN_NEWS,
+              access: {
+                anyOf: [
+                  PERMISSIONS.ROLE_ADMIN,
+                  PERMISSIONS.PERM_WRITE_EDITORIAL,
+                  PERMISSIONS.PERM_MANAGE_EDITORIAL,
+                ],
+              },
+            },
+            {
+              Icon: Star,
+              label: "Landing Curation",
+              href: PATH_CONSTANTS.ADMIN_NEWS_LANDING,
+              access: {
+                anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_EDITORIAL],
+              },
+            },
+            {
+              Icon: FolderTree,
+              label: "Categories",
+              href: PATH_CONSTANTS.ADMIN_NEWS_CATEGORIES,
+              access: {
+                anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_EDITORIAL],
+              },
+            },
+            {
+              Icon: PanelBottom,
+              label: "End Strips",
+              href: PATH_CONSTANTS.ADMIN_NEWS_END_STRIPS,
+              access: {
+                anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_EDITORIAL],
+              },
+            },
+            {
+              Icon: BarChart3,
+              label: "Analytics",
+              href: PATH_CONSTANTS.ADMIN_NEWS_ANALYTICS,
+              access: {
+                anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_EDITORIAL],
+              },
+            },
+          ],
+        } satisfies NavSection,
+      ]
+    : []),
 
   // ── Offer Services (Global Offer Service) ─────────────────────────────────
   {
