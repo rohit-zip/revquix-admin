@@ -58,7 +58,6 @@ import { EDITORIAL_ENABLED } from "@/core/constants/feature-flags"
 export const PERMISSIONS = {
   // ── Roles ──────────────────────────────────────────────────────────────────
   ROLE_ADMIN: "ROLE_ADMIN",
-  ROLE_MENTOR: "ROLE_MENTOR",
   ROLE_BUSINESS_MENTOR: "ROLE_BUSINESS_MENTOR",
   ROLE_PROFESSIONAL_MENTOR: "ROLE_PROFESSIONAL_MENTOR",
 

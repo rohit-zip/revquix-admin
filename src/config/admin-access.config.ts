@@ -34,10 +34,14 @@ export const ADMIN_APP_ACCESS: AdminAppAccessConfig = {
   allowedRoles: [
     "ROLE_ADMIN",           // Full platform administrator
     "ROLE_BUSINESS_MENTOR", // Business mentors manage their own slots / bookings
-    "ROLE_MENTOR",          // Legacy mentor role
   ],
   allowedPermissions: [
-    // Fine-grained staff permissions — grants entry without a full role
+    // Fine-grained staff permissions — grants entry without a full role.
+    // ROLE_ADMIN already implies every permission below (see auth.role_permission
+    // seed data), so this list only needs to cover permissions that a user might
+    // hold WITHOUT either allowed role — in practice, this means every permission
+    // granted to ROLE_BUSINESS_MENTOR, so a mentor who only received individual
+    // permission grants (instead of the full role) can still get in.
     "PERM_MANAGE_USERS",
     "PERM_MANAGE_ROLES",
     "PERM_MANAGE_PERMISSIONS",
@@ -50,9 +54,28 @@ export const ADMIN_APP_ACCESS: AdminAppAccessConfig = {
     "PERM_MANAGE_PAYOUTS",
     "PERM_VIEW_ALL_COUPONS",
     "PERM_VIEW_ALL_INTAKES",
-    "PERM_MANAGE_OWN_SLOTS",
-    "PERM_VIEW_OWN_BOOKINGS",
     "PERM_MANAGE_ASSETS",
+    // ROLE_BUSINESS_MENTOR's full permission set (auth.role_permission: V12, V43,
+    // V71, V79, V111) — kept in sync so a mentor with only these individual grants
+    // (no role) still clears the gate:
+    "PERM_MANAGE_OWN_SLOTS",
+    "PERM_VIEW_MENTOR_OWN_BOOKINGS",
+    "PERM_VIEW_OWN_BOOKINGS",
+    "PERM_JOIN_ANY_MEETING",
+    "PERM_MANAGE_INTAKES",
+    "PERM_WRITE_MEETING_OUTCOME",
+    "PERM_VIEW_MEETING_FEEDBACK",
+    "PERM_CONNECT_GOOGLE_CALENDAR",
+    "PERM_SET_MEETING_URL",
+    "PERM_CREATE_COMMENT",
+    "PERM_VIEW_COMMENTS",
+    "PERM_CREATE_OFFER_ORDER",
+    "PERM_VIEW_OWN_OFFER_ORDERS",
+    "PERM_REVIEW_OFFER_ORDERS",
+    "PERM_FOLLOW_USERS",
+    "PERM_VIEW_FOLLOW_LIST",
+    "PERM_WRITE_BLOG",
+    "PERM_COMMENT_BLOG",
   ],
   unauthorizedRedirectPath: "/unauthorized",
 }
