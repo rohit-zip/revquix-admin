@@ -11,11 +11,13 @@ import {
   searchLeadMailRecipients,
   sendLeadMail,
   testSendLeadMail,
+  testSmtpConnection,
 } from "./lead-mail.api"
 import type {
   LeadMailPreviewRequest,
   LeadMailSendRequest,
   LeadMailTestSendRequest,
+  SmtpTestConnectionRequest,
 } from "./lead-mail.types"
 
 export const leadMailKeys = {
@@ -48,6 +50,23 @@ export function usePreviewLeadMail() {
     LeadMailPreviewRequest
   >({
     mutationFn: (request) => previewLeadMail(request),
+    onError: (err) => showErrorToast(err),
+  })
+}
+
+/**
+ * Tests an ad-hoc SMTP configuration (Phase 2, Option A). Does not throw on a
+ * connection/auth failure — the backend always returns {success:false, message}
+ * rather than an HTTP error, so the caller reads `data.success` / `data.message`
+ * directly rather than relying on onError.
+ */
+export function useTestSmtpConnection() {
+  return useMutation<
+    Awaited<ReturnType<typeof testSmtpConnection>>,
+    ApiError | NetworkError,
+    SmtpTestConnectionRequest
+  >({
+    mutationFn: (request) => testSmtpConnection(request),
     onError: (err) => showErrorToast(err),
   })
 }

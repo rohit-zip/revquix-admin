@@ -1,22 +1,35 @@
 "use client"
 
 /**
- * LeadMailComposeView — Admin Lead Mailer (MVP) compose screen.
+ * LeadMailComposeView — Admin Lead Mailer compose screen.
  *
  * A single-page form (no wizard) covering:
- *  1. From-prefix + reply-to (name/address)
+ *  1. Sending method (ZeptoMail vs ad-hoc SMTP — Phase 2, Option A) + sender fields
  *  2. Subject + Text/HTML content toggle
  *  3. Recipients — either an Excel upload OR manual entry (mutually exclusive)
  *  4. Preview dialog (resolves {{name}} against an editable sample name)
  *  5. Test send (throwaway, not persisted as a campaign)
  *  6. Send — creates the campaign and redirects to the live send-report view
  *
- * See docs/ADMIN_LEAD_MAILER_MVP_PLAN.md §1.3.
+ * See docs/ADMIN_LEAD_MAILER_MVP_PLAN.md §1.3 / §2.1 / §2.5.
+ *
+ * Phase 2 SMTP fields (host/port/username/password/encryption/from) are
+ * component-local state only — never persisted, cleared on unmount, and only
+ * ever sent as part of a test-connection / test-send / send request body.
  */
 
 import { useCallback, useRef, useState } from "react"
 import { useRouter } from "nextjs-toploader/app"
-import { AlertTriangle, CloudUpload, FileSpreadsheet, Loader2, Send, X } from "lucide-react"
+import {
+  AlertTriangle,
+  CheckCircle2,
+  CloudUpload,
+  FileSpreadsheet,
+  Loader2,
+  Send,
+  X,
+  XCircle,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -29,6 +42,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
@@ -39,12 +53,18 @@ import {
   usePreviewLeadMail,
   useSendLeadMail,
   useTestSendLeadMail,
+  useTestSmtpConnection,
 } from "./api/lead-mail.hooks"
 import {
   LEAD_MAIL_CONTENT_TYPE,
   LEAD_MAIL_FROM_PREFIXES,
+  LEAD_MAIL_SEND_METHOD,
+  LEAD_MAIL_SMTP_ENCRYPTION_MODE,
   type LeadMailContentType,
   type LeadMailRecipientInput,
+  type LeadMailSendMethod,
+  type LeadMailSmtpEncryptionMode,
+  type SmtpCredentialsInput,
 } from "./api/lead-mail.types"
 import { LeadMailRecipientInput as RecipientChipsInput } from "./lead-mail-recipient-input"
 
@@ -53,14 +73,59 @@ const NAME_TOKEN = /\{\{\s*name\s*\}\}/i
 
 type RecipientMode = "excel" | "manual"
 
+const SMTP_ENCRYPTION_OPTIONS: { label: string; value: LeadMailSmtpEncryptionMode }[] = [
+  { label: "SSL", value: LEAD_MAIL_SMTP_ENCRYPTION_MODE.SSL },
+  { label: "STARTTLS", value: LEAD_MAIL_SMTP_ENCRYPTION_MODE.STARTTLS },
+  { label: "None", value: LEAD_MAIL_SMTP_ENCRYPTION_MODE.NONE },
+]
+
+const EMPTY_SMTP_FORM = {
+  host: "",
+  port: "587",
+  username: "",
+  password: "",
+  encryptionMode: LEAD_MAIL_SMTP_ENCRYPTION_MODE.STARTTLS as LeadMailSmtpEncryptionMode,
+  fromAddress: "",
+  fromName: "",
+}
+
 export function LeadMailComposeView() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // ── Sender ──────────────────────────────────────────────────────────────
+  // ── Sending method + sender ─────────────────────────────────────────────
+  const [sendMethod, setSendMethod] = useState<LeadMailSendMethod>(LEAD_MAIL_SEND_METHOD.ZEPTO_MAIL)
   const [fromPrefix, setFromPrefix] = useState(LEAD_MAIL_FROM_PREFIXES[0]?.value ?? "")
   const [replyToAddress, setReplyToAddress] = useState("")
   const [replyToName, setReplyToName] = useState("")
+
+  // SMTP fields — component-local, session-only (Phase 2, Option A). Never persisted.
+  const [smtpForm, setSmtpForm] = useState(EMPTY_SMTP_FORM)
+  const [smtpTestPassed, setSmtpTestPassed] = useState(false)
+  const [smtpTestResult, setSmtpTestResult] = useState<{ success: boolean; message: string } | null>(null)
+
+  const smtpCredentials: SmtpCredentialsInput = {
+    host: smtpForm.host.trim(),
+    port: Number(smtpForm.port) || 0,
+    username: smtpForm.username.trim(),
+    password: smtpForm.password,
+    encryptionMode: smtpForm.encryptionMode,
+    fromAddress: smtpForm.fromAddress.trim(),
+    fromName: smtpForm.fromName.trim() || undefined,
+  }
+  const smtpFormComplete =
+    smtpCredentials.host.length > 0 &&
+    smtpCredentials.port > 0 &&
+    smtpCredentials.username.length > 0 &&
+    smtpCredentials.password.length > 0 &&
+    smtpCredentials.fromAddress.length > 0
+
+  /** Any edit to an SMTP field invalidates a prior successful test — re-testing is required. */
+  const updateSmtpField = <K extends keyof typeof smtpForm>(key: K, value: (typeof smtpForm)[K]) => {
+    setSmtpForm((prev) => ({ ...prev, [key]: value }))
+    setSmtpTestPassed(false)
+    setSmtpTestResult(null)
+  }
 
   // ── Content ─────────────────────────────────────────────────────────────
   const [subject, setSubject] = useState("")
@@ -90,17 +155,23 @@ export function LeadMailComposeView() {
   const previewMutation = usePreviewLeadMail()
   const testSendMutation = useTestSendLeadMail()
   const sendMutation = useSendLeadMail()
+  const testSmtpMutation = useTestSmtpConnection()
 
   const usesNameToken = NAME_TOKEN.test(subject) || NAME_TOKEN.test(body)
   const recipientsMissingName = recipients.filter((r) => !r.name || !r.name.trim())
   const nameTokenBlocked = usesNameToken && recipientsMissingName.length > 0
+
+  const isSmtp = sendMethod === LEAD_MAIL_SEND_METHOD.SMTP
+  /** SMTP mode must have passed a connection test THIS session, for the current fields, before sending. */
+  const senderReady = isSmtp ? smtpTestPassed : true
 
   const canSubmit =
     subject.trim().length > 0 &&
     body.trim().length > 0 &&
     replyToAddress.trim().length > 0 &&
     recipients.length > 0 &&
-    !nameTokenBlocked
+    !nameTokenBlocked &&
+    senderReady
 
   // ── Excel upload ────────────────────────────────────────────────────────
   const handleExcelFile = useCallback(
@@ -129,6 +200,20 @@ export function LeadMailComposeView() {
     setExcelSkippedCount(null)
   }
 
+  // ── SMTP test connection ────────────────────────────────────────────────
+  const handleTestSmtpConnection = () => {
+    testSmtpMutation.mutate(smtpCredentials, {
+      onSuccess: (result) => {
+        setSmtpTestResult(result)
+        setSmtpTestPassed(result.success)
+      },
+      onError: () => {
+        setSmtpTestResult({ success: false, message: "Could not reach the server to test this connection." })
+        setSmtpTestPassed(false)
+      },
+    })
+  }
+
   // ── Preview ─────────────────────────────────────────────────────────────
   const openPreview = () => {
     setPreviewOpen(true)
@@ -148,7 +233,9 @@ export function LeadMailComposeView() {
         subject,
         body,
         contentType,
-        fromPrefix,
+        sendMethod,
+        fromPrefix: isSmtp ? undefined : fromPrefix,
+        smtpCredentials: isSmtp ? smtpCredentials : undefined,
         replyToAddress,
         replyToName: replyToName || undefined,
         testEmail: testEmail.trim(),
@@ -166,7 +253,9 @@ export function LeadMailComposeView() {
         subject,
         body,
         contentType,
-        fromPrefix,
+        sendMethod,
+        fromPrefix: isSmtp ? undefined : fromPrefix,
+        smtpCredentials: isSmtp ? smtpCredentials : undefined,
         replyToAddress,
         replyToName: replyToName || undefined,
         recipients,
@@ -186,41 +275,197 @@ export function LeadMailComposeView() {
         <CardHeader>
           <CardTitle>Sender</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="lm-from-prefix">From</Label>
-            <Select value={fromPrefix} onValueChange={setFromPrefix}>
-              <SelectTrigger id="lm-from-prefix" className="w-full">
-                <SelectValue placeholder="Select sender" />
-              </SelectTrigger>
-              <SelectContent>
-                {LEAD_MAIL_FROM_PREFIXES.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <CardContent className="space-y-4">
+          <RadioGroup
+            value={sendMethod}
+            onValueChange={(v) => setSendMethod(v as LeadMailSendMethod)}
+            className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+          >
+            <label
+              htmlFor="lm-method-zepto"
+              className="flex cursor-pointer items-start gap-2.5 rounded-md border p-3 text-sm"
+            >
+              <RadioGroupItem value={LEAD_MAIL_SEND_METHOD.ZEPTO_MAIL} id="lm-method-zepto" className="mt-0.5" />
+              <div>
+                <p className="font-medium">Send via ZeptoMail</p>
+                <p className="text-xs text-muted-foreground">outreach@revquix.com</p>
+              </div>
+            </label>
+            <label
+              htmlFor="lm-method-smtp"
+              className="flex cursor-pointer items-start gap-2.5 rounded-md border p-3 text-sm"
+            >
+              <RadioGroupItem value={LEAD_MAIL_SEND_METHOD.SMTP} id="lm-method-smtp" className="mt-0.5" />
+              <div>
+                <p className="font-medium">Send via my own SMTP account</p>
+                <p className="text-xs text-muted-foreground">Session only — never saved</p>
+              </div>
+            </label>
+          </RadioGroup>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {!isSmtp && (
+              <div className="space-y-1.5">
+                <Label htmlFor="lm-from-prefix">From</Label>
+                <Select value={fromPrefix} onValueChange={setFromPrefix}>
+                  <SelectTrigger id="lm-from-prefix" className="w-full">
+                    <SelectValue placeholder="Select sender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LEAD_MAIL_FROM_PREFIXES.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label htmlFor="lm-reply-to">Reply-To address</Label>
+              <Input
+                id="lm-reply-to"
+                type="email"
+                placeholder="you@revquix.com"
+                value={replyToAddress}
+                onChange={(e) => setReplyToAddress(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="lm-reply-to-name">Reply-To name (optional)</Label>
+              <Input
+                id="lm-reply-to-name"
+                placeholder="Revquix Team"
+                value={replyToName}
+                onChange={(e) => setReplyToName(e.target.value)}
+              />
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="lm-reply-to">Reply-To address</Label>
-            <Input
-              id="lm-reply-to"
-              type="email"
-              placeholder="you@revquix.com"
-              value={replyToAddress}
-              onChange={(e) => setReplyToAddress(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="lm-reply-to-name">Reply-To name (optional)</Label>
-            <Input
-              id="lm-reply-to-name"
-              placeholder="Revquix Team"
-              value={replyToName}
-              onChange={(e) => setReplyToName(e.target.value)}
-            />
-          </div>
+
+          {isSmtp && (
+            <div className="space-y-3 rounded-md border p-4">
+              <p className="text-sm font-medium">SMTP configuration</p>
+              <p className="text-xs text-muted-foreground">
+                Use an app-specific password where your provider supports one, not your main account password.
+                These fields are used for this session only and are never saved.
+              </p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="lm-smtp-host">Host</Label>
+                  <Input
+                    id="lm-smtp-host"
+                    placeholder="smtp.gmail.com"
+                    value={smtpForm.host}
+                    onChange={(e) => updateSmtpField("host", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="lm-smtp-port">Port</Label>
+                  <Input
+                    id="lm-smtp-port"
+                    type="number"
+                    placeholder="587"
+                    value={smtpForm.port}
+                    onChange={(e) => updateSmtpField("port", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="lm-smtp-username">Username</Label>
+                  <Input
+                    id="lm-smtp-username"
+                    placeholder="you@example.com"
+                    value={smtpForm.username}
+                    onChange={(e) => updateSmtpField("username", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="lm-smtp-password">Password</Label>
+                  <Input
+                    id="lm-smtp-password"
+                    type="password"
+                    autoComplete="off"
+                    placeholder="App-specific password"
+                    value={smtpForm.password}
+                    onChange={(e) => updateSmtpField("password", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="lm-smtp-encryption">Encryption</Label>
+                  <Select
+                    value={smtpForm.encryptionMode}
+                    onValueChange={(v) => updateSmtpField("encryptionMode", v as LeadMailSmtpEncryptionMode)}
+                  >
+                    <SelectTrigger id="lm-smtp-encryption" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SMTP_ENCRYPTION_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="lm-smtp-from-address">From address</Label>
+                  <Input
+                    id="lm-smtp-from-address"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={smtpForm.fromAddress}
+                    onChange={(e) => updateSmtpField("fromAddress", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="lm-smtp-from-name">From name (optional)</Label>
+                  <Input
+                    id="lm-smtp-from-name"
+                    placeholder="Your Name"
+                    value={smtpForm.fromName}
+                    onChange={(e) => updateSmtpField("fromName", e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleTestSmtpConnection}
+                  disabled={!smtpFormComplete || testSmtpMutation.isPending}
+                >
+                  {testSmtpMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Testing…
+                    </>
+                  ) : (
+                    "Test Connection"
+                  )}
+                </Button>
+                {smtpTestResult && (
+                  <span
+                    className={`flex items-center gap-1.5 text-xs ${
+                      smtpTestResult.success ? "text-emerald-600 dark:text-emerald-400" : "text-rose-500"
+                    }`}
+                  >
+                    {smtpTestResult.success ? (
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    ) : (
+                      <XCircle className="h-3.5 w-3.5" />
+                    )}
+                    {smtpTestResult.message}
+                  </span>
+                )}
+              </div>
+              {!smtpTestPassed && (
+                <p className="text-xs text-muted-foreground">
+                  A successful connection test is required this session before you can send via SMTP.
+                </p>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -350,6 +595,16 @@ export function LeadMailComposeView() {
               />
             </TabsContent>
           </Tabs>
+
+          {isSmtp && recipients.length > 300 && (
+            <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                SMTP sends are limited to 300 recipients per campaign — consumer providers (Gmail, Outlook) impose
+                their own daily sending caps. Split this list into smaller batches, or use ZeptoMail instead.
+              </span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -358,7 +613,11 @@ export function LeadMailComposeView() {
         <Button variant="outline" onClick={openPreview} disabled={!subject.trim() || !body.trim()}>
           Preview
         </Button>
-        <Button variant="outline" onClick={() => setTestDialogOpen(true)} disabled={!subject.trim() || !body.trim()}>
+        <Button
+          variant="outline"
+          onClick={() => setTestDialogOpen(true)}
+          disabled={!subject.trim() || !body.trim() || (isSmtp && !smtpTestPassed)}
+        >
           Send Test
         </Button>
         <Button onClick={handleSend} disabled={!canSubmit || sendMutation.isPending}>

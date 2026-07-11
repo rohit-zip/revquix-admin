@@ -8,6 +8,8 @@ import type {
   LeadMailRecipientSuggestion,
   LeadMailSendRequest,
   LeadMailTestSendRequest,
+  SmtpTestConnectionRequest,
+  SmtpTestConnectionResponse,
 } from "./lead-mail.types"
 
 const BASE = "/admin/lead-mail"
@@ -37,6 +39,11 @@ export const searchLeadMailRecipients = (query: string): Promise<LeadMailRecipie
 
 export const previewLeadMail = (request: LeadMailPreviewRequest): Promise<LeadMailPreviewResponse> =>
   apiClient.post<LeadMailPreviewResponse>(`${BASE}/preview`, request).then((r) => r.data)
+
+export const testSmtpConnection = (
+  request: SmtpTestConnectionRequest,
+): Promise<SmtpTestConnectionResponse> =>
+  apiClient.post<SmtpTestConnectionResponse>(`${BASE}/smtp/test-connection`, request).then((r) => r.data)
 
 export const testSendLeadMail = (request: LeadMailTestSendRequest): Promise<void> =>
   apiClient.post<void>(`${BASE}/test-send`, request).then(() => undefined)
