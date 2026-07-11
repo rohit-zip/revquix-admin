@@ -99,6 +99,9 @@ export const PERMISSIONS = {
 
   PERM_MANAGE_CONTACT_QUERIES: "PERM_MANAGE_CONTACT_QUERIES",
 
+  // ── Marketing / Lead Generation ─────────────────────────────────────────────
+  PERM_SEND_LEAD_MAIL: "PERM_SEND_LEAD_MAIL",
+
   // ── Content / Assets ───────────────────────────────────────────────────────
   PERM_MANAGE_ASSETS: "PERM_MANAGE_ASSETS",
 
@@ -568,6 +571,24 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         href: PATH_CONSTANTS.ADMIN_CONTACT_QUERIES,
         access: {
           anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_CONTACT_QUERIES],
+        },
+      },
+    ],
+  },
+
+  // ── Marketing ─────────────────────────────────────────────────────────────
+  {
+    title: "Marketing",
+    access: {
+      anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_SEND_LEAD_MAIL],
+    },
+    items: [
+      {
+        Icon: Send,
+        label: "Lead Mailer",
+        href: PATH_CONSTANTS.ADMIN_LEAD_MAIL,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_SEND_LEAD_MAIL],
         },
       },
     ],

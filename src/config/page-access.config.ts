@@ -119,5 +119,12 @@ export const PAGE_ACCESS_CONFIG: Record<string, PageAccessRule> = {
     label: "Webhook Logs",
   },
 
+  // ── Marketing / Lead Generation ────────────────────────────────────────────
+
+  [PATH_CONSTANTS.ADMIN_LEAD_MAIL]: {
+    anyOf: ["ROLE_ADMIN", "PERM_SEND_LEAD_MAIL"],
+    label: "Lead Mailer",
+  },
+
 }
 

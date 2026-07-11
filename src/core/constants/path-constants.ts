@@ -80,6 +80,11 @@ export const PATH_CONSTANTS = {
   ADMIN_CUSTOM_QUOTES: "/custom-quotes",
   ADMIN_CUSTOM_QUOTE_NEW: "/custom-quotes/new",
   ADMIN_CUSTOM_QUOTE_DETAIL: "/custom-quotes",  // ── Cross-app: revquix-dashboard ──────────────────────────────────────────
+
+  // ── Marketing / Lead Generation ────────────────────────────────────────────
+  ADMIN_LEAD_MAIL: "/lead-mail",
+  ADMIN_LEAD_MAIL_CAMPAIGN_DETAIL: "/lead-mail/campaigns",
+
   EXTERNAL_DASHBOARD: DASHBOARD_URL,
   EXTERNAL_PROFILE: `${DASHBOARD_URL}/profile`,
   EXTERNAL_BOOKING: `${DASHBOARD_URL}/booking`,
