@@ -83,6 +83,16 @@ function formatDateTime(iso: string | null | undefined): string {
   })
 }
 
+/**
+ * Bio (and similar free-text fields) may be legacy plain text or Tiptap-authored
+ * HTML — the backend's BioHtmlSanitiserService allowlists a small set of tags
+ * (p, br, b, strong, em, i, ul, li) before persisting, so any string here that
+ * looks like markup is already safe to render as HTML.
+ */
+function isSanitisedHtml(value: string): boolean {
+  return value.trimStart().startsWith("<")
+}
+
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: MentorApplicationStatus }) {
@@ -345,9 +355,19 @@ export default function AdminApplicationDetailView({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
-                {app.bio}
-              </p>
+              {app.bio && isSanitisedHtml(app.bio) ? (
+                // Rich-text path — HTML is sanitised server-side (BioHtmlSanitiserService)
+                // with a strict tag allowlist, so rendering it directly is safe.
+                <div
+                  className="prose prose-sm dark:prose-invert max-w-none text-sm text-foreground/90 leading-relaxed [&_p]:my-0 [&_ul]:my-1 [&_ul]:pl-4"
+                  dangerouslySetInnerHTML={{ __html: app.bio }}
+                />
+              ) : (
+                // Legacy plain-text path — render exactly as before.
+                <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                  {app.bio}
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -455,9 +475,19 @@ export default function AdminApplicationDetailView({
                           </p>
                         )}
                         {exp.description && (
-                          <p className="mt-1.5 text-xs text-foreground/80 leading-relaxed whitespace-pre-wrap">
-                            {exp.description}
-                          </p>
+                          isSanitisedHtml(exp.description) ? (
+                            // Rich-text path — sanitised server-side (ExperienceHtmlSanitiserService)
+                            // with a strict tag allowlist, so rendering it directly is safe.
+                            <div
+                              className="prose dark:prose-invert max-w-none mt-1.5 text-xs text-foreground/80 leading-relaxed [&_p]:my-0 [&_ul]:my-1 [&_ul]:pl-4"
+                              dangerouslySetInnerHTML={{ __html: exp.description }}
+                            />
+                          ) : (
+                            // Legacy plain-text path — render exactly as before.
+                            <p className="mt-1.5 text-xs text-foreground/80 leading-relaxed whitespace-pre-wrap">
+                              {exp.description}
+                            </p>
+                          )
                         )}
                         {exp.skills.length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-1">
