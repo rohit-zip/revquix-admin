@@ -9,7 +9,7 @@ export type BlogVisibility = "PUBLIC" | "AUTHENTICATED"
 export type BylineType = "AUTHOR" | "ORG"
 export type StructuredDataType = "Article" | "NewsArticle" | "BlogPosting"
 export type EndStripVariant =
-  | "GRADIENT_AVATARS"
+  | "GRADIENT"
   | "SOLID_MINIMAL"
   | "IMAGE_BG"
   | "BORDERED_CARD"
@@ -141,9 +141,9 @@ export interface EndStripTemplate {
   variant: EndStripVariant
   themeMode: EndStripThemeMode
   accentToken: string | null
+  backgroundImageUrl: string | null
   defaultTitle: string | null
   defaultDescription: string | null
-  supportsAvatars: boolean
   isActive: boolean
   createdAt?: string
   updatedAt?: string
@@ -154,9 +154,9 @@ export interface EndStripTemplateRequest {
   variant?: EndStripVariant | null
   themeMode?: EndStripThemeMode | null
   accentToken?: string | null
+  backgroundImageUrl?: string | null
   defaultTitle?: string | null
   defaultDescription?: string | null
-  supportsAvatars?: boolean | null
   isActive?: boolean | null
 }
 
@@ -253,7 +253,7 @@ export const STATUS_OPTIONS: { label: string; value: BlogStatus }[] = [
 ]
 
 export const END_STRIP_VARIANT_OPTIONS: { label: string; value: EndStripVariant }[] = [
-  { label: "Gradient + avatars", value: "GRADIENT_AVATARS" },
+  { label: "Gradient", value: "GRADIENT" },
   { label: "Solid minimal", value: "SOLID_MINIMAL" },
   { label: "Image background", value: "IMAGE_BG" },
   { label: "Bordered card", value: "BORDERED_CARD" },

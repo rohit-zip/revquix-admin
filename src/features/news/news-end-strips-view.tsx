@@ -61,17 +61,17 @@ import {
 
 const EMPTY: EndStripTemplateRequest = {
   name: "",
-  variant: "GRADIENT_AVATARS",
+  variant: "GRADIENT",
   themeMode: "ADAPTIVE",
   accentToken: "",
+  backgroundImageUrl: "",
   defaultTitle: "",
   defaultDescription: "",
-  supportsAvatars: false,
   isActive: true,
 }
 
 const VARIANT_LABEL: Record<EndStripVariant, string> = {
-  GRADIENT_AVATARS: "Gradient + avatars",
+  GRADIENT: "Gradient",
   SOLID_MINIMAL: "Solid minimal",
   IMAGE_BG: "Image background",
   BORDERED_CARD: "Bordered card",
@@ -100,9 +100,9 @@ export function NewsEndStripsView() {
       variant: s.variant,
       themeMode: s.themeMode,
       accentToken: s.accentToken ?? "",
+      backgroundImageUrl: s.backgroundImageUrl ?? "",
       defaultTitle: s.defaultTitle ?? "",
       defaultDescription: s.defaultDescription ?? "",
-      supportsAvatars: s.supportsAvatars,
       isActive: s.isActive,
     })
     setDialogOpen(true)
@@ -161,7 +161,6 @@ export function NewsEndStripsView() {
                 <TableHead>Name</TableHead>
                 <TableHead>Variant</TableHead>
                 <TableHead>Theme</TableHead>
-                <TableHead>Avatars</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-24 text-right">Actions</TableHead>
               </TableRow>
@@ -181,7 +180,6 @@ export function NewsEndStripsView() {
                     <Badge variant="outline">{VARIANT_LABEL[s.variant]}</Badge>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{s.themeMode}</TableCell>
-                  <TableCell>{s.supportsAvatars ? "Yes" : "No"}</TableCell>
                   <TableCell>
                     <Badge variant={s.isActive ? "default" : "secondary"}>
                       {s.isActive ? "Active" : "Hidden"}
@@ -232,7 +230,7 @@ export function NewsEndStripsView() {
               <div className="space-y-1">
                 <Label>Variant</Label>
                 <Select
-                  value={form.variant ?? "GRADIENT_AVATARS"}
+                  value={form.variant ?? "GRADIENT"}
                   onValueChange={(v) => setForm((f) => ({ ...f, variant: v as EndStripVariant }))}
                 >
                   <SelectTrigger className="w-full">
@@ -275,6 +273,20 @@ export function NewsEndStripsView() {
                 placeholder="e.g. primary, brand-emerald"
               />
             </div>
+            {form.variant === "IMAGE_BG" && (
+              <div className="space-y-1">
+                <Label htmlFor="strip-bg-image">Background image URL</Label>
+                <Input
+                  id="strip-bg-image"
+                  value={form.backgroundImageUrl ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, backgroundImageUrl: e.target.value }))}
+                  placeholder="https://assets.revquix.com/…"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Paste a public image URL from the Asset Manager. Rendered as the strip background.
+                </p>
+              </div>
+            )}
             <div className="space-y-1">
               <Label htmlFor="strip-title">Default title</Label>
               <Input
@@ -289,14 +301,6 @@ export function NewsEndStripsView() {
                 id="strip-desc"
                 value={form.defaultDescription ?? ""}
                 onChange={(e) => setForm((f) => ({ ...f, defaultDescription: e.target.value }))}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="strip-avatars">Supports avatars</Label>
-              <Switch
-                id="strip-avatars"
-                checked={form.supportsAvatars ?? false}
-                onCheckedChange={(v) => setForm((f) => ({ ...f, supportsAvatars: v }))}
               />
             </div>
             <div className="flex items-center justify-between">
