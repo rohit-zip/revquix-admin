@@ -128,7 +128,8 @@ const columns: DataColumn<MentorPayoutResponse>[] = [
   { key: "platformFeeMinor", header: "Fee", sortable: false },
   { key: "payoutAmountMinor", header: "Net Payout", sortable: true },
   { key: "commissionPercentage", header: "Comm.", sortable: false },
-  { key: "status", header: "Status", sortable: true },
+  { key: "status", header: "Payout Status", sortable: true },
+  { key: "sessionStatus", header: "Session Status", sortable: false },
   { key: "createdAt", header: "Date", sortable: true },
   { key: "actions", header: "", sortable: false },
 ]
@@ -144,6 +145,60 @@ function getPayoutBadge(status: PayoutStatus) {
     case "ON_HOLD":    return <Badge variant="outline" className="border-amber-500 text-amber-600">On Hold</Badge>
     default:           return <Badge variant="outline">{status}</Badge>
   }
+}
+
+// ── Session (booking) status — distinct from payout status ─────────────────────
+
+const SESSION_STATUS_LABEL: Record<string, string> = {
+  PENDING_PAYMENT:      "Pending Payment",
+  CONFIRMED:            "Confirmed",
+  IN_PROGRESS:          "In Progress",
+  COMPLETED:            "Completed",
+  CANCELLED_BY_USER:    "Cancelled (User)",
+  CANCELLED_BY_MENTOR:  "Cancelled (Mentor)",
+  CANCELLED_BY_SYSTEM:  "Cancelled (System)",
+  NO_SHOW_USER:         "No-Show (User)",
+  NO_SHOW_MENTOR:       "No-Show (Mentor)",
+  PAYMENT_FAILED:       "Payment Failed",
+  EXPIRED:              "Expired",
+  PENDING_CONFIRMATION: "Awaiting Confirmation",
+  DISPUTED:             "Disputed",
+  PENDING_FEEDBACK:     "Pending Feedback",
+}
+
+/** Renders the current lifecycle status of the underlying session/booking. */
+function getSessionStatusBadge(status: string | null | undefined) {
+  if (!status) return <span className="text-xs text-muted-foreground">—</span>
+  const label = SESSION_STATUS_LABEL[status] ?? status
+  switch (status) {
+    case "COMPLETED":
+      return <Badge className="bg-green-600 text-white">{label}</Badge>
+    case "CONFIRMED":
+    case "IN_PROGRESS":
+      return <Badge className="bg-blue-600 text-white">{label}</Badge>
+    case "PENDING_CONFIRMATION":
+    case "PENDING_FEEDBACK":
+      return <Badge variant="outline" className="border-blue-500 text-blue-600">{label}</Badge>
+    case "CANCELLED_BY_USER":
+    case "CANCELLED_BY_MENTOR":
+    case "CANCELLED_BY_SYSTEM":
+    case "NO_SHOW_USER":
+    case "NO_SHOW_MENTOR":
+    case "DISPUTED":
+    case "PAYMENT_FAILED":
+      return <Badge variant="destructive">{label}</Badge>
+    case "EXPIRED":
+    case "PENDING_PAYMENT":
+      return <Badge variant="secondary">{label}</Badge>
+    default:
+      return <Badge variant="outline">{label}</Badge>
+  }
+}
+
+function sessionTypeLabel(context: string | null | undefined) {
+  if (context === "MOCK_INTERVIEW") return "Mock Interview"
+  if (context === "HOURLY_SESSION") return "Hourly Session"
+  return context ?? "—"
 }
 
 function formatAmount(minor: number | null | undefined, currency: string) {
@@ -540,6 +595,17 @@ export default function AdminPayoutsView() {
                 </div>
               </TableCell>
 
+              <TableCell>
+                <div className="flex flex-col gap-0.5">
+                  {getSessionStatusBadge(payout.sessionStatus)}
+                  {payout.sessionContext && (
+                    <span className="text-[10px] text-muted-foreground">
+                      {sessionTypeLabel(payout.sessionContext)}
+                    </span>
+                  )}
+                </div>
+              </TableCell>
+
               <TableCell className="text-xs">{formatDate(payout.createdAt)}</TableCell>
 
               {/* Actions */}
@@ -652,6 +718,36 @@ export default function AdminPayoutsView() {
                     <Row label="Bank Ref / TXN ID" value={detailPayout.payoutReference} mono />
                   )}
                 </div>
+
+                {/* ── Session (the booking this payout was earned from) ──── */}
+                {(detailPayout.sessionStatus || detailPayout.sessionContext || detailPayout.sessionBookingId) && (
+                  <div className="rounded-md border p-3 space-y-2 text-sm">
+                    <p className="font-semibold text-xs text-muted-foreground uppercase tracking-wide">
+                      Session — Current Status
+                    </p>
+                    <div className="flex justify-between items-center gap-4">
+                      <span className="text-muted-foreground shrink-0">Session Status</span>
+                      {getSessionStatusBadge(detailPayout.sessionStatus)}
+                    </div>
+                    <Row label="Type" value={sessionTypeLabel(detailPayout.sessionContext)} />
+                    {detailPayout.sessionUserName && (
+                      <Row label="Student" value={detailPayout.sessionUserName} />
+                    )}
+                    {detailPayout.sessionSlotStartUtc && (
+                      <Row label="Scheduled" value={formatDateTime(detailPayout.sessionSlotStartUtc)} />
+                    )}
+                    {detailPayout.sessionDurationMinutes != null && (
+                      <Row label="Duration" value={`${detailPayout.sessionDurationMinutes} min`} />
+                    )}
+                    {detailPayout.sessionBookingId && (
+                      <Row label="Booking ID" value={detailPayout.sessionBookingId} mono />
+                    )}
+                    <p className="text-[11px] text-muted-foreground pt-1 border-t">
+                      Review the session status before processing this payout — e.g. a{" "}
+                      <span className="font-medium">Confirmed</span> session may not have taken place yet.
+                    </p>
+                  </div>
+                )}
 
                 {/* ── Mentor ──────────────────────────────────────────── */}
                 <div className="rounded-md border p-3 space-y-2 text-sm">

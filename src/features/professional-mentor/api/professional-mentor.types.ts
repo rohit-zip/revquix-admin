@@ -318,6 +318,25 @@ export interface MentorPayoutResponse {
   refundIssued: boolean
   /** Cumulative refunded amount in minor units. Null if no refund has been issued. */
   refundAmountMinor: number | null
+
+  // ── Session reference (resolved from the linked PaymentOrder) ──────────────
+  /** What kind of session this payout is for — "MOCK_INTERVIEW" or "HOURLY_SESSION". Null if not a session payout. */
+  sessionContext: string | null
+  /** The bookingId of the underlying session. */
+  sessionBookingId: string | null
+  /** Student's display name for the session. */
+  sessionUserName: string | null
+  /** Mentor's display name for the session. */
+  sessionMentorName: string | null
+  /** UTC start time of the booked slot. */
+  sessionSlotStartUtc: string | null
+  /** Session duration in minutes. */
+  sessionDurationMinutes: number | null
+  /**
+   * Current lifecycle status of the underlying booking, e.g. "CONFIRMED", "COMPLETED",
+   * "CANCELLED_BY_MENTOR". This is the *session* status — distinct from the payout `status`.
+   */
+  sessionStatus: string | null
 }
 
 // ── Phase 2 — Payout Stats ───────────────────────────────────────────────────

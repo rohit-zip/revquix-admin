@@ -51,6 +51,20 @@ export interface MentorReportResponse {
   oauthMeetingSessions: number
   manualMeetingSessions: number
   oauthAdoptionPercent: number
+
+  // Performance rates (computed live). May be undefined on older backends;
+  // callers should fall back to profile counters when absent.
+  completionRate?: number
+  repeatBookingRate?: number
+  slotUtilizationRate?: number
+  totalSlotsOpened?: number
+  totalSlotsBooked?: number
+
+  // Per-status booking breakdown (source of truth: booking tables).
+  // Keyed by MockInterviewBookingStatus name → count. May be undefined if the
+  // backend predates this field; callers should default to {}.
+  mockStatusBreakdown?: Record<string, number>
+  hourlyStatusBreakdown?: Record<string, number>
 }
 
 /**

@@ -57,9 +57,18 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 
-import { useMentorProfileByUserId } from "@/features/professional-mentor/api/professional-mentor.hooks"
+import { useMentorProfileByUserId, useAdminMentorRatings } from "@/features/professional-mentor/api/professional-mentor.hooks"
 import { useMentorWallet, usePayoutAccountsForMentor, useVerifyPayoutAccount } from "@/features/payment/api/payment.hooks"
 import { getMentorReport } from "@/features/professional-mentor/api/admin-reports.api"
 
@@ -71,6 +80,103 @@ function formatInr(paise: number): string {
 
 function pct(value: number): string {
   return `${(value * 100).toFixed(1)}%`
+}
+
+// ─── Session status breakdown helpers ─────────────────────────────────────────
+
+/** Display order for the detailed session status table. */
+const SESSION_STATUS_ORDER = [
+  "CONFIRMED",
+  "IN_PROGRESS",
+  "PENDING_CONFIRMATION",
+  "PENDING_FEEDBACK",
+  "COMPLETED",
+  "CANCELLED_BY_USER",
+  "CANCELLED_BY_MENTOR",
+  "CANCELLED_BY_SYSTEM",
+  "NO_SHOW_USER",
+  "NO_SHOW_MENTOR",
+  "DISPUTED",
+  "PENDING_PAYMENT",
+  "PAYMENT_FAILED",
+  "EXPIRED",
+] as const
+
+const SESSION_STATUS_LABEL: Record<string, string> = {
+  PENDING_PAYMENT:      "Pending Payment",
+  CONFIRMED:            "Confirmed",
+  IN_PROGRESS:          "In Progress",
+  COMPLETED:            "Completed",
+  CANCELLED_BY_USER:    "Cancelled by User",
+  CANCELLED_BY_MENTOR:  "Cancelled by Mentor",
+  CANCELLED_BY_SYSTEM:  "Cancelled by System",
+  NO_SHOW_USER:         "No-Show (User)",
+  NO_SHOW_MENTOR:       "No-Show (Mentor)",
+  PAYMENT_FAILED:       "Payment Failed",
+  EXPIRED:              "Expired",
+  PENDING_CONFIRMATION: "Awaiting Confirmation",
+  DISPUTED:             "Disputed",
+  PENDING_FEEDBACK:     "Pending Feedback",
+}
+
+/**
+ * Statuses that do NOT represent an actually-booked session — the payment was never
+ * completed (abandoned checkout / failed / expired reservation). Excluded from the
+ * "booked" totals but still shown in the detailed table for completeness.
+ */
+const NON_BOOKED_STATUSES = new Set(["PENDING_PAYMENT", "PAYMENT_FAILED", "EXPIRED"])
+
+/** Semantic text color for a status dot in the table. */
+function sessionStatusDotClass(status: string): string {
+  switch (status) {
+    case "COMPLETED":
+      return "bg-emerald-500"
+    case "CONFIRMED":
+    case "IN_PROGRESS":
+    case "PENDING_CONFIRMATION":
+    case "PENDING_FEEDBACK":
+      return "bg-blue-500"
+    case "CANCELLED_BY_USER":
+    case "CANCELLED_BY_MENTOR":
+    case "CANCELLED_BY_SYSTEM":
+    case "NO_SHOW_USER":
+    case "NO_SHOW_MENTOR":
+    case "DISPUTED":
+    case "PAYMENT_FAILED":
+      return "bg-red-500"
+    default:
+      return "bg-muted-foreground/40"
+  }
+}
+
+/** Sum a status→count map, optionally filtered by a predicate on the status name. */
+function sumBreakdown(map: Record<string, number>, pred?: (status: string) => boolean): number {
+  return Object.entries(map).reduce(
+    (acc, [status, count]) => acc + (!pred || pred(status) ? count : 0),
+    0,
+  )
+}
+
+/** Renders a 1–5 star rating row. */
+function StarRating({ value }: { value: number }) {
+  return (
+    <span className="flex items-center gap-0.5 shrink-0" aria-label={`${value} out of 5 stars`}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Star
+          key={i}
+          className={cn(
+            "size-3.5",
+            i <= value ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30",
+          )}
+        />
+      ))}
+    </span>
+  )
+}
+
+function formatReviewDate(iso: string | null | undefined): string {
+  if (!iso) return ""
+  return new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
 }
 
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -191,6 +297,9 @@ export default function UserProfessionalMentorTab({ userId }: UserProfessionalMe
     retry: 1,
   })
 
+  // Individual candidate reviews (admin) — resolved via mentorProfileId once the profile loads.
+  const { data: ratings, isLoading: ratingsLoading } = useAdminMentorRatings(profile?.mentorProfileId)
+
   // ── Loading (profile is the primary data source) ─────────────────────────
   if (profileLoading) {
     return (
@@ -227,9 +336,57 @@ export default function UserProfessionalMentorTab({ userId }: UserProfessionalMe
   const joinRate = report?.mentorJoinRatePercent ?? 0
   const combinedAvg = report?.averageRating ?? profile.averageRating
   const combinedTotal = report?.totalRatingsReceived ?? profile.totalReviews
-  const combinedDist = report?.ratingDistribution ?? {}
   const totalCancellations =
     (profile.totalMentorCancellations ?? 0) + (profile.totalUserCancellations ?? 0)
+
+  // ── Accurate session analytics (source of truth: booking tables via report) ──
+  const hasReport = !!report
+  const mockBreakdown = report?.mockStatusBreakdown ?? {}
+  const hourlyBreakdown = report?.hourlyStatusBreakdown ?? {}
+
+  /** Per-status rows for the detailed table (only statuses with ≥1 booking). */
+  const statusRows = SESSION_STATUS_ORDER
+    .map((status) => {
+      const mock = mockBreakdown[status] ?? 0
+      const hourly = hourlyBreakdown[status] ?? 0
+      return { status, mock, hourly, total: mock + hourly }
+    })
+    .filter((r) => r.total > 0)
+
+  const bookedMock = sumBreakdown(mockBreakdown, (s) => !NON_BOOKED_STATUSES.has(s))
+  const bookedHourly = sumBreakdown(hourlyBreakdown, (s) => !NON_BOOKED_STATUSES.has(s))
+  const bookedTotal = bookedMock + bookedHourly
+
+  const isStatus = (target: string) => (s: string) => s === target
+  const countBoth = (status: string) =>
+    sumBreakdown(mockBreakdown, isStatus(status)) + sumBreakdown(hourlyBreakdown, isStatus(status))
+
+  const completedMock = mockBreakdown["COMPLETED"] ?? 0
+  const completedHourly = hourlyBreakdown["COMPLETED"] ?? 0
+  const completedTotal = completedMock + completedHourly
+
+  const cancelledByMentor = countBoth("CANCELLED_BY_MENTOR")
+  const cancelledByUser = countBoth("CANCELLED_BY_USER")
+  const cancelledBySystem = countBoth("CANCELLED_BY_SYSTEM")
+  const noShowMentorCount = countBoth("NO_SHOW_MENTOR")
+  const noShowUserCount = countBoth("NO_SHOW_USER")
+
+  // Prefer accurate report-derived values; fall back to (stale) profile counters
+  // only when the report is unavailable.
+  const totalSessionsDisplay = hasReport ? bookedTotal : profile.totalSessions
+  const mockDisplay = hasReport ? bookedMock : (profile.totalMockInterviews ?? 0)
+  const hourlyDisplay = hasReport ? bookedHourly : (profile.totalHourlySessions ?? 0)
+  const mentorCancelledDisplay = hasReport ? cancelledByMentor : (profile.totalMentorCancellations ?? 0)
+  const userCancelledDisplay = hasReport ? cancelledByUser : (profile.totalUserCancellations ?? 0)
+  const noShowMentorDisplay = hasReport ? noShowMentorCount : (profile.totalNoShowMentor ?? 0)
+  const noShowUserDisplay = hasReport ? noShowUserCount : (profile.totalNoShowUser ?? 0)
+
+  // Performance rates — prefer live report values, fall back to profile counters.
+  const completionRateDisplay = report?.completionRate ?? profile.completionRate ?? 0
+  const repeatBookingRateDisplay = report?.repeatBookingRate ?? profile.repeatBookingRate ?? 0
+  const slotUtilizationRateDisplay = report?.slotUtilizationRate ?? profile.slotUtilizationRate ?? 0
+  const slotsOpenedDisplay = report?.totalSlotsOpened ?? profile.totalSlotsOpened ?? 0
+  const slotsBookedDisplay = report?.totalSlotsBooked ?? profile.totalSlotsBooked ?? 0
 
   return (
     <div className="space-y-6">
@@ -323,14 +480,104 @@ export default function UserProfessionalMentorTab({ userId }: UserProfessionalMe
         </CardHeader>
         <CardContent className="space-y-5">
 
-          {/* Volume */}
+          {/* Volume — accurate, sourced live from booking records */}
           <div>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-2">Volume</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <StatTile label="Total Sessions" value={profile.totalSessions} accent="blue" />
-              <StatTile label="Mock Interviews" value={profile.totalMockInterviews ?? 0} />
-              <StatTile label="Hourly Sessions" value={profile.totalHourlySessions ?? 0} />
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Session Volume</p>
+              {reportError && (
+                <span className="text-[11px] text-amber-600">Live data unavailable — showing profile counters</span>
+              )}
             </div>
+            {reportLoading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="h-[86px] w-full rounded-lg" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <StatTile
+                  label="Total Sessions Booked"
+                  value={totalSessionsDisplay}
+                  sub="Mock + Hourly"
+                  accent="blue"
+                />
+                <StatTile
+                  label="Completed"
+                  value={completedTotal}
+                  sub={`Mock ${completedMock} · Hourly ${completedHourly}`}
+                  accent="green"
+                />
+                <StatTile label="Mock Interviews" value={mockDisplay} sub="booked to date" />
+                <StatTile label="Hourly Sessions" value={hourlyDisplay} sub="booked to date" />
+              </div>
+            )}
+          </div>
+
+          {/* Detailed per-status breakdown table */}
+          <div>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-2">
+              Detailed Session Breakdown
+            </p>
+            {reportLoading ? (
+              <Skeleton className="h-44 w-full rounded-lg" />
+            ) : hasReport && statusRows.length > 0 ? (
+              <div className="rounded-lg border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      <TableHead className="text-xs">Status</TableHead>
+                      <TableHead className="text-xs text-right">Mock</TableHead>
+                      <TableHead className="text-xs text-right">Hourly</TableHead>
+                      <TableHead className="text-xs text-right">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {statusRows.map((row) => (
+                      <TableRow key={row.status}>
+                        <TableCell className="text-sm">
+                          <span className="flex items-center gap-2">
+                            <span
+                              className={cn(
+                                "inline-block size-2 rounded-full shrink-0",
+                                sessionStatusDotClass(row.status),
+                              )}
+                            />
+                            {SESSION_STATUS_LABEL[row.status] ?? row.status}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-sm text-right tabular-nums">{row.mock}</TableCell>
+                        <TableCell className="text-sm text-right tabular-nums">{row.hourly}</TableCell>
+                        <TableCell className="text-sm text-right font-semibold tabular-nums">{row.total}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                  <TableFooter>
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell className="text-sm font-medium">Total (all statuses)</TableCell>
+                      <TableCell className="text-sm text-right font-semibold tabular-nums">
+                        {sumBreakdown(mockBreakdown)}
+                      </TableCell>
+                      <TableCell className="text-sm text-right font-semibold tabular-nums">
+                        {sumBreakdown(hourlyBreakdown)}
+                      </TableCell>
+                      <TableCell className="text-sm text-right font-bold tabular-nums">
+                        {sumBreakdown(mockBreakdown) + sumBreakdown(hourlyBreakdown)}
+                      </TableCell>
+                    </TableRow>
+                  </TableFooter>
+                </Table>
+              </div>
+            ) : reportError ? (
+              <p className="text-sm text-muted-foreground">Detailed breakdown unavailable.</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">No sessions booked yet.</p>
+            )}
+            <p className="text-[11px] text-muted-foreground mt-2">
+              Counts are sourced live from booking records. &ldquo;Total Sessions Booked&rdquo; excludes
+              abandoned/failed payment attempts (Pending Payment, Payment Failed, Expired), which still
+              appear in the table above if present.
+            </p>
           </div>
 
           <Separator />
@@ -343,28 +590,34 @@ export default function UserProfessionalMentorTab({ userId }: UserProfessionalMe
                 <span className="text-xs text-muted-foreground">Completion Rate</span>
                 <span className={cn(
                   "text-xl font-semibold",
-                  (profile.completionRate ?? 0) >= 0.85 ? "text-emerald-600 dark:text-emerald-400"
-                    : (profile.completionRate ?? 0) >= 0.65 ? "text-amber-600 dark:text-amber-400"
+                  completionRateDisplay >= 0.85 ? "text-emerald-600 dark:text-emerald-400"
+                    : completionRateDisplay >= 0.65 ? "text-amber-600 dark:text-amber-400"
                     : "text-red-600 dark:text-red-400",
                 )}>
-                  {pct(profile.completionRate ?? 0)}
+                  {pct(completionRateDisplay)}
                 </span>
-                <Progress value={(profile.completionRate ?? 0) * 100} className="h-1.5" />
+                <Progress value={completionRateDisplay * 100} className="h-1.5" />
+                <span className="text-[11px] text-muted-foreground">Completed ÷ (Completed + Cancelled)</span>
               </div>
               <div className="flex flex-col gap-1.5 p-3 rounded-lg border bg-muted/30">
                 <span className="text-xs text-muted-foreground">Repeat Booking Rate</span>
-                <span className="text-xl font-semibold">{pct(profile.repeatBookingRate ?? 0)}</span>
-                <Progress value={(profile.repeatBookingRate ?? 0) * 100} className="h-1.5" />
+                <span className="text-xl font-semibold">{pct(repeatBookingRateDisplay)}</span>
+                <Progress value={repeatBookingRateDisplay * 100} className="h-1.5" />
+                <span className="text-[11px] text-muted-foreground">Returning students ÷ unique students</span>
               </div>
               <div className="flex flex-col gap-1.5 p-3 rounded-lg border bg-muted/30">
                 <span className="text-xs text-muted-foreground">Slot Utilisation</span>
-                <span className="text-xl font-semibold">{pct(profile.slotUtilizationRate ?? 0)}</span>
-                <Progress value={(profile.slotUtilizationRate ?? 0) * 100} className="h-1.5" />
+                <span className="text-xl font-semibold">{pct(slotUtilizationRateDisplay)}</span>
+                <Progress value={slotUtilizationRateDisplay * 100} className="h-1.5" />
                 <span className="text-xs text-muted-foreground">
-                  {profile.totalSlotsBooked ?? 0} / {profile.totalSlotsOpened ?? 0} slots
+                  {slotsBookedDisplay} / {slotsOpenedDisplay} slots booked
                 </span>
               </div>
             </div>
+            <p className="text-[11px] text-muted-foreground mt-2">
+              Rates are computed live from booking &amp; slot records. Completion &amp; repeat-booking
+              use completed/cancelled sessions; upcoming (Confirmed) sessions are not yet counted.
+            </p>
           </div>
 
           <Separator />
@@ -372,13 +625,18 @@ export default function UserProfessionalMentorTab({ userId }: UserProfessionalMe
           {/* Cancellations */}
           <div>
             <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-2">Cancellations</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               <StatTile
-                label="Mentor Cancelled"
-                value={profile.totalMentorCancellations ?? 0}
-                accent={(profile.totalMentorCancellations ?? 0) > 5 ? "red" : "default"}
+                label="Cancelled by Mentor"
+                value={mentorCancelledDisplay}
+                accent={mentorCancelledDisplay > 5 ? "red" : "default"}
               />
-              <StatTile label="User Cancelled" value={profile.totalUserCancellations ?? 0} />
+              <StatTile label="Cancelled by User" value={userCancelledDisplay} />
+              <StatTile
+                label="Cancelled by System"
+                value={hasReport ? cancelledBySystem : 0}
+                accent={cancelledBySystem > 3 ? "amber" : "default"}
+              />
               <StatTile
                 label="Late Cancellations"
                 value={profile.totalLateCancellations ?? 0}
@@ -417,15 +675,15 @@ export default function UserProfessionalMentorTab({ userId }: UserProfessionalMe
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <StatTile
                 label="Total Disputes"
-                value={profile.totalDisputesRaised ?? 0}
-                accent={(profile.totalDisputesRaised ?? 0) > 3 ? "red" : "default"}
+                value={report?.totalDisputesRaised ?? profile.totalDisputesRaised ?? 0}
+                accent={(report?.totalDisputesRaised ?? profile.totalDisputesRaised ?? 0) > 3 ? "red" : "default"}
               />
               <StatTile
                 label="Mentor No-Show"
-                value={profile.totalNoShowMentor ?? 0}
-                accent={(profile.totalNoShowMentor ?? 0) > 2 ? "red" : "default"}
+                value={noShowMentorDisplay}
+                accent={noShowMentorDisplay > 2 ? "red" : "default"}
               />
-              <StatTile label="User No-Show" value={profile.totalNoShowUser ?? 0} />
+              <StatTile label="User No-Show" value={noShowUserDisplay} />
             </div>
           </div>
 
@@ -583,6 +841,46 @@ export default function UserProfessionalMentorTab({ userId }: UserProfessionalMe
                   </div>
                 </>
               )}
+
+              {/* Individual candidate reviews */}
+              <Separator />
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+                  Individual Reviews
+                </p>
+                {ratingsLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-16 w-full rounded-lg" />
+                    <Skeleton className="h-16 w-full rounded-lg" />
+                  </div>
+                ) : ratings && ratings.length > 0 ? (
+                  <div className="space-y-2 max-h-[26rem] overflow-y-auto pr-1">
+                    {ratings.map((r) => (
+                      <div key={r.ratingId} className="rounded-lg border bg-muted/20 p-3 space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <StarRating value={r.rating} />
+                            <span className="text-sm font-medium truncate">{r.userName}</span>
+                          </div>
+                          <Badge variant="outline" className="text-[10px] shrink-0">
+                            {r.sessionType === "HOURLY_SESSION" ? "Hourly" : "Mock"}
+                          </Badge>
+                        </div>
+                        {r.comment && (
+                          <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">
+                            {r.comment}
+                          </p>
+                        )}
+                        <p className="text-[11px] text-muted-foreground">
+                          {formatReviewDate(r.submittedAt ?? r.createdAt)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No written reviews yet.</p>
+                )}
+              </div>
             </div>
           )}
         </CardContent>
