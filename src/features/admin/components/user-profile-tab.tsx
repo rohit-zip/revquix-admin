@@ -31,6 +31,11 @@ import {
   Code2,
   Eye,
   EyeOff,
+  Briefcase,
+  GraduationCap,
+  MapPin,
+  Building2,
+  FileText,
 } from "lucide-react"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -62,6 +67,30 @@ const PROJECT_MONTHS = [
 function formatProjectDate(year: number | null, month: number | null): string {
   if (!year) return ""
   return month ? `${PROJECT_MONTHS[month - 1]} ${year}` : String(year)
+}
+
+/**
+ * Bio / education-description fields may be legacy plain text or Tiptap-authored
+ * HTML. The backend's BioHtmlSanitiserService allowlists a small set of tags
+ * before persisting, so any string that looks like markup is already safe to
+ * render as HTML. Mirrors the pattern in admin-application-detail-view.tsx.
+ */
+function isSanitisedHtml(value: string): boolean {
+  return value.trimStart().startsWith("<")
+}
+
+/** Builds a "Mon YYYY – Mon YYYY" / "… – Present" range label. */
+function formatDateRange(
+  startYear: number | null,
+  startMonth: number | null,
+  endYear: number | null,
+  endMonth: number | null,
+  isCurrent: boolean | null,
+): string {
+  const start = formatProjectDate(startYear, startMonth)
+  if (isCurrent) return start ? `${start} – Present` : "Present"
+  const end = formatProjectDate(endYear, endMonth)
+  return end ? `${start}${start ? " – " : ""}${end}` : start
 }
 
 function BoolBadge({ value, trueLabel, falseLabel }: { value: boolean; trueLabel: string; falseLabel: string }) {
@@ -151,6 +180,50 @@ export default function UserProfileTab({ userId }: UserProfileTabProps) {
             <InfoRow icon={AtSign} label="Username" value={user.username ? `@${user.username}` : null} />
             <InfoRow icon={User} label="Display Name" value={user.name} />
             <InfoRow icon={Phone} label="Mobile" value={user.mobile} mono />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── About ───────────────────────────────────────────────────────────── */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <FileText className="size-4" />
+            About
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+            <InfoRow icon={Briefcase} label="Headline" value={user.headline} />
+            <InfoRow icon={MapPin} label="Location" value={user.location} />
+            <InfoRow icon={Briefcase} label="Current Role" value={user.currentRole} />
+            <InfoRow icon={Building2} label="Current Company" value={user.currentCompany} />
+            <InfoRow
+              icon={Clock}
+              label="Years of Experience"
+              value={user.yearsOfExperience != null ? String(user.yearsOfExperience) : null}
+            />
+            <InfoRow icon={Link2} label="LinkedIn" value={user.linkedinUrl} />
+            <InfoRow icon={Globe} label="Portfolio" value={user.portfolioUrl} />
+          </div>
+          <Separator className="my-3" />
+          <div>
+            <p className="text-xs text-muted-foreground mb-1.5">Bio</p>
+            {user.bio ? (
+              isSanitisedHtml(user.bio) ? (
+                // Rich-text path — HTML is sanitised server-side (BioHtmlSanitiserService).
+                <div
+                  className="prose prose-sm dark:prose-invert max-w-none text-sm text-foreground/90 leading-relaxed [&_p]:my-0 [&_ul]:my-1 [&_ul]:pl-4"
+                  dangerouslySetInnerHTML={{ __html: user.bio }}
+                />
+              ) : (
+                <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                  {user.bio}
+                </p>
+              )
+            ) : (
+              <p className="text-sm text-muted-foreground">—</p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -412,6 +485,173 @@ export default function UserProfileTab({ userId }: UserProfileTabProps) {
                   </div>
                 )
               })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Work Experience ─────────────────────────────────────────────────── */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Briefcase className="size-4" />
+            Work Experience
+            <Badge variant="secondary" className="text-xs ml-2">
+              {user.experiences?.length ?? 0}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!user.experiences || user.experiences.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-2">No work experience added</p>
+          ) : (
+            <div className="space-y-3">
+              {user.experiences.map((exp) => {
+                const dateLabel = formatDateRange(
+                  exp.startYear, exp.startMonth, exp.endYear, exp.endMonth, exp.isCurrent,
+                )
+                return (
+                  <div key={exp.experienceId} className="rounded-lg border p-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium text-sm">{exp.role}</p>
+                      {exp.company?.name && (
+                        <span className="text-sm text-muted-foreground">· {exp.company.name}</span>
+                      )}
+                      {exp.employmentTypeLabel && (
+                        <Badge variant="outline" className="text-xs">{exp.employmentTypeLabel}</Badge>
+                      )}
+                      {exp.isCurrent && (
+                        <Badge variant="secondary" className="text-xs">Current</Badge>
+                      )}
+                    </div>
+                    {dateLabel && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">{dateLabel}</p>
+                    )}
+                    {exp.location && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">{exp.location}</p>
+                    )}
+                    {exp.description && (
+                      <p className="mt-1.5 text-sm text-foreground/90 whitespace-pre-wrap">
+                        {exp.description}
+                      </p>
+                    )}
+                    {exp.skills.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {exp.skills.map((skill) => (
+                          <Badge key={skill.skillId} variant="outline" className="text-xs py-0.5 px-2">
+                            {skill.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Education ───────────────────────────────────────────────────────── */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <GraduationCap className="size-4" />
+            Education
+            <Badge variant="secondary" className="text-xs ml-2">
+              {user.educations?.length ?? 0}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!user.educations || user.educations.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-2">No education added</p>
+          ) : (
+            <div className="space-y-3">
+              {user.educations.map((edu) => {
+                const dateLabel = formatDateRange(
+                  edu.startYear, edu.startMonth, edu.endYear, edu.endMonth, edu.isCurrent,
+                )
+                const subtitle = [edu.degreeLabel, edu.fieldOfStudy].filter(Boolean).join(" · ")
+                return (
+                  <div key={edu.educationId} className="rounded-lg border p-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium text-sm">{edu.school?.name ?? "—"}</p>
+                      {edu.isCurrent && (
+                        <Badge variant="secondary" className="text-xs">Current</Badge>
+                      )}
+                    </div>
+                    {subtitle && (
+                      <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
+                    )}
+                    {dateLabel && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">{dateLabel}</p>
+                    )}
+                    {edu.grade && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">Grade: {edu.grade}</p>
+                    )}
+                    {edu.activities && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">Activities: {edu.activities}</p>
+                    )}
+                    {edu.description &&
+                      (isSanitisedHtml(edu.description) ? (
+                        <div
+                          className="prose prose-sm dark:prose-invert max-w-none mt-1.5 text-sm text-foreground/90 leading-relaxed [&_p]:my-0 [&_ul]:my-1 [&_ul]:pl-4"
+                          dangerouslySetInnerHTML={{ __html: edu.description }}
+                        />
+                      ) : (
+                        <p className="mt-1.5 text-sm text-foreground/90 whitespace-pre-wrap">
+                          {edu.description}
+                        </p>
+                      ))}
+                    {edu.skills.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {edu.skills.map((skill) => (
+                          <Badge key={skill.skillId} variant="outline" className="text-xs py-0.5 px-2">
+                            {skill.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Links ───────────────────────────────────────────────────────────── */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Link2 className="size-4" />
+            Links
+            <Badge variant="secondary" className="text-xs ml-2">
+              {user.links?.length ?? 0}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!user.links || user.links.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-2">No links added</p>
+          ) : (
+            <div className="space-y-2">
+              {[...user.links]
+                .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
+                .map((link) => (
+                  <div key={link.linkId} className="flex items-center gap-2">
+                    <ExternalLink className="size-3.5 text-muted-foreground flex-shrink-0" />
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      className="text-sm text-primary hover:underline truncate"
+                    >
+                      {link.caption || link.url}
+                    </a>
+                  </div>
+                ))}
             </div>
           )}
         </CardContent>

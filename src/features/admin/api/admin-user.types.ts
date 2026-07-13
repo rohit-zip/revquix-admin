@@ -90,3 +90,35 @@ export interface AdminSetQuotaRequest {
   quota: number
 }
 
+// ─── Account Status Actions ───────────────────────────────────────────────────
+
+/**
+ * Admin account-state actions. Mirrors backend {@code AccountStatusAction}.
+ * - DELETE-permission actions: SOFT_DELETE, RESTORE
+ * - EDIT-permission actions: everything else
+ * - Destructive (reason required): DISABLE, LOCK, SOFT_DELETE, FORCE_LOGOUT, FORCE_PASSWORD_RESET
+ */
+export type AccountStatusAction =
+  | "DISABLE"
+  | "ENABLE"
+  | "LOCK"
+  | "UNLOCK"
+  | "SOFT_DELETE"
+  | "RESTORE"
+  | "FORCE_LOGOUT"
+  | "FORCE_PASSWORD_RESET"
+
+/**
+ * Request body for PATCH /admin/users/{userId}/status.
+ * Mirrors backend {@code AdminUpdateAccountStatusRequest}.
+ */
+export interface UpdateAccountStatusRequest {
+  action: AccountStatusAction
+  /** Required for destructive actions; ignored for restorative ones. */
+  reason?: string | null
+  /** LOCK only: ISO-8601 instant → temporary lock; omit/null → indefinite block. */
+  lockUntil?: string | null
+  /** Reserved for Phase 4 (email notifications). */
+  notifyUser?: boolean | null
+}
+

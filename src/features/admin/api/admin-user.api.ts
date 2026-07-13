@@ -17,6 +17,7 @@ import type {
   AdminQuotaDetail,
   AdminSetQuotaRequest,
   GrantPermissionRequest,
+  UpdateAccountStatusRequest,
   UserPermissionOverrideResponse,
   UserRoleResponse,
 } from "./admin-user.types"
@@ -33,6 +34,20 @@ export const getAdminUser = (userId: string): Promise<AdminUserResponse> =>
 /** GET /user/{userId}/detail — Get full admin user detail with skills, categories, auth providers */
 export const getAdminUserDetail = (userId: string): Promise<AdminUserDetailResponse> =>
   apiClient.get<AdminUserDetailResponse>(`/user/${userId}/detail`).then((r) => r.data)
+
+/**
+ * PATCH /admin/users/{userId}/status — Perform an admin account-state action
+ * (enable/disable, lock/unlock, soft-delete/restore, force-logout, force-password-reset).
+ * Returns the refreshed full admin detail. Requires PERM_EDIT_USER (or PERM_DELETE_USER
+ * for SOFT_DELETE / RESTORE).
+ */
+export const updateUserStatus = (
+  userId: string,
+  data: UpdateAccountStatusRequest,
+): Promise<AdminUserDetailResponse> =>
+  apiClient
+    .patch<AdminUserDetailResponse>(`/admin/users/${userId}/status`, data)
+    .then((r) => r.data)
 
 /**
  * PUT /user/{userId}/projects/{projectId}/moderation

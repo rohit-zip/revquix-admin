@@ -106,6 +106,69 @@ export interface AdminProjectResponse {
   updatedAt: string
 }
 
+export interface CompanyDto {
+  companyId: string
+  name: string
+  domain: string | null
+  logoUrl: string | null
+  isVerified: boolean | null
+}
+
+export interface SchoolDto {
+  schoolId: string
+  name: string
+  shortName: string | null
+  domain: string | null
+  logoUrl: string | null
+  country: string | null
+  isVerified: boolean | null
+}
+
+export interface ExperienceResponse {
+  experienceId: string
+  role: string
+  company: CompanyDto | null
+  employmentType: string | null
+  employmentTypeLabel: string | null
+  startYear: number | null
+  startMonth: number | null
+  endYear: number | null
+  endMonth: number | null
+  isCurrent: boolean | null
+  description: string | null
+  location: string | null
+  skills: SkillDto[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface EducationResponse {
+  educationId: string
+  school: SchoolDto | null
+  degree: string | null
+  degreeLabel: string | null
+  fieldOfStudy: string | null
+  startYear: number | null
+  startMonth: number | null
+  endYear: number | null
+  endMonth: number | null
+  isCurrent: boolean | null
+  description: string | null
+  grade: string | null
+  activities: string | null
+  skills: SkillDto[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface UserLinkResponse {
+  linkId: string
+  url: string
+  caption: string | null
+  displayOrder: number | null
+  createdAt: string
+}
+
 export interface AdminUserDetailResponse {
   userId: string
   email: string
@@ -135,10 +198,22 @@ export interface AdminUserDetailResponse {
   updatedAt: string
   // Authorization
   roles: string[]
+  // Public profile
+  headline: string | null
+  bio: string | null
+  location: string | null
+  linkedinUrl: string | null
+  portfolioUrl: string | null
+  yearsOfExperience: number | null
+  currentCompany: string | null
+  currentRole: string | null
   // Profile
   skills: SkillDto[]
   categories: CategoryDto[]
   projects: AdminProjectResponse[]
+  experiences: ExperienceResponse[]
+  educations: EducationResponse[]
+  links: UserLinkResponse[]
   authProviders: AuthProviderDto[]
 }
 

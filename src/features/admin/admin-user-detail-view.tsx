@@ -57,6 +57,7 @@ import UserSearchQuotaTab from "@/features/admin/components/user-search-quota-ta
 import UserSessionsTab from "@/features/admin/components/user-sessions-tab"
 import UserLoginHistoryTab from "@/features/admin/components/user-login-history-tab"
 import UserProfessionalMentorTab from "@/features/admin/components/user-professional-mentor-tab"
+import AccountActionsPanel from "@/features/admin/components/account-actions-panel"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -120,6 +121,9 @@ export default function AdminUserDetailView({ userId }: AdminUserDetailViewProps
   const canManageUserPermissions = hasAnyAuthority(["PERM_MANAGE_USER_ROLES"])
   const canManageUsers = hasAnyAuthority(["PERM_MANAGE_USERS", "PERM_MANAGE_ROLES", "PERM_MANAGE_USER_ROLES"])
   const canManageSearchQuota = hasAnyAuthority(["PERM_MANAGE_SEARCH_QUOTA"])
+  // Account-state actions (Phase 3)
+  const canEditUser = hasAnyAuthority(["PERM_EDIT_USER"])
+  const canDeleteUser = hasAnyAuthority(["PERM_DELETE_USER"])
   // Future tabs
   // const canViewBookings = hasAnyAuthority(["PERM_VIEW_ALL_BOOKINGS"])
 
@@ -282,6 +286,16 @@ export default function AdminUserDetailView({ userId }: AdminUserDetailViewProps
           </div>
         </CardContent>
       </Card>
+
+      {/* ── Account Actions ────────────────────────────────────────────────── */}
+      {(canEditUser || canDeleteUser) && (
+        <AccountActionsPanel
+          userId={userId}
+          isEnabled={user.isEnabled ?? true}
+          isAccountNonLocked={user.isAccountNonLocked ?? true}
+          isDeleted={user.isDeleted ?? false}
+        />
+      )}
 
       {/* ── Tabbed Content ─────────────────────────────────────────────────── */}
       <Tabs defaultValue={defaultTab}>

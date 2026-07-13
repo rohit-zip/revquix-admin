@@ -13,7 +13,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { showErrorToast, showSuccessToast } from "@/lib/show-toast"
 import type { ApiError, NetworkError } from "@/lib/api-error"
-import type { AdminSetQuotaRequest, GrantPermissionRequest } from "./admin-user.types"
+import type { AdminSetQuotaRequest, GrantPermissionRequest, UpdateAccountStatusRequest } from "./admin-user.types"
 import type { AdminProjectModerationStatus } from "@/features/user/api/session.types"
 import {
   adminRevokeAllUserSessions,
@@ -32,6 +32,7 @@ import {
   removeRoleFromUser,
   resetAdminSearchQuota,
   setAdminSearchQuota,
+  updateUserStatus,
 } from "./admin-user.api"
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
@@ -160,6 +161,29 @@ export function useModerateUserProject(userId: string) {
           : "Project restored to public profile",
       )
       qc.invalidateQueries({ queryKey: adminUserKeys.detail(userId) })
+    },
+    onError: (error: ApiError | NetworkError) => showErrorToast(error),
+  })
+}
+
+/**
+ * Perform an admin account-state action (enable/disable, lock/unlock, soft-delete/restore,
+ * force-logout, force-password-reset).
+ *
+ * <p>On success, seeds the full-detail cache with the returned payload for instant feedback
+ * and invalidates the whole {@code ["admin","user",userId]} prefix — which cascades to the
+ * header summary, full detail, sessions, session history, quota, and overrides queries.
+ */
+export function useUpdateUserStatus(userId: string, onSuccess?: () => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: UpdateAccountStatusRequest) => updateUserStatus(userId, data),
+    retry: false,
+    onSuccess: (data) => {
+      showSuccessToast("Account status updated")
+      qc.setQueryData([...adminUserKeys.detail(userId), "full"], data)
+      qc.invalidateQueries({ queryKey: adminUserKeys.detail(userId) })
+      onSuccess?.()
     },
     onError: (error: ApiError | NetworkError) => showErrorToast(error),
   })
