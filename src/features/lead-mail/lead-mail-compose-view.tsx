@@ -57,7 +57,8 @@ import {
 } from "./api/lead-mail.hooks"
 import {
   LEAD_MAIL_CONTENT_TYPE,
-  LEAD_MAIL_FROM_PREFIXES,
+  LEAD_MAIL_DEFAULT_FROM_PREFIX,
+  LEAD_MAIL_SENDER_DOMAIN,
   LEAD_MAIL_SEND_METHOD,
   LEAD_MAIL_SMTP_ENCRYPTION_MODE,
   type LeadMailContentType,
@@ -95,7 +96,7 @@ export function LeadMailComposeView() {
 
   // ── Sending method + sender ─────────────────────────────────────────────
   const [sendMethod, setSendMethod] = useState<LeadMailSendMethod>(LEAD_MAIL_SEND_METHOD.ZEPTO_MAIL)
-  const [fromPrefix, setFromPrefix] = useState(LEAD_MAIL_FROM_PREFIXES[0]?.value ?? "")
+  const [fromPrefix, setFromPrefix] = useState(LEAD_MAIL_DEFAULT_FROM_PREFIX)
   const [replyToAddress, setReplyToAddress] = useState("")
   const [replyToName, setReplyToName] = useState("")
 
@@ -132,6 +133,8 @@ export function LeadMailComposeView() {
   const [contentType, setContentType] = useState<LeadMailContentType>(LEAD_MAIL_CONTENT_TYPE.TEXT)
   const [textBody, setTextBody] = useState("")
   const [htmlBody, setHtmlBody] = useState("")
+  /** Nested HTML editing mode: WYSIWYG, raw source, or rendered preview. */
+  const [htmlMode, setHtmlMode] = useState<"rich" | "source" | "preview">("rich")
   const body = contentType === LEAD_MAIL_CONTENT_TYPE.HTML ? htmlBody : textBody
 
   // ── Recipients ──────────────────────────────────────────────────────────
@@ -162,8 +165,8 @@ export function LeadMailComposeView() {
   const nameTokenBlocked = usesNameToken && recipientsMissingName.length > 0
 
   const isSmtp = sendMethod === LEAD_MAIL_SEND_METHOD.SMTP
-  /** SMTP mode must have passed a connection test THIS session, for the current fields, before sending. */
-  const senderReady = isSmtp ? smtpTestPassed : true
+  /** SMTP mode must have passed a connection test THIS session; ZeptoMail needs a from-prefix. */
+  const senderReady = isSmtp ? smtpTestPassed : fromPrefix.trim().length > 0
 
   const canSubmit =
     subject.trim().length > 0 &&
@@ -234,7 +237,7 @@ export function LeadMailComposeView() {
         body,
         contentType,
         sendMethod,
-        fromPrefix: isSmtp ? undefined : fromPrefix,
+        fromPrefix: isSmtp ? undefined : fromPrefix.trim(),
         smtpCredentials: isSmtp ? smtpCredentials : undefined,
         replyToAddress,
         replyToName: replyToName || undefined,
@@ -254,7 +257,7 @@ export function LeadMailComposeView() {
         body,
         contentType,
         sendMethod,
-        fromPrefix: isSmtp ? undefined : fromPrefix,
+        fromPrefix: isSmtp ? undefined : fromPrefix.trim(),
         smtpCredentials: isSmtp ? smtpCredentials : undefined,
         replyToAddress,
         replyToName: replyToName || undefined,
@@ -288,7 +291,9 @@ export function LeadMailComposeView() {
               <RadioGroupItem value={LEAD_MAIL_SEND_METHOD.ZEPTO_MAIL} id="lm-method-zepto" className="mt-0.5" />
               <div>
                 <p className="font-medium">Send via ZeptoMail</p>
-                <p className="text-xs text-muted-foreground">outreach@revquix.com</p>
+                <p className="text-xs text-muted-foreground">
+                  {(fromPrefix.trim() || LEAD_MAIL_DEFAULT_FROM_PREFIX)}@{LEAD_MAIL_SENDER_DOMAIN}
+                </p>
               </div>
             </label>
             <label
@@ -307,18 +312,21 @@ export function LeadMailComposeView() {
             {!isSmtp && (
               <div className="space-y-1.5">
                 <Label htmlFor="lm-from-prefix">From</Label>
-                <Select value={fromPrefix} onValueChange={setFromPrefix}>
-                  <SelectTrigger id="lm-from-prefix" className="w-full">
-                    <SelectValue placeholder="Select sender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LEAD_MAIL_FROM_PREFIXES.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center rounded-md border border-input focus-within:ring-1 focus-within:ring-ring">
+                  <Input
+                    id="lm-from-prefix"
+                    value={fromPrefix}
+                    onChange={(e) => setFromPrefix(e.target.value)}
+                    placeholder={LEAD_MAIL_DEFAULT_FROM_PREFIX}
+                    className="border-0 shadow-none focus-visible:ring-0"
+                  />
+                  <span className="whitespace-nowrap px-3 text-sm text-muted-foreground">
+                    @{LEAD_MAIL_SENDER_DOMAIN}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  The part before the @ — any prefix on {LEAD_MAIL_SENDER_DOMAIN} works.
+                </p>
               </div>
             )}
             <div className="space-y-1.5">
@@ -502,7 +510,57 @@ export function LeadMailComposeView() {
               />
             </TabsContent>
             <TabsContent value={LEAD_MAIL_CONTENT_TYPE.HTML} className="mt-3">
-              <TiptapEditor content={htmlBody} onChange={setHtmlBody} placeholder="Hi {{name}}, I wanted to reach out about…" />
+              <Tabs value={htmlMode} onValueChange={(v) => setHtmlMode(v as "rich" | "source" | "preview")}>
+                <TabsList>
+                  <TabsTrigger value="rich">Rich Text</TabsTrigger>
+                  <TabsTrigger value="source">HTML Source</TabsTrigger>
+                  <TabsTrigger value="preview">Preview</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="rich" className="mt-3">
+                  <TiptapEditor
+                    content={htmlBody}
+                    onChange={setHtmlBody}
+                    placeholder="Hi {{name}}, I wanted to reach out about…"
+                  />
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    A visual editor for simple formatting. For a full custom HTML email, use the HTML
+                    Source tab instead — switching back here may reformat hand-written markup.
+                  </p>
+                </TabsContent>
+
+                <TabsContent value="source" className="mt-3">
+                  <Textarea
+                    placeholder={'<p>Hi {{name}},</p>\n<p>I wanted to reach out about…</p>'}
+                    value={htmlBody}
+                    onChange={(e) => setHtmlBody(e.target.value)}
+                    className="min-h-[260px] font-mono text-xs"
+                    spellCheck={false}
+                  />
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    Paste raw HTML — sent as-is. <code className="rounded bg-muted px-1 py-0.5">{"{{name}}"}</code>{" "}
+                    is replaced per recipient. Switch to Preview to see how it renders.
+                  </p>
+                </TabsContent>
+
+                <TabsContent value="preview" className="mt-3">
+                  <iframe
+                    title="HTML email preview"
+                    sandbox=""
+                    className="min-h-[260px] w-full rounded-md border bg-white"
+                    srcDoc={
+                      htmlBody.trim()
+                        ? htmlBody
+                        : '<p style="color:#9ca3af;font-family:sans-serif;padding:12px">Nothing to preview yet — add HTML in the Source or Rich Text tab.</p>'
+                    }
+                  />
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    Rendered in an isolated sandbox (scripts disabled).{" "}
+                    <code className="rounded bg-muted px-1 py-0.5">{"{{name}}"}</code> is shown literally here — use
+                    the Preview button below to see it resolved against a sample name.
+                  </p>
+                </TabsContent>
+              </Tabs>
             </TabsContent>
           </Tabs>
 

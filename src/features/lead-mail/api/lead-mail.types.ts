@@ -62,10 +62,15 @@ export interface SmtpTestConnectionResponse {
 /** Standalone test-connection request — identical fields to {@link SmtpCredentialsInput}. */
 export type SmtpTestConnectionRequest = SmtpCredentialsInput
 
-/** From-address prefixes configured on the backend (app.mail.zepto-mail.lead-outreach). MVP has exactly one. */
-export const LEAD_MAIL_FROM_PREFIXES: { label: string; value: string }[] = [
-  { label: "outreach@revquix.com", value: "outreach" },
-]
+/**
+ * The verified ZeptoMail sending domain. The admin chooses any local part (prefix); the
+ * resulting sender address is `${prefix}@${LEAD_MAIL_SENDER_DOMAIN}`. Mirrors the backend's
+ * `app.mail.zepto-mail.domain` — the domain itself is fixed server-side and never sent on the wire.
+ */
+export const LEAD_MAIL_SENDER_DOMAIN = "revquix.com"
+
+/** Default from-prefix used to prefill the compose form. */
+export const LEAD_MAIL_DEFAULT_FROM_PREFIX = "outreach"
 
 export interface LeadMailRecipientInput {
   email: string
