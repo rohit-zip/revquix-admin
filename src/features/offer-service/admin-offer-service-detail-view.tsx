@@ -17,6 +17,7 @@ import {
   Package,
   Plus,
   Save,
+  Star,
   X,
 } from "lucide-react"
 
@@ -55,6 +56,8 @@ import {
   useAdminUpdateOfferAddOn,
   useAdminCreateOfferFormField,
   useAdminUpdateOfferFormField,
+  useAdminReviewCandidates,
+  useAdminSetFeaturedReviews,
 } from "./api/offer-service.hooks"
 import type {
   CreateOfferAddOnRequest,
@@ -63,6 +66,7 @@ import type {
   OfferAddOnResponse,
   OfferFormFieldResponse,
   OfferPlanResponse,
+  OfferReviewResponse,
   UpdateOfferServiceRequest,
 } from "./api/offer-service.types"
 import {
@@ -185,6 +189,13 @@ function EditServicePanel({ serviceId, initial, onDone }: EditServicePanelProps)
               onCheckedChange={(v) => set("isDraft", v)}
             />
             <Label>Draft</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={form.reviewsEnabled ?? true}
+              onCheckedChange={(v) => set("reviewsEnabled", v)}
+            />
+            <Label>Show reviews carousel</Label>
           </div>
         </div>
 
@@ -792,6 +803,146 @@ function OptionsListEditor({
   )
 }
 
+const MAX_FEATURED_REVIEWS = 10
+
+/**
+ * Review picker — lets the admin choose up to 10 real customer reviews
+ * (from OfferOrderRating submissions) to feature in the public carousel on
+ * the service's detail page. Never authors review content; only selects
+ * and orders existing submissions. The service-wide "turn reviews off
+ * entirely" switch lives in EditServicePanel (alongside Enabled/Draft) since
+ * it's a service-level field, not a review-specific one — this tab only
+ * manages which reviews are picked when the carousel is on.
+ */
+function ReviewsTab({
+  serviceId,
+  reviewsEnabled,
+}: {
+  serviceId: string
+  reviewsEnabled: boolean
+}) {
+  const { data: candidates, isLoading } = useAdminReviewCandidates(serviceId)
+  const [selectedIds, setSelectedIds] = useState<string[] | null>(null)
+  const { mutate: save, isPending } = useAdminSetFeaturedReviews(serviceId, () => setSelectedIds(null))
+
+  // Seed local selection from the server's isFeatured flags once candidates
+  // load; `selectedIds === null` means "not yet touched by the admin this
+  // session" so we keep re-seeding from fresh data until they actually
+  // check/uncheck something.
+  const effectiveSelected =
+    selectedIds ?? candidates?.filter((r) => r.isFeatured).map((r) => r.ratingId) ?? []
+
+  const toggle = (ratingId: string, checked: boolean) => {
+    const base = selectedIds ?? effectiveSelected
+    setSelectedIds(checked ? [...base, ratingId] : base.filter((id) => id !== ratingId))
+  }
+
+  const atLimit = effectiveSelected.length >= MAX_FEATURED_REVIEWS
+  const isDirty = selectedIds !== null
+
+  if (isLoading) {
+    return <Skeleton className="h-40 w-full rounded-lg" />
+  }
+
+  return (
+    <div className="space-y-4">
+      {!reviewsEnabled && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+          The reviews carousel is currently turned OFF for this service (see the &ldquo;Show
+          reviews carousel&rdquo; switch in Edit Service Details). Featured picks below are
+          still saved but won&apos;t be visible on the public page until it&apos;s turned back on.
+        </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {effectiveSelected.length} / {MAX_FEATURED_REVIEWS} featured
+        </p>
+        {isDirty && (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setSelectedIds(null)} disabled={isPending}>
+              Discard
+            </Button>
+            <Button size="sm" onClick={() => save({ ratingIds: effectiveSelected })} disabled={isPending}>
+              <Save className="h-3.5 w-3.5 mr-1.5" />
+              {isPending ? "Saving…" : "Save featured reviews"}
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {!candidates || candidates.length === 0 ? (
+        <p className="text-muted-foreground text-sm">
+          No customer reviews have been submitted for this service yet.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {candidates.map((review) => (
+            <ReviewCandidateRow
+              key={review.ratingId}
+              review={review}
+              checked={effectiveSelected.includes(review.ratingId)}
+              disabled={atLimit && !effectiveSelected.includes(review.ratingId)}
+              onChange={(checked) => toggle(review.ratingId, checked)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ReviewCandidateRow({
+  review,
+  checked,
+  disabled,
+  onChange,
+}: {
+  review: OfferReviewResponse
+  checked: boolean
+  disabled: boolean
+  onChange: (checked: boolean) => void
+}) {
+  return (
+    <label
+      className={`flex items-start gap-3 rounded-lg border p-3 ${
+        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-muted/50"
+      } ${checked ? "border-primary bg-primary/5" : ""}`}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-1 h-4 w-4 accent-primary"
+      />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-sm">{review.reviewerName}</span>
+            <div className="flex">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Star
+                  key={s}
+                  className={`h-3.5 w-3.5 ${
+                    s <= review.rating ? "fill-amber-400 text-amber-400" : "fill-muted text-muted"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+          <span className="text-xs text-muted-foreground shrink-0">{formatDate(review.createdAt)}</span>
+        </div>
+        {review.reviewText ? (
+          <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{review.reviewText}</p>
+        ) : (
+          <p className="mt-1 text-xs italic text-muted-foreground">No written review — star rating only.</p>
+        )}
+      </div>
+    </label>
+  )
+}
+
 function FormFieldsTab({ serviceId, fields }: FormFieldsTabProps) {
   const [addOpen, setAddOpen] = useState(false)
   const [editField, setEditField] = useState<OfferFormFieldResponse | null>(null)
@@ -1189,6 +1340,7 @@ export default function AdminOfferServiceDetailView({ serviceId }: AdminOfferSer
             isEnabled: service.isEnabled,
             isDraft: service.isDraft,
             sortOrder: service.sortOrder,
+            reviewsEnabled: service.reviewsEnabled,
           }}
           onDone={() => setEditMode(false)}
         />
@@ -1232,6 +1384,9 @@ export default function AdminOfferServiceDetailView({ serviceId }: AdminOfferSer
           <TabsTrigger value="fields">
             Form Fields ({service.formFields?.length ?? 0})
           </TabsTrigger>
+          <TabsTrigger value="reviews">
+            Reviews
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="plans" className="mt-4">
@@ -1244,6 +1399,10 @@ export default function AdminOfferServiceDetailView({ serviceId }: AdminOfferSer
 
         <TabsContent value="fields" className="mt-4">
           <FormFieldsTab serviceId={serviceId} fields={service.formFields ?? []} />
+        </TabsContent>
+
+        <TabsContent value="reviews" className="mt-4">
+          <ReviewsTab serviceId={serviceId} reviewsEnabled={service.reviewsEnabled} />
         </TabsContent>
       </Tabs>
     </div>

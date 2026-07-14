@@ -16,6 +16,7 @@ import type {
   CreateOfferPlanRequest,
   CreateOfferServiceRequest,
   CreatePlatformCouponRequest,
+  SetFeaturedReviewsRequest,
   UpdateOfferAddOnRequest,
   UpdateOfferFormFieldRequest,
   UpdateOfferPlanRequest,
@@ -31,7 +32,9 @@ import {
   adminReactivatePlatformCoupon,
   adminGetOfferService,
   adminListPlatformCoupons,
+  adminListReviewCandidates,
   adminSearchOfferServices,
+  adminSetFeaturedReviews,
   adminUpdateOfferAddOn,
   adminUpdateOfferFormField,
   adminUpdateOfferPlan,
@@ -45,6 +48,7 @@ export const offerServiceKeys = {
     ["offer-services", "search", req, page, size] as const,
   detail: (serviceId: string) => ["offer-services", "detail", serviceId] as const,
   coupons: (page: number, size: number) => ["offer-services", "coupons", page, size] as const,
+  reviewCandidates: (serviceId: string) => ["offer-services", "review-candidates", serviceId] as const,
 }
 
 // ─── Service Queries ──────────────────────────────────────────────────────────
@@ -64,6 +68,15 @@ export function useAdminOfferServiceDetail(serviceId: string) {
   return useQuery({
     queryKey: offerServiceKeys.detail(serviceId),
     queryFn: () => adminGetOfferService(serviceId),
+    enabled: !!serviceId,
+  })
+}
+
+/** All real customer reviews for a service, each flagged with whether it's currently featured. */
+export function useAdminReviewCandidates(serviceId: string) {
+  return useQuery({
+    queryKey: offerServiceKeys.reviewCandidates(serviceId),
+    queryFn: () => adminListReviewCandidates(serviceId),
     enabled: !!serviceId,
   })
 }
@@ -101,6 +114,21 @@ export function useAdminUpdateOfferService(serviceId: string, onSuccess?: () => 
       showSuccessToast("Offer service updated")
       qc.invalidateQueries({ queryKey: offerServiceKeys.detail(serviceId) })
       qc.invalidateQueries({ queryKey: ["offer-services", "search"] })
+      onSuccess?.()
+    },
+    onError: (error: ApiError | NetworkError) => showErrorToast(error),
+  })
+}
+
+/** Replaces the full featured-review set for a service (max 10, in display order). */
+export function useAdminSetFeaturedReviews(serviceId: string, onSuccess?: () => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (request: SetFeaturedReviewsRequest) => adminSetFeaturedReviews(serviceId, request),
+    retry: false,
+    onSuccess: () => {
+      showSuccessToast("Featured reviews updated")
+      qc.invalidateQueries({ queryKey: offerServiceKeys.reviewCandidates(serviceId) })
       onSuccess?.()
     },
     onError: (error: ApiError | NetworkError) => showErrorToast(error),

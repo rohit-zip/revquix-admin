@@ -159,6 +159,23 @@ export interface OfferServiceResponse {
   formFields: OfferFormFieldResponse[] | null
   averageRating: number | null
   ratingCount: number
+  /** Service-wide switch for the public reviews carousel. */
+  reviewsEnabled: boolean
+}
+
+/**
+ * A single real customer review, shaped for the admin review picker.
+ * `isFeatured` is only meaningful on the candidates list — indicates
+ * whether this review is currently in the service's featured set.
+ */
+export interface OfferReviewResponse {
+  ratingId: string
+  rating: number
+  reviewText: string | null
+  createdAt: string
+  reviewerName: string
+  reviewerAvatarUrl: string | null
+  isFeatured: boolean | null
 }
 
 export interface OfferOrderSummaryResponse {
@@ -243,6 +260,13 @@ export interface UpdateOfferServiceRequest {
   isEnabled?: boolean
   isDraft?: boolean
   sortOrder?: number
+  /** Service-wide switch for the public reviews carousel. */
+  reviewsEnabled?: boolean
+}
+
+/** Replaces the full featured-review set for a service in one call, in display order. Max 10. */
+export interface SetFeaturedReviewsRequest {
+  ratingIds: string[]
 }
 
 export interface CreateOfferPlanRequest {

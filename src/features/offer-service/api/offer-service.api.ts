@@ -17,7 +17,9 @@ import type {
   OfferAddOnResponse,
   OfferFormFieldResponse,
   OfferPlanResponse,
+  OfferReviewResponse,
   OfferServiceResponse,
+  SetFeaturedReviewsRequest,
   UpdateOfferAddOnRequest,
   UpdateOfferFormFieldRequest,
   UpdateOfferPlanRequest,
@@ -61,6 +63,23 @@ export const adminUpdateOfferService = (
 ): Promise<OfferServiceResponse> =>
   apiClient
     .put<OfferServiceResponse>(`${BASE}/services/${serviceId}`, request)
+    .then((r) => r.data)
+
+// ─── Reviews (curation over existing OfferOrderRating submissions) ────────────
+
+/** GET /admin/offers/services/{serviceId}/reviews/candidates — All real reviews for a service, flagged with isFeatured */
+export const adminListReviewCandidates = (serviceId: string): Promise<OfferReviewResponse[]> =>
+  apiClient
+    .get<OfferReviewResponse[]>(`${BASE}/services/${serviceId}/reviews/candidates`)
+    .then((r) => r.data)
+
+/** PUT /admin/offers/services/{serviceId}/reviews/featured — Replace the featured set (max 10, in display order) */
+export const adminSetFeaturedReviews = (
+  serviceId: string,
+  request: SetFeaturedReviewsRequest,
+): Promise<OfferReviewResponse[]> =>
+  apiClient
+    .put<OfferReviewResponse[]>(`${BASE}/services/${serviceId}/reviews/featured`, request)
     .then((r) => r.data)
 
 // ─── Plans ────────────────────────────────────────────────────────────────────
