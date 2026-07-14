@@ -8,7 +8,12 @@
 
 import { apiClient } from "@/lib/axios"
 import type { AdminUserResponse } from "@/features/user/api/user-search.types"
-import type { AdminUserDetailResponse } from "@/features/user/api/session.types"
+import type {
+  AdminUserDetailResponse,
+  AdminBadgeView,
+  GrantBadgeRequest,
+  UpdateSeoPriorityRequest,
+} from "@/features/user/api/session.types"
 import type {
   AdminProjectModerationStatus,
   AdminProjectResponse,
@@ -207,4 +212,44 @@ export const resetAdminSearchQuota = (userId: string): Promise<void> =>
   apiClient
     .delete(`/admin/users/${userId}/search-quota`)
     .then(() => undefined)
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BADGES & SEO PRIORITY
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** GET /admin/users/{userId}/badges — full badge history (PERM_MANAGE_USER_BADGES) */
+export const getAdminUserBadges = (userId: string): Promise<AdminBadgeView[]> =>
+  apiClient
+    .get<AdminBadgeView[]>(`/admin/users/${userId}/badges`)
+    .then((r) => r.data)
+
+/** POST /admin/users/{userId}/badges — grant a badge (PERM_MANAGE_USER_BADGES) */
+export const grantAdminUserBadge = (
+  userId: string,
+  data: GrantBadgeRequest,
+): Promise<AdminBadgeView[]> =>
+  apiClient
+    .post<AdminBadgeView[]>(`/admin/users/${userId}/badges`, data)
+    .then((r) => r.data)
+
+/** DELETE /admin/users/{userId}/badges/{badgeKey} — revoke a badge (PERM_MANAGE_USER_BADGES) */
+export const revokeAdminUserBadge = (
+  userId: string,
+  badgeKey: string,
+  reason: string,
+): Promise<AdminBadgeView[]> =>
+  apiClient
+    .delete<AdminBadgeView[]>(`/admin/users/${userId}/badges/${badgeKey}`, {
+      data: { reason },
+    })
+    .then((r) => r.data)
+
+/** PATCH /admin/users/{userId}/seo-priority — override SEO/search/noindex (PERM_MANAGE_SEO_PRIORITY) */
+export const updateAdminUserSeoPriority = (
+  userId: string,
+  data: UpdateSeoPriorityRequest,
+): Promise<AdminUserDetailResponse> =>
+  apiClient
+    .patch<AdminUserDetailResponse>(`/admin/users/${userId}/seo-priority`, data)
+    .then((r) => r.data)
 

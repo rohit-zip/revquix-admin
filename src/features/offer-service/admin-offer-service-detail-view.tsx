@@ -698,6 +698,100 @@ interface FormFieldsTabProps {
   fields: OfferFormFieldResponse[]
 }
 
+/** Field types whose behaviour depends on a fixed list of options the admin defines. */
+const OPTION_BASED_FIELD_TYPES = new Set(["DROPDOWN", "RADIO", "CHECKBOX_GROUP"])
+
+/** Parses an `options` JSON array string into a clean, non-empty string list. */
+function parseNonEmptyOptions(options: string | null | undefined): string[] {
+  if (!options) return []
+  try {
+    const value = JSON.parse(options)
+    if (!Array.isArray(value)) return []
+    return value.map((v) => String(v).trim()).filter((v) => v.length > 0)
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Add/remove/edit list of plain-text options, serialized to the JSON array
+ * string the backend stores in `OfferFormField.options` (e.g. `["A","B"]`).
+ * Shared by the Add Field dialog and Edit Field form — DROPDOWN populates
+ * a `<select>`, RADIO a group of radio buttons, and CHECKBOX_GROUP a set of
+ * independently-selectable checkboxes on the public order page, all driven
+ * by this same option list (see `DynamicField` in
+ * revquix-web/offer-service-detail-view.tsx).
+ */
+function OptionsListEditor({
+  options,
+  onChange,
+}: {
+  options: string
+  onChange: (options: string) => void
+}) {
+  const parsed: string[] = (() => {
+    if (!options) return []
+    try {
+      const value = JSON.parse(options)
+      return Array.isArray(value) ? value.map((v) => String(v)) : []
+    } catch {
+      return []
+    }
+  })()
+
+  const commit = (next: string[]) => onChange(JSON.stringify(next))
+
+  return (
+    <div className="space-y-1.5 rounded-md border border-dashed p-3 bg-muted/30">
+      <div className="flex items-center justify-between">
+        <Label>Options *</Label>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-7"
+          onClick={() => commit([...parsed, ""])}
+        >
+          <Plus className="h-3 w-3 mr-1" />
+          Add option
+        </Button>
+      </div>
+      {parsed.length === 0 && (
+        <p className="text-xs text-muted-foreground">
+          No options yet — add at least one before saving.
+        </p>
+      )}
+      <div className="space-y-1.5">
+        {parsed.map((opt, idx) => (
+          <div key={idx} className="flex items-center gap-1.5">
+            <Input
+              value={opt}
+              onChange={(e) => {
+                const next = [...parsed]
+                next[idx] = e.target.value
+                commit(next)
+              }}
+              placeholder={`Option ${idx + 1}`}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-9 w-9 p-0 shrink-0"
+              onClick={() => commit(parsed.filter((_, i) => i !== idx))}
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Shown to customers as the selectable choices for this field.
+      </p>
+    </div>
+  )
+}
+
 function FormFieldsTab({ serviceId, fields }: FormFieldsTabProps) {
   const [addOpen, setAddOpen] = useState(false)
   const [editField, setEditField] = useState<OfferFormFieldResponse | null>(null)
@@ -713,6 +807,7 @@ function FormFieldsTab({ serviceId, fields }: FormFieldsTabProps) {
     isEnabled: true,
     allowedMimeTypes: "",
     maxFileSizeMb: undefined,
+    options: "",
   })
 
   const { mutate: create, isPending: creating } = useAdminCreateOfferFormField(serviceId, () => setAddOpen(false))
@@ -795,6 +890,12 @@ function FormFieldsTab({ serviceId, fields }: FormFieldsTabProps) {
               <Label>Helper Text</Label>
               <Input value={form.helperText ?? ""} onChange={(e) => setForm((p) => ({ ...p, helperText: e.target.value }))} />
             </div>
+            {OPTION_BASED_FIELD_TYPES.has(form.fieldType) && (
+              <OptionsListEditor
+                options={form.options ?? ""}
+                onChange={(options) => setForm((p) => ({ ...p, options }))}
+              />
+            )}
             {form.fieldType === "FILE_UPLOAD" && (
               <div className="grid grid-cols-2 gap-3 rounded-md border border-dashed p-3 bg-muted/30">
                 <div className="col-span-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -834,7 +935,24 @@ function FormFieldsTab({ serviceId, fields }: FormFieldsTabProps) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button onClick={() => create(form)} disabled={creating || !form.fieldKey || !form.fieldLabel}>{creating ? "Adding…" : "Add"}</Button>
+            <Button
+              onClick={() => {
+                const isOptionBased = OPTION_BASED_FIELD_TYPES.has(form.fieldType)
+                const cleanOptions = parseNonEmptyOptions(form.options)
+                create({
+                  ...form,
+                  options: isOptionBased ? JSON.stringify(cleanOptions) : undefined,
+                })
+              }}
+              disabled={
+                creating ||
+                !form.fieldKey ||
+                !form.fieldLabel ||
+                (OPTION_BASED_FIELD_TYPES.has(form.fieldType) && parseNonEmptyOptions(form.options).length === 0)
+              }
+            >
+              {creating ? "Adding…" : "Add"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -877,6 +995,7 @@ function EditFormFieldForm({ field, onSave, onCancel, isPending, fieldTypeOption
     sortOrder: field.sortOrder,
     allowedMimeTypes: field.allowedMimeTypes ?? "",
     maxFileSizeMb: field.maxFileSizeMb ?? undefined as number | undefined,
+    options: field.options ?? "",
   })
 
   return (
@@ -910,6 +1029,12 @@ function EditFormFieldForm({ field, onSave, onCancel, isPending, fieldTypeOption
         <Label>Helper Text</Label>
         <Input value={form.helperText} onChange={(e) => setForm((p) => ({ ...p, helperText: e.target.value }))} />
       </div>
+      {OPTION_BASED_FIELD_TYPES.has(form.fieldType) && (
+        <OptionsListEditor
+          options={form.options}
+          onChange={(options) => setForm((p) => ({ ...p, options }))}
+        />
+      )}
       {form.fieldType === "FILE_UPLOAD" && (
         <div className="grid grid-cols-2 gap-3 rounded-md border border-dashed p-3 bg-muted/30">
           <div className="col-span-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -948,7 +1073,22 @@ function EditFormFieldForm({ field, onSave, onCancel, isPending, fieldTypeOption
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button onClick={() => onSave(form)} disabled={isPending}>{isPending ? "Saving…" : "Save"}</Button>
+        <Button
+          onClick={() => {
+            const isOptionBased = OPTION_BASED_FIELD_TYPES.has(form.fieldType)
+            const cleanOptions = parseNonEmptyOptions(form.options)
+            onSave({
+              ...form,
+              options: isOptionBased ? JSON.stringify(cleanOptions) : undefined,
+            })
+          }}
+          disabled={
+            isPending ||
+            (OPTION_BASED_FIELD_TYPES.has(form.fieldType) && parseNonEmptyOptions(form.options).length === 0)
+          }
+        >
+          {isPending ? "Saving…" : "Save"}
+        </Button>
       </DialogFooter>
     </div>
   )

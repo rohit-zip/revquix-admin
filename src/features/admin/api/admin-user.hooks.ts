@@ -15,6 +15,7 @@ import { showErrorToast, showSuccessToast } from "@/lib/show-toast"
 import type { ApiError, NetworkError } from "@/lib/api-error"
 import type { AdminSetQuotaRequest, GrantPermissionRequest, UpdateAccountStatusRequest } from "./admin-user.types"
 import type { AdminProjectModerationStatus } from "@/features/user/api/session.types"
+import type { GrantBadgeRequest, UpdateSeoPriorityRequest } from "@/features/user/api/session.types"
 import {
   adminRevokeAllUserSessions,
   adminRevokeUserSession,
@@ -22,16 +23,20 @@ import {
   denyPermission,
   getAdminSearchQuota,
   getAdminUser,
+  getAdminUserBadges,
   getAdminUserDetail,
   getAdminUserSessionHistory,
   getAdminUserSessions,
   getUserOverrides,
+  grantAdminUserBadge,
   grantPermission,
   moderateUserProject,
   removeOverride,
   removeRoleFromUser,
   resetAdminSearchQuota,
+  revokeAdminUserBadge,
   setAdminSearchQuota,
+  updateAdminUserSeoPriority,
   updateUserStatus,
 } from "./admin-user.api"
 
@@ -279,6 +284,68 @@ export function useResetAdminSearchQuota(userId: string, onSuccess?: () => void)
     onSuccess: () => {
       showSuccessToast("Search quota reset to system default (10 / month)")
       qc.invalidateQueries({ queryKey: adminQuotaKeys.detail(userId) })
+      onSuccess?.()
+    },
+    onError: (error: ApiError | NetworkError) => showErrorToast(error),
+  })
+}
+
+// ─── Badges & SEO priority ─────────────────────────────────────────────────────
+
+export const adminBadgeKeys = {
+  list: (userId: string) => ["admin", "user", userId, "badges"] as const,
+}
+
+export function useAdminUserBadges(userId: string) {
+  return useQuery({
+    queryKey: adminBadgeKeys.list(userId),
+    queryFn: () => getAdminUserBadges(userId),
+    enabled: !!userId,
+    retry: false,
+  })
+}
+
+export function useGrantUserBadge(userId: string, onSuccess?: () => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: GrantBadgeRequest) => grantAdminUserBadge(userId, data),
+    retry: false,
+    onSuccess: (data) => {
+      showSuccessToast("Badge granted")
+      qc.setQueryData(adminBadgeKeys.list(userId), data)
+      qc.invalidateQueries({ queryKey: adminUserKeys.detail(userId) })
+      onSuccess?.()
+    },
+    onError: (error: ApiError | NetworkError) => showErrorToast(error),
+  })
+}
+
+export function useRevokeUserBadge(userId: string, onSuccess?: () => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (vars: { badgeKey: string; reason: string }) =>
+      revokeAdminUserBadge(userId, vars.badgeKey, vars.reason),
+    retry: false,
+    onSuccess: (data) => {
+      showSuccessToast("Badge revoked")
+      qc.setQueryData(adminBadgeKeys.list(userId), data)
+      qc.invalidateQueries({ queryKey: adminUserKeys.detail(userId) })
+      onSuccess?.()
+    },
+    onError: (error: ApiError | NetworkError) => showErrorToast(error),
+  })
+}
+
+export function useUpdateUserSeoPriority(userId: string, onSuccess?: () => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: UpdateSeoPriorityRequest) => updateAdminUserSeoPriority(userId, data),
+    retry: false,
+    onSuccess: (data) => {
+      showSuccessToast("Discovery & SEO settings updated")
+      qc.setQueryData([...adminUserKeys.detail(userId), "full"], data)
+      qc.invalidateQueries({ queryKey: adminUserKeys.detail(userId) })
+      qc.invalidateQueries({ queryKey: adminBadgeKeys.list(userId) })
       onSuccess?.()
     },
     onError: (error: ApiError | NetworkError) => showErrorToast(error),

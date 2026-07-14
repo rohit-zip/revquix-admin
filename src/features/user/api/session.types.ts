@@ -169,6 +169,51 @@ export interface UserLinkResponse {
   createdAt: string
 }
 
+export interface BadgeView {
+  key: string
+  label: string
+  shortDescription: string | null
+  longDescription: string | null
+  colorKey: string
+  iconKey: string
+  precedence: number
+  source: string
+  grantedAt: string | null
+  expiresAt: string | null
+}
+
+export interface AdminBadgeView {
+  userBadgeId: string | null
+  key: string
+  label: string
+  shortDescription: string | null
+  colorKey: string
+  iconKey: string
+  source: string
+  manuallyGrantable: boolean
+  grantedBy: string | null
+  grantedAt: string | null
+  reason: string | null
+  expiresAt: string | null
+  revokedAt: string | null
+  revokedBy: string | null
+  revokeReason: string | null
+  active: boolean
+}
+
+export interface GrantBadgeRequest {
+  badgeKey: string
+  reason: string
+  expiresAt?: string | null
+}
+
+export interface UpdateSeoPriorityRequest {
+  seoPriorityOverride?: number | null
+  searchBoostOverride?: number | null
+  noindex?: boolean | null
+  reason?: string | null
+}
+
 export interface AdminUserDetailResponse {
   userId: string
   email: string
@@ -215,6 +260,15 @@ export interface AdminUserDetailResponse {
   educations: EducationResponse[]
   links: UserLinkResponse[]
   authProviders: AuthProviderDto[]
+  // Badges & discovery visibility
+  badges?: AdminBadgeView[]
+  primaryBadge?: BadgeView | null
+  badgeRank?: number | null
+  seoPriority?: number | null
+  seoPriorityOverride?: number | null
+  searchBoost?: number | null
+  searchBoostOverride?: number | null
+  seoNoindex?: boolean | null
 }
 
 // ─── Revoke All Result ────────────────────────────────────────────────────────

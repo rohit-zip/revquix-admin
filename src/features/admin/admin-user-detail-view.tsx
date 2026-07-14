@@ -38,6 +38,7 @@ import {
   Search,
   UserCircle,
   Briefcase,
+  Award,
 } from "lucide-react"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -58,6 +59,7 @@ import UserSessionsTab from "@/features/admin/components/user-sessions-tab"
 import UserLoginHistoryTab from "@/features/admin/components/user-login-history-tab"
 import UserProfessionalMentorTab from "@/features/admin/components/user-professional-mentor-tab"
 import AccountActionsPanel from "@/features/admin/components/account-actions-panel"
+import UserBadgesTab from "@/features/admin/components/user-badges-tab"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -124,6 +126,10 @@ export default function AdminUserDetailView({ userId }: AdminUserDetailViewProps
   // Account-state actions (Phase 3)
   const canEditUser = hasAnyAuthority(["PERM_EDIT_USER"])
   const canDeleteUser = hasAnyAuthority(["PERM_DELETE_USER"])
+  // Badges & discovery visibility
+  const canManageBadges = hasAnyAuthority(["PERM_MANAGE_USER_BADGES"])
+  const canManageSeoPriority = hasAnyAuthority(["PERM_MANAGE_SEO_PRIORITY"])
+  const canViewBadges = canManageBadges || canManageSeoPriority
   // Future tabs
   // const canViewBookings = hasAnyAuthority(["PERM_VIEW_ALL_BOOKINGS"])
 
@@ -336,6 +342,12 @@ export default function AdminUserDetailView({ userId }: AdminUserDetailViewProps
               <span className="hidden sm:inline">Search Quota</span>
             </TabsTrigger>
           )}
+          {canViewBadges && (
+            <TabsTrigger value="badges" className="gap-1.5">
+              <Award className="size-4" />
+              <span className="hidden sm:inline">Badges</span>
+            </TabsTrigger>
+          )}
           {canViewProfessionalMentor && (
             <TabsTrigger value="professional-mentor" className="gap-1.5">
               <Briefcase className="size-4" />
@@ -386,6 +398,11 @@ export default function AdminUserDetailView({ userId }: AdminUserDetailViewProps
         {canManageSearchQuota && (
           <TabsContent value="search-quota" className="mt-6">
             <UserSearchQuotaTab userId={userId} />
+          </TabsContent>
+        )}
+        {canViewBadges && (
+          <TabsContent value="badges" className="mt-6">
+            <UserBadgesTab userId={userId} />
           </TabsContent>
         )}
         {/* ── Mentor Tab ────────────────────────────────────────────────── */}
