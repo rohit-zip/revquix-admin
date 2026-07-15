@@ -12,6 +12,7 @@ import React, { useState } from "react"
 import { useRouter } from "nextjs-toploader/app"
 import {
   ArrowLeft,
+  Check,
   ChevronRight,
   Edit2,
   Package,
@@ -90,6 +91,124 @@ function formatDate(iso: string | null | undefined) {
 
 function formatPrice(paise: number) {
   return `₹${(paise / 100).toLocaleString("en-IN")}`
+}
+
+// ─── Plan feature helpers ───────────────────────────────────────────────────
+//
+// A plan's `features` column stores a canonical JSON array of bullet strings
+// (e.g. `["Full ATS audit","48-hour turnaround"]`) — the format the public
+// web reads (see `parseOfferFeatures` in revquix-web). The admin edits them
+// as a friendly "one per line" textarea, so these two helpers translate
+// between the two representations. Both are backward-compatible with every
+// historical value: a JSON array, legacy newline text, or bullet-prefixed
+// text all open cleanly for editing.
+
+/** Parse a stored `features` value into newline-joined text for the textarea. */
+function featuresToText(raw: string | null | undefined): string {
+  const source = raw?.trim()
+  if (!source) return ""
+  try {
+    const parsed = JSON.parse(source)
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((entry) => String(entry).trim())
+        .filter(Boolean)
+        .join("\n")
+    }
+  } catch {
+    // Not JSON — fall through to legacy newline/bullet parsing.
+  }
+  return source
+    .split(/\r?\n|•/g)
+    .map((line) => line.replace(/^[-*\s]+/, "").trim())
+    .filter(Boolean)
+    .join("\n")
+}
+
+/**
+ * Serialize the "one per line" textarea into the canonical JSON array string.
+ * Leading bullet markers (`- `, `* `, `• `) and blank lines are dropped so
+ * pasting a bulleted list Just Works. Returns `"[]"` when empty so clearing
+ * the list persists as an explicit empty array (the backend only applies
+ * non-null values on update).
+ */
+function textToFeaturesJson(text: string): string {
+  const items = text
+    .split(/\r?\n|•/g)
+    .map((line) => line.replace(/^[-*\s]+/, "").trim())
+    .filter(Boolean)
+  return JSON.stringify(items)
+}
+
+/**
+ * "One per line" plan features editor. Holds the raw textarea text in the
+ * parent's form state; the parent serializes it with {@link textToFeaturesJson}
+ * on submit. Shared by the Add Plan dialog and the Edit Plan form.
+ */
+function PlanFeaturesField({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (value: string) => void
+}) {
+  const count = value
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^[-*\s]+/, "").trim())
+    .filter(Boolean).length
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <Label>Features</Label>
+        <span className="text-xs text-muted-foreground">
+          {count} feature{count === 1 ? "" : "s"} · one per line
+        </span>
+      </div>
+      <Textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={5}
+        placeholder={
+          "Full ATS-parseability audit\nKeyword gap analysis vs. your target role\nWritten audit report\n48-hour turnaround"
+        }
+      />
+      <p className="text-xs text-muted-foreground">
+        One feature per line. Shown as the bullet list on the plan card on the public
+        service page.
+      </p>
+    </div>
+  )
+}
+
+/** Read-only preview of a plan's features on its admin card (first few + count). */
+function PlanFeaturesPreview({ features }: { features: string | null }) {
+  const items = featuresToText(features).split("\n").filter(Boolean)
+  if (items.length === 0) {
+    return (
+      <p className="border-t pt-2 mt-1 text-xs italic text-muted-foreground">
+        No features yet — click edit to add them.
+      </p>
+    )
+  }
+  return (
+    <div className="border-t pt-2 mt-1">
+      <p className="mb-1 text-xs text-muted-foreground">Features ({items.length})</p>
+      <ul className="space-y-1">
+        {items.slice(0, 4).map((feature, i) => (
+          <li key={i} className="flex items-start gap-1.5 text-xs">
+            <Check className="mt-0.5 h-3 w-3 shrink-0 text-primary" />
+            <span className="line-clamp-1">{feature}</span>
+          </li>
+        ))}
+        {items.length > 4 && (
+          <li className="pl-[18px] text-xs text-muted-foreground">
+            +{items.length - 4} more
+          </li>
+        )}
+      </ul>
+    </div>
+  )
 }
 
 // ─── Edit Service Panel ───────────────────────────────────────────────────────
@@ -289,6 +408,7 @@ function PlansTab({ serviceId, plans }: PlansTabProps) {
                   {plan.isActive ? "Yes" : "No"}
                 </Badge>
               </div>
+              <PlanFeaturesPreview features={plan.features} />
             </CardContent>
           </Card>
         ))}
@@ -336,6 +456,10 @@ function PlansTab({ serviceId, plans }: PlansTabProps) {
                 onChange={(e) => setNewPlan((p) => ({ ...p, tagline: e.target.value }))}
               />
             </div>
+            <PlanFeaturesField
+              value={newPlan.features ?? ""}
+              onChange={(value) => setNewPlan((p) => ({ ...p, features: value }))}
+            />
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Price (INR paise) *</Label>
@@ -391,7 +515,12 @@ function PlansTab({ serviceId, plans }: PlansTabProps) {
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
             <Button
-              onClick={() => createPlan(newPlan)}
+              onClick={() =>
+                createPlan({
+                  ...newPlan,
+                  features: textToFeaturesJson(newPlan.features ?? ""),
+                })
+              }
               disabled={creating || !newPlan.displayName}
             >
               {creating ? "Adding…" : "Add Plan"}
@@ -431,6 +560,7 @@ function EditPlanForm({ plan, onSave, onCancel, isPending }: EditPlanFormProps) 
   const [form, setForm] = useState({
     displayName: plan.displayName,
     tagline: plan.tagline ?? "",
+    features: featuresToText(plan.features),
     priceInrPaise: plan.priceInrPaise,
     priceUsdCents: plan.priceUsdCents,
     slaHours: plan.slaHours,
@@ -454,6 +584,10 @@ function EditPlanForm({ plan, onSave, onCancel, isPending }: EditPlanFormProps) 
           onChange={(e) => setForm((p) => ({ ...p, tagline: e.target.value }))}
         />
       </div>
+      <PlanFeaturesField
+        value={form.features}
+        onChange={(value) => setForm((p) => ({ ...p, features: value }))}
+      />
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label>Price (INR paise)</Label>
@@ -507,7 +641,10 @@ function EditPlanForm({ plan, onSave, onCancel, isPending }: EditPlanFormProps) 
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button onClick={() => onSave(form)} disabled={isPending}>
+        <Button
+          onClick={() => onSave({ ...form, features: textToFeaturesJson(form.features) })}
+          disabled={isPending}
+        >
           {isPending ? "Saving…" : "Save"}
         </Button>
       </DialogFooter>
