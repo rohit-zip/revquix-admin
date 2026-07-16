@@ -41,9 +41,11 @@ function formatDateTime(iso: string | null | undefined) {
 function getContextLabel(ctx: string) {
   const map: Record<string, string> = {
     MOCK_INTERVIEW: "Mock Interview Session",
+    HOURLY_SESSION: "Hourly Mentorship Session",
     CAREER_COACHING: "Career Coaching Session",
     GROUP_WORKSHOP: "Group Workshop",
     SUBSCRIPTION: "Platform Subscription",
+    GLOBAL_OFFER_SERVICE: "Professional Service",
   }
   return map[ctx] ?? ctx.replace(/_/g, " ")
 }
@@ -76,16 +78,25 @@ function getPaymentMethodLabel(method: string | null, detail: string | null) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+export interface InvoiceLineItem {
+  label: string
+  amountMinor: number
+}
+
 interface PaymentInvoiceProps {
   payment: PaymentOrderResponse
+  /** Human-readable item title for the Description cell (falls back to the payment-context label). */
+  itemName?: string
+  /** Optional itemised breakdown (e.g. plan + add-ons). When present, one row per line item is rendered. */
+  lineItems?: InvoiceLineItem[]
   children: (printInvoice: () => void) => React.ReactNode
 }
 
-export default function PaymentInvoice({ payment, children }: PaymentInvoiceProps) {
+export default function PaymentInvoice({ payment, itemName, lineItems, children }: PaymentInvoiceProps) {
   const invoiceId = `invoice-${payment.paymentOrderId}`
 
   const printInvoice = useCallback(() => {
-    const invoiceEl = document.getElementById(invoiceId)
+    const invoiceEl = document.getElementById(`invoice-${payment.paymentOrderId}`)
     if (!invoiceEl) return
 
     const printWindow = window.open("", "_blank", "width=800,height=900")
@@ -154,7 +165,7 @@ export default function PaymentInvoice({ payment, children }: PaymentInvoiceProp
       printWindow.print()
       printWindow.close()
     }, 300)
-  }, [invoiceId])
+  }, [payment.paymentOrderId])
 
   const statusClass = (() => {
     switch (payment.status) {
@@ -167,7 +178,7 @@ export default function PaymentInvoice({ payment, children }: PaymentInvoiceProp
     }
   })()
 
-  const hasDiscount = payment.discountAmountMinor && payment.discountAmountMinor > 0
+  const hasDiscount = payment.discountAmountMinor != null && payment.discountAmountMinor > 0
   const grossAmount = hasDiscount
     ? payment.amountMinor + payment.discountAmountMinor!
     : payment.amountMinor
@@ -182,7 +193,16 @@ export default function PaymentInvoice({ payment, children }: PaymentInvoiceProp
           {/* Header */}
           <div className="invoice-header">
             <div className="company-info">
-              <h1>Revquix</h1>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
+                <svg width="36" height="36" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-label="Revquix logo">
+                  <circle cx="16" cy="16" r="16" fill="#006fee" />
+                  <path
+                    d="M10.5 24.638l3.467-1.812V10.745l4.952 2.778-3.714 1.933v3.987L23.5 25v-3.745l-5.076-3.503 4.209-2.175v-3.866L13.967 7 10.5 8.812z"
+                    fill="#ffffff"
+                  />
+                </svg>
+                <h1>Revquix</h1>
+              </div>
               <p>Technology &amp; Mentorship Platform</p>
               <p>contact@revquix.com</p>
               <p>www.revquix.com</p>
@@ -236,13 +256,25 @@ export default function PaymentInvoice({ payment, children }: PaymentInvoiceProp
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>{getContextLabel(payment.paymentContext)}</td>
-                <td style={{ fontFamily: "monospace", fontSize: "11px" }}>
-                  {payment.contextEntityId}
-                </td>
-                <td>{formatAmount(grossAmount, payment.currency)}</td>
-              </tr>
+              {lineItems && lineItems.length > 0 ? (
+                lineItems.map((item, idx) => (
+                  <tr key={idx}>
+                    <td>{item.label}</td>
+                    <td style={{ fontFamily: "monospace", fontSize: "11px" }}>
+                      {idx === 0 ? payment.contextEntityId : ""}
+                    </td>
+                    <td>{formatAmount(item.amountMinor, payment.currency)}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td>{itemName ?? getContextLabel(payment.paymentContext)}</td>
+                  <td style={{ fontFamily: "monospace", fontSize: "11px" }}>
+                    {payment.contextEntityId}
+                  </td>
+                  <td>{formatAmount(grossAmount, payment.currency)}</td>
+                </tr>
+              )}
             </tbody>
           </table>
 

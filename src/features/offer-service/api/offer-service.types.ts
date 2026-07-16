@@ -84,11 +84,11 @@ export const OFFER_FORM_FIELD_TYPE = {
 export type OfferFormFieldType = (typeof OFFER_FORM_FIELD_TYPE)[keyof typeof OFFER_FORM_FIELD_TYPE]
 
 export const OFFER_SERVICE_CATEGORY_OPTIONS = [
+  { label: "LinkedIn", value: "LINKEDIN" },
   { label: "Career", value: "CAREER" },
-  { label: "Technical", value: "TECHNICAL" },
-  { label: "Design", value: "DESIGN" },
-  { label: "Business", value: "BUSINESS" },
-  { label: "Other", value: "OTHER" },
+  { label: "Interview", value: "INTERVIEW" },
+  { label: "Portfolio", value: "PORTFOLIO" },
+  { label: "General", value: "GENERAL" },
 ]
 
 export const DISCOUNT_TYPE_OPTIONS = [

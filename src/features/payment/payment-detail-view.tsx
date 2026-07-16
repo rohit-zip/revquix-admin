@@ -45,6 +45,7 @@ import {
 import { usePaymentDetail } from "./api/payment.hooks"
 import type { PaymentStatus } from "./api/payment.types"
 import PaymentInvoice from "./payment-invoice"
+import { useAdminOfferOrderDetail } from "@/features/offer-service/api/offer-order.hooks"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -251,6 +252,12 @@ export default function PaymentDetailView({ paymentOrderId }: PaymentDetailViewP
   const router = useRouter()
   const { data: payment, isLoading, isError, error } = usePaymentDetail(paymentOrderId)
 
+  // Enrich professional-service receipts with the real service name + add-on
+  // line items from the offer order (payment row itself is generic).
+  const offerOrderId =
+    payment?.paymentContext === "GLOBAL_OFFER_SERVICE" ? payment.contextEntityId : ""
+  const { data: offerOrder } = useAdminOfferOrderDetail(offerOrderId)
+
   if (isLoading) return <DetailSkeleton />
 
   if (isError || !payment) {
@@ -285,11 +292,27 @@ export default function PaymentDetailView({ paymentOrderId }: PaymentDetailViewP
     payment.status === "REFUNDED" ||
     payment.status === "REFUND_INITIATED" ||
     payment.status === "PARTIALLY_REFUNDED"
-  const hasDiscount = payment.discountAmountMinor && payment.discountAmountMinor > 0
+  const hasDiscount = payment.discountAmountMinor != null && payment.discountAmountMinor > 0
   const showInvoice = payment.status === "CAPTURED" || hasRefund
 
+  const invoiceItemName = offerOrder?.serviceName
+  const invoiceLineItems = offerOrder
+    ? [
+        {
+          label: offerOrder.planDisplayName
+            ? `${offerOrder.serviceName} — ${offerOrder.planDisplayName}`
+            : offerOrder.serviceName,
+          amountMinor: offerOrder.planPriceSnapshot,
+        },
+        ...offerOrder.selectedAddOns.map((addOn) => ({
+          label: `Add-on: ${addOn.displayName}`,
+          amountMinor: addOn.priceSnapshot,
+        })),
+      ]
+    : undefined
+
   return (
-    <PaymentInvoice payment={payment}>
+    <PaymentInvoice payment={payment} itemName={invoiceItemName} lineItems={invoiceLineItems}>
       {(printInvoice) => (
     <div className="space-y-6">
       {/* ── Header ── */}

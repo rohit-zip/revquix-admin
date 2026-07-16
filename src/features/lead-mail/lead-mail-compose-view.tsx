@@ -578,7 +578,10 @@ export function LeadMailComposeView() {
       </Card>
 
       {/* ── Recipients ────────────────────────────────────────────────────── */}
-      <Card>
+      {/* overflow-visible override: the manual-entry autocomplete dropdown is
+          absolutely positioned and must escape the card's rounded border
+          instead of being clipped by the default overflow-hidden. */}
+      <Card className="overflow-visible">
         <CardHeader>
           <CardTitle>Recipients</CardTitle>
         </CardHeader>
