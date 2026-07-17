@@ -36,6 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { PATH_CONSTANTS } from "@/core/constants/path-constants"
+import { BlogSearchCombobox } from "./components/blog-search-combobox"
 import {
   useArchiveBlog,
   useEditorialCategories,
@@ -567,18 +568,20 @@ export function NewsCurationView({ blogId }: { blogId: string }) {
         <CardHeader>
           <CardTitle>Keep reading</CardTitle>
           <CardDescription>
-            Pin up to 3 follow-on articles by blog id. Leave empty to auto-fill server-side.
+            Pin up to 3 follow-on articles. Search by title or slug — leave empty to auto-fill
+            server-side.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
           {form.keepReadingIds.map((id, i) => (
             <div key={i} className="flex items-center gap-2">
-              <Input
-                placeholder="BLG…"
-                value={id}
-                onChange={(e) => updateKeepReading(i, e.target.value)}
-                className="w-64"
-              />
+              <div className="w-full sm:w-96">
+                <BlogSearchCombobox
+                  value={id}
+                  excludeIds={[blogId, ...form.keepReadingIds.filter((_, idx) => idx !== i)]}
+                  onSelect={(post) => updateKeepReading(i, post?.blogId ?? "")}
+                />
+              </div>
               <Button
                 variant="ghost"
                 size="icon-sm"
