@@ -38,6 +38,7 @@ import {
   Send,
   Settings,
   ShoppingCart,
+  Sparkles,
   Star,
   Tag,
   User,
@@ -109,6 +110,8 @@ export const PERMISSIONS = {
   PERM_WRITE_EDITORIAL: "PERM_WRITE_EDITORIAL",
   PERM_MANAGE_EDITORIAL: "PERM_MANAGE_EDITORIAL",
 
+  // ── Skill Registry (Skill-only taxonomy migration) ──────────────────────────
+  PERM_MANAGE_SKILL_REGISTRY: "PERM_MANAGE_SKILL_REGISTRY",
 
 } as const
 
@@ -417,6 +420,14 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         label: "School Registry",
         href: PATH_CONSTANTS.ADMIN_SCHOOLS,
         access: { allOf: [PERMISSIONS.ROLE_ADMIN] },
+      },
+      {
+        Icon: Sparkles,
+        label: "Skill Registry",
+        href: PATH_CONSTANTS.ADMIN_SKILLS,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_SKILL_REGISTRY],
+        },
       },
     ],
   },

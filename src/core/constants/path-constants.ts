@@ -60,6 +60,7 @@ export const PATH_CONSTANTS = {
   // ── Platform / Content Management ────────────────────────────────────────────
   ADMIN_COMPANIES: "/companies",
   ADMIN_SCHOOLS: "/schools",
+  ADMIN_SKILLS: "/skills",
   ADMIN_ASSETS: "/assets",
 
   // ── News / Editorial (admin curation control plane) ───────────────────────
