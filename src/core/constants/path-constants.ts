@@ -63,6 +63,29 @@ export const PATH_CONSTANTS = {
   ADMIN_SKILLS: "/skills",
   ADMIN_ASSETS: "/assets",
 
+  // ── Professional Mentor V2 (Phase 0+ internal verification tools) ────────
+  ADMIN_MENTORSHIP_V2_VERIFICATION: "/mentorship-v2/verification",
+  /** Phase 1 — availability engine inspector, mentor health, exclusion-constraint proof, Google round trip. */
+  ADMIN_MENTORSHIP_V2_AVAILABILITY: "/mentorship-v2/availability",
+  /** Phase 2 — service catalog snapshot, publish-gate inspector, sanitiser XSS probe, type registry. */
+  ADMIN_MENTORSHIP_V2_SERVICES: "/mentorship-v2/services",
+  /** Phase 3 — commerce invariants, revenue lines, reservations/sweeps, webhook feed, order inspector, lifecycles. */
+  ADMIN_MENTORSHIP_V2_COMMERCE: "/mentorship-v2/commerce",
+  /** Phase 4 — 1:1 call lifecycle: meeting links, join evidence, reminders, attendance, auto-completion, reviews. */
+  ADMIN_MENTORSHIP_V2_CALLS: "/mentorship-v2/calls",
+  /** Phase 6 — package entitlement ledger, escrow invariant, SLA breach ladder, lifecycle sweep. */
+  ADMIN_MENTORSHIP_V2_PACKAGES: "/mentorship-v2/packages",
+  /** Phase 7 — dispute queue, SLA breach view, one-click executable resolutions, reliability feed. */
+  ADMIN_MENTORSHIP_V2_DISPUTES: "/mentorship-v2/disputes",
+  /** Phase 8 — pricing zones, multipliers, the country map and FX source health. */
+  ADMIN_MENTORSHIP_V2_PRICING: "/mentorship-v2/pricing",
+  /** Phase 9 — search projection health, content gate, query analytics, synonyms, SEO landing coverage. */
+  ADMIN_MENTORSHIP_V2_SEARCH: "/mentorship-v2/search",
+  /** Phase 10 — pgvector capability, embedding coverage, HNSW budget, V1/V2 A/B, offline job queues. */
+  ADMIN_MENTORSHIP_V2_SEMANTIC: "/mentorship-v2/semantic",
+  /** Phase 11 — legacy backfill ledger, dual-run bridge, revenue reconciliation, decommission readiness. */
+  ADMIN_MENTORSHIP_V2_CUTOVER: "/mentorship-v2/cutover",
+
   // ── News / Editorial (admin curation control plane) ───────────────────────
   ADMIN_NEWS: "/news",
   ADMIN_NEWS_CURATION: "/news", // + `/${blogId}/curation`

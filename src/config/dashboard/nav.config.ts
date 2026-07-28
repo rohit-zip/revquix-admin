@@ -19,12 +19,17 @@
 import {
   BarChart3,
   Bell,
+  Brain,
+  ArrowRightLeft,
   Building2,
   Calendar,
+  CalendarSearch,
   GraduationCap,
   ClipboardCheck,
+  Coins,
   CreditCard,
   FileText,
+  FlaskConical,
   FolderTree,
   History,
   Inbox,
@@ -35,8 +40,12 @@ import {
   Newspaper,
   Package,
   PanelBottom,
+  Receipt,
+  Search,
   Send,
   Settings,
+  ShieldAlert,
+  ShoppingBag,
   ShoppingCart,
   Sparkles,
   Star,
@@ -99,6 +108,9 @@ export const PERMISSIONS = {
   PERM_MANAGE_PLATFORM_COUPONS: "PERM_MANAGE_PLATFORM_COUPONS",
 
   PERM_MANAGE_CONTACT_QUERIES: "PERM_MANAGE_CONTACT_QUERIES",
+
+  // ── Professional Mentor V2 (internal verification tools) ───────────────────
+  PERM_VIEW_MENTORSHIP_V2_INTERNALS: "PERM_VIEW_MENTORSHIP_V2_INTERNALS",
 
   // ── Marketing / Lead Generation ─────────────────────────────────────────────
   PERM_SEND_LEAD_MAIL: "PERM_SEND_LEAD_MAIL",
@@ -564,6 +576,123 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         href: PATH_CONSTANTS.ADMIN_OFFER_COUPONS,
         access: {
           anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_PLATFORM_COUPONS],
+        },
+      },
+    ],
+  },
+
+  // ── Internal Tools ──────────────────────────────────────────────────────────
+  {
+    title: "Internal Tools",
+    access: {
+      anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
+    },
+    items: [
+      {
+        Icon: FlaskConical,
+        label: "Mentorship V2 (Phase 0)",
+        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_VERIFICATION,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
+        },
+      },
+      {
+        Icon: CalendarSearch,
+        label: "Mentorship V2 (Phase 1)",
+        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_AVAILABILITY,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
+        },
+      },
+      {
+        Icon: ShoppingBag,
+        label: "Mentorship V2 (Phase 2)",
+        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_SERVICES,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
+        },
+      },
+      {
+        Icon: Receipt,
+        label: "Mentorship V2 (Phase 3)",
+        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_COMMERCE,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
+        },
+      },
+      {
+        Icon: Video,
+        label: "Mentorship V2 (Phase 4)",
+        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_CALLS,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
+        },
+      },
+      {
+        Icon: Package,
+        label: "Mentorship V2 (Phase 6)",
+        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_PACKAGES,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
+        },
+      },
+      {
+        // Phase 7. Gated on the READ permission like every other panel here — writes on the page
+        // need PERM_MANAGE_MENTORSHIP_DISPUTES, enforced server-side. Gating the nav entry on the
+        // write permission would hide the SLA breach view from the on-call engineer who needs it
+        // to debug the sweep.
+        Icon: ShieldAlert,
+        label: "Mentorship V2 (Phase 7)",
+        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_DISPUTES,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
+        },
+      },
+      {
+        // Phase 8. Gated on the READ permission like every other panel here — writes need
+        // PERM_MANAGE_MENTORSHIP_V2_COMMERCE, enforced server-side. Gating the nav entry on the write
+        // permission would hide the FX-health view from the engineer who needs it to debug the fetch job.
+        Icon: Coins,
+        label: "Mentorship V2 (Phase 8)",
+        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_PRICING,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
+        },
+      },
+      {
+        // Phase 9. Read permission, like every other panel here. Gating this on the write permission
+        // would hide the projection-health and zero-result views from the engineer who needs them to
+        // diagnose why a mentor's service is not appearing in the marketplace — which is the single most
+        // likely support question this subsystem generates.
+        Icon: Search,
+        label: "Mentorship V2 (Phase 9)",
+        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_SEARCH,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
+        },
+      },
+      {
+        // Phase 10. Read permission, like every other panel here. This is the page that answers "why is
+        // semantic search not working" — pgvector missing, model unreachable, nothing embedded, experiment
+        // suppressed — so gating it on the write permission would hide the diagnosis from the engineer doing
+        // the diagnosing.
+        Icon: Brain,
+        label: "Mentorship V2 (Phase 10)",
+        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_SEMANTIC,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
+        },
+      },
+      {
+        // Phase 11. Read permission, like every other panel here. This is the page that answers "may we cut
+        // over yet" — which mentors still have no storefront, whether anyone is double-booked across the two
+        // systems, whether the revenue reports reconcile — so gating it on the write permission would hide
+        // the go/no-go decision from the people who have to make it.
+        Icon: ArrowRightLeft,
+        label: "Mentorship V2 (Phase 11)",
+        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_CUTOVER,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
         },
       },
     ],
