@@ -342,7 +342,15 @@ export default function AdminApplicationDetailView({
               <Separator />
               <DetailRow icon={Briefcase} label="Current Role" value={app.currentRole} />
               <Separator />
-              <DetailRow icon={CalendarDays} label="Years of Experience" value={`${app.yearsOfExperience} year${app.yearsOfExperience !== 1 ? "s" : ""}`} />
+              <DetailRow
+                icon={CalendarDays}
+                label="Years of Experience"
+                value={
+                  app.yearsOfExperience != null
+                    ? `${app.yearsOfExperience} year${app.yearsOfExperience !== 1 ? "s" : ""}`
+                    : null
+                }
+              />
             </CardContent>
           </Card>
 
@@ -355,7 +363,13 @@ export default function AdminApplicationDetailView({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {app.bio && isSanitisedHtml(app.bio) ? (
+              {!app.bio || app.bio.trim() === "" ? (
+                // A bio is no longer an application requirement, so "absent" is a normal
+                // outcome and needs to read as one rather than as an empty card.
+                <p className="text-sm italic text-muted-foreground">
+                  The applicant has not added a bio. This is optional and does not block approval.
+                </p>
+              ) : isSanitisedHtml(app.bio) ? (
                 // Rich-text path — HTML is sanitised server-side (BioHtmlSanitiserService)
                 // with a strict tag allowlist, so rendering it directly is safe.
                 <div

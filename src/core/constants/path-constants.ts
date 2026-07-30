@@ -109,6 +109,28 @@ export const PATH_CONSTANTS = {
   ADMIN_LEAD_MAIL: "/lead-mail",
   ADMIN_LEAD_MAIL_CAMPAIGN_DETAIL: "/lead-mail/campaigns",
 
+  // ── Tools platform admin control plane (Phase 8) ───────────────────────────
+  /** §8.1 — credit ledger browser. Read-only: the ledger is append-only at the database. */
+  ADMIN_TOOL_CREDITS: "/tools/credits",
+  /** §8.1 — per-user drill-down. Appended with `/users/{userId}`. */
+  ADMIN_TOOL_CREDIT_USER: "/tools/credits/users",
+  /** §8.2 — the increase/decrease surface, cohort grants and free-run overrides. */
+  ADMIN_TOOL_CREDITS_ADJUST: "/tools/credits/adjust",
+  /** §8.3 — run inspector, including the ip_hash pivot and the hash-lookup box. */
+  ADMIN_TOOL_RUNS: "/tools/runs",
+  /** §8.4 — spend, cache and degradation dashboard. */
+  ADMIN_TOOL_SPEND: "/tools/spend",
+  /** §8.5 — credit packages, passes and per-tool credit-cost overrides. */
+  ADMIN_TOOL_PRICING: "/tools/pricing",
+  /** §8.6 — rubric versions and the before/after score-distribution diff. */
+  ADMIN_TOOL_RUBRIC: "/tools/rubric",
+  /** §8.7 — fraud and abuse queue. Every signal is triage input for a human. */
+  ADMIN_TOOL_FRAUD: "/tools/fraud",
+  /** §8.8 — editorial content library. Scaffolding; the tables belong to the tool phases. */
+  ADMIN_TOOL_CONTENT: "/tools/content-library",
+  /** The administrative audit trail across all three tools-admin permissions. */
+  ADMIN_TOOL_AUDIT: "/tools/audit",
+
   EXTERNAL_DASHBOARD: DASHBOARD_URL,
   EXTERNAL_PROFILE: `${DASHBOARD_URL}/profile`,
   EXTERNAL_BOOKING: `${DASHBOARD_URL}/booking`,

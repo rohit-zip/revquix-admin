@@ -79,15 +79,25 @@ export interface MentorApplicationResponse {
   userName: string
   userEmail: string
   headline: string
-  bio: string
+  /**
+   * Profile bio snapshot. Nullable: a bio is not an application requirement, so an
+   * applicant can legitimately have submitted without one.
+   */
+  bio: string | null
   linkedinUrl: string
   portfolioUrl: string | null
-  yearsOfExperience: number
+  /** Total years of experience snapshot. Nullable — not an application requirement. */
+  yearsOfExperience: number | null
   currentCompany: string | null
   currentRole: string | null
   whyMentor: string
   categoryIds: string[]
   skillIds: string[]
+  /**
+   * Presigned resume URL. Nullable: the resume upload was removed from the
+   * application flow, so this is only set when the applicant already had one on
+   * their profile.
+   */
   resumeUrl: string | null
   status: MentorApplicationStatus
   rejectionReason: string | null

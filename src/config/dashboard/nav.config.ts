@@ -125,6 +125,17 @@ export const PERMISSIONS = {
   // ── Skill Registry (Skill-only taxonomy migration) ──────────────────────────
   PERM_MANAGE_SKILL_REGISTRY: "PERM_MANAGE_SKILL_REGISTRY",
 
+  // ── Tools platform (seeded by V213 — docs/tools-platform §P3) ───────────────
+  // PERM_USE_TOOLS is deliberately absent: it is a USER-facing permission granted to
+  // ROLE_USER by default and revoked per-user from the fraud queue. It gates nothing
+  // in this console.
+  /** Ledger browser, adjustments, bulk grants, free-run overrides, pricing, fraud queue. */
+  PERM_MANAGE_CREDITS: "PERM_MANAGE_CREDITS",
+  /** Run inspector, hold release, retry, spend dashboard. Read access to operations, not to money. */
+  PERM_MANAGE_TOOL_RUNS: "PERM_MANAGE_TOOL_RUNS",
+  /** Rubric versions and the content library. */
+  PERM_MANAGE_TOOL_RUBRIC: "PERM_MANAGE_TOOL_RUBRIC",
+
 } as const
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]
@@ -729,6 +740,90 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         href: PATH_CONSTANTS.ADMIN_LEAD_MAIL,
         access: {
           anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_SEND_LEAD_MAIL],
+        },
+      },
+    ],
+  },
+
+  // ── Tools Platform (Phase 8 admin control plane) ──────────────────────────
+  //
+  // The whole section is hidden from an admin holding none of the three tools permissions, so a
+  // reviewer who does not work on tools sees no change to their sidebar. Each item then carries its
+  // own guard, because the three permissions are genuinely different jobs: an on-call engineer with
+  // PERM_MANAGE_TOOL_RUNS can see why runs are failing and what they cost, and cannot move credits.
+  //
+  // Hiding an item is a convenience, NOT the control — §8.9 criterion 9. Every endpoint behind these
+  // pages carries its own @PreAuthorize, asserted reflectively by AdminControlPlaneContractTest.
+  {
+    title: "Tools Platform",
+    access: {
+      anyOf: [
+        PERMISSIONS.ROLE_ADMIN,
+        PERMISSIONS.PERM_MANAGE_CREDITS,
+        PERMISSIONS.PERM_MANAGE_TOOL_RUNS,
+        PERMISSIONS.PERM_MANAGE_TOOL_RUBRIC,
+      ],
+    },
+    items: [
+      {
+        Icon: Coins,
+        label: "Credit Ledger",
+        href: PATH_CONSTANTS.ADMIN_TOOL_CREDITS,
+        access: { anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_CREDITS] },
+      },
+      {
+        Icon: Sparkles,
+        label: "Adjust Credits",
+        href: PATH_CONSTANTS.ADMIN_TOOL_CREDITS_ADJUST,
+        access: { anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_CREDITS] },
+      },
+      {
+        Icon: FlaskConical,
+        label: "Tool Runs",
+        href: PATH_CONSTANTS.ADMIN_TOOL_RUNS,
+        access: { anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_TOOL_RUNS] },
+      },
+      {
+        Icon: BarChart3,
+        label: "Spend & Cost",
+        href: PATH_CONSTANTS.ADMIN_TOOL_SPEND,
+        access: { anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_TOOL_RUNS] },
+      },
+      {
+        Icon: Package,
+        label: "Packages & Pricing",
+        href: PATH_CONSTANTS.ADMIN_TOOL_PRICING,
+        access: { anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_CREDITS] },
+      },
+      {
+        Icon: Brain,
+        label: "Rubric Versions",
+        href: PATH_CONSTANTS.ADMIN_TOOL_RUBRIC,
+        access: { anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_TOOL_RUBRIC] },
+      },
+      {
+        Icon: ShieldAlert,
+        label: "Fraud & Abuse",
+        href: PATH_CONSTANTS.ADMIN_TOOL_FRAUD,
+        access: { anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_CREDITS] },
+      },
+      {
+        Icon: FolderTree,
+        label: "Content Library",
+        href: PATH_CONSTANTS.ADMIN_TOOL_CONTENT,
+        access: { anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_TOOL_RUBRIC] },
+      },
+      {
+        Icon: History,
+        label: "Admin Audit Trail",
+        href: PATH_CONSTANTS.ADMIN_TOOL_AUDIT,
+        access: {
+          anyOf: [
+            PERMISSIONS.ROLE_ADMIN,
+            PERMISSIONS.PERM_MANAGE_CREDITS,
+            PERMISSIONS.PERM_MANAGE_TOOL_RUNS,
+            PERMISSIONS.PERM_MANAGE_TOOL_RUBRIC,
+          ],
         },
       },
     ],

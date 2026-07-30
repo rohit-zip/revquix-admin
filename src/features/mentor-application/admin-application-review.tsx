@@ -182,7 +182,9 @@ export default function AdminApplicationReview() {
               </div>
             </TableCell>
             <TableCell className="hidden max-w-50 truncate md:table-cell">{app.headline}</TableCell>
-            <TableCell className="hidden md:table-cell">{app.yearsOfExperience}</TableCell>
+            <TableCell className="hidden md:table-cell">
+              {app.yearsOfExperience ?? <span className="text-muted-foreground">—</span>}
+            </TableCell>
             <TableCell className="hidden md:table-cell">
               {app.proposedPriceInrPaise != null ? (
                 <div className="flex items-center gap-1 text-sm">

@@ -224,5 +224,73 @@ export const PAGE_ACCESS_CONFIG: Record<string, PageAccessRule> = {
     label: "Lead Mailer",
   },
 
+  // ── Tools platform admin control plane (Phase 8) ───────────────────────────
+  //
+  // Matching is `pathname === key || pathname.startsWith(key + "/")`, so the ADMIN_TOOL_CREDITS entry
+  // also covers /tools/credits/users/{userId}. ADMIN_TOOL_CREDITS_ADJUST is listed separately and
+  // AFTER it purely for readability — the matcher picks the longest match, so the ordering here does
+  // not decide anything.
+  //
+  // ⚠ These rules gate the PAGE. They are not the authorisation: every endpoint behind these screens
+  // carries its own @PreAuthorize, because §8.9 criterion 9 is that "the UI hiding a button is not the
+  // control". An operator who reaches the API with curl gets a 403 regardless of what this file says.
+
+  [PATH_CONSTANTS.ADMIN_TOOL_CREDITS]: {
+    anyOf: ["ROLE_ADMIN", "PERM_MANAGE_CREDITS"],
+    label: "Tools — Credit Ledger",
+  },
+
+  [PATH_CONSTANTS.ADMIN_TOOL_CREDITS_ADJUST]: {
+    anyOf: ["ROLE_ADMIN", "PERM_MANAGE_CREDITS"],
+    label: "Tools — Adjust Credits",
+  },
+
+  // Read access to runs, deliberately separate from credits. An on-call engineer debugging a failing
+  // tool should not thereby acquire the ability to move money — and the run REFUND action on this page
+  // additionally requires PERM_MANAGE_CREDITS, enforced server-side, so a reader holding only this
+  // permission gets the page and a clean 403 on that one button.
+  [PATH_CONSTANTS.ADMIN_TOOL_RUNS]: {
+    anyOf: ["ROLE_ADMIN", "PERM_MANAGE_TOOL_RUNS"],
+    label: "Tools — Run Inspector",
+  },
+
+  [PATH_CONSTANTS.ADMIN_TOOL_SPEND]: {
+    anyOf: ["ROLE_ADMIN", "PERM_MANAGE_TOOL_RUNS"],
+    label: "Tools — Spend & Cost",
+  },
+
+  [PATH_CONSTANTS.ADMIN_TOOL_PRICING]: {
+    anyOf: ["ROLE_ADMIN", "PERM_MANAGE_CREDITS"],
+    label: "Tools — Packages & Pricing",
+  },
+
+  [PATH_CONSTANTS.ADMIN_TOOL_RUBRIC]: {
+    anyOf: ["ROLE_ADMIN", "PERM_MANAGE_TOOL_RUBRIC"],
+    label: "Tools — Rubric Versions",
+  },
+
+  [PATH_CONSTANTS.ADMIN_TOOL_FRAUD]: {
+    anyOf: ["ROLE_ADMIN", "PERM_MANAGE_CREDITS"],
+    label: "Tools — Fraud & Abuse",
+  },
+
+  [PATH_CONSTANTS.ADMIN_TOOL_CONTENT]: {
+    anyOf: ["ROLE_ADMIN", "PERM_MANAGE_TOOL_RUBRIC"],
+    label: "Tools — Content Library",
+  },
+
+  // Readable by any of the three tools-admin permissions: the trail records actions across all of
+  // them, so gating it on credits alone would hide a rubric publication from the person who published
+  // it.
+  [PATH_CONSTANTS.ADMIN_TOOL_AUDIT]: {
+    anyOf: [
+      "ROLE_ADMIN",
+      "PERM_MANAGE_CREDITS",
+      "PERM_MANAGE_TOOL_RUNS",
+      "PERM_MANAGE_TOOL_RUBRIC",
+    ],
+    label: "Tools — Admin Audit Trail",
+  },
+
 }
 
