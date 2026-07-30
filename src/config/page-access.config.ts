@@ -91,21 +91,29 @@ export const PAGE_ACCESS_CONFIG: Record<string, PageAccessRule> = {
     label: "Custom Quotes",
   },
 
-  // ── Professional Mentor V2 (internal verification tools) ─────────────────
+  // ── Professional Mentor V2 (admin consoles) ───────────────────────────────
+  //
+  // Labels are feature-first, matching the sidebar: the phase number is kept as a suffix because it
+  // is how the implementation strategy doc is indexed, but it is no longer the primary name.
+  //
+  // ⚠ Key ORDER matters here. PageGuard resolves with `Object.keys(...).find(...)`, i.e. the FIRST
+  // key that matches, not the longest one. `/mentorship-v2` is a prefix of all eleven consoles below,
+  // so its rule is registered AFTER them — otherwise every child page would resolve to the hub's
+  // rule and report the hub's label in the permission-denied watermark.
 
   [PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_VERIFICATION]: {
     anyOf: ["ROLE_ADMIN", "PERM_VIEW_MENTORSHIP_V2_INTERNALS"],
-    label: "Mentorship V2 — Phase 0 Verification",
+    label: "Mentorship V2 — Foundations & Rollout Flag (Phase 0)",
   },
 
   [PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_AVAILABILITY]: {
     anyOf: ["ROLE_ADMIN", "PERM_VIEW_MENTORSHIP_V2_INTERNALS"],
-    label: "Mentorship V2 — Phase 1 Availability",
+    label: "Mentorship V2 — Availability Engine (Phase 1)",
   },
 
   [PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_SERVICES]: {
     anyOf: ["ROLE_ADMIN", "PERM_VIEW_MENTORSHIP_V2_INTERNALS"],
-    label: "Mentorship V2 — Phase 2 Service Catalog",
+    label: "Mentorship V2 — Service Catalogue (Phase 2)",
   },
 
   // Read access only. The sweep and refund actions on this page additionally require
@@ -113,7 +121,7 @@ export const PAGE_ACCESS_CONFIG: Record<string, PageAccessRule> = {
   // debug a checkout must not also hand out the ability to move money.
   [PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_COMMERCE]: {
     anyOf: ["ROLE_ADMIN", "PERM_VIEW_MENTORSHIP_V2_INTERNALS"],
-    label: "Mentorship V2 — Phase 3 Commerce",
+    label: "Mentorship V2 — Orders & Checkout (Phase 3)",
   },
 
   // Read access only. The sweep, force-complete and review-moderation actions on this page
@@ -122,7 +130,7 @@ export const PAGE_ACCESS_CONFIG: Record<string, PageAccessRule> = {
   // payout and hiding a review changes a public rating.
   [PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_CALLS]: {
     anyOf: ["ROLE_ADMIN", "PERM_VIEW_MENTORSHIP_V2_INTERNALS"],
-    label: "Mentorship V2 — Phase 4 Call Lifecycle",
+    label: "Mentorship V2 — Sessions & Feedback (Phase 4/5)",
   },
 
   // Read access only. Running the lifecycle sweep additionally requires
@@ -131,7 +139,7 @@ export const PAGE_ACCESS_CONFIG: Record<string, PageAccessRule> = {
   // reliability penalty, and unlock a buyer's self-serve refund.
   [PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_PACKAGES]: {
     anyOf: ["ROLE_ADMIN", "PERM_VIEW_MENTORSHIP_V2_INTERNALS"],
-    label: "Mentorship V2 — Phase 6 Packages",
+    label: "Mentorship V2 — Packages & Entitlements (Phase 6)",
   },
 
   // Read access only. Every write on the dispute console — assign, reply, ask a side, run the
@@ -145,7 +153,7 @@ export const PAGE_ACCESS_CONFIG: Record<string, PageAccessRule> = {
   // agent blanket refund rights, and making every finance admin a judge of conduct complaints.
   [PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_DISPUTES]: {
     anyOf: ["ROLE_ADMIN", "PERM_VIEW_MENTORSHIP_V2_INTERNALS"],
-    label: "Mentorship V2 — Phase 7 Disputes",
+    label: "Mentorship V2 — Disputes & Reliability (Phase 7)",
   },
 
   // Read access only. Every write on the pricing console — retuning a multiplier, remapping a country,
@@ -155,7 +163,7 @@ export const PAGE_ACCESS_CONFIG: Record<string, PageAccessRule> = {
   // dispute resolution, which is a discretionary judgement between two named parties.
   [PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_PRICING]: {
     anyOf: ["ROLE_ADMIN", "PERM_VIEW_MENTORSHIP_V2_INTERNALS"],
-    label: "Mentorship V2 — Phase 8 Pricing",
+    label: "Mentorship V2 — Pricing Zones & FX (Phase 8)",
   },
 
   // Read access only. The write actions on the search console — running the projection sweep, rebuilding
@@ -165,7 +173,7 @@ export const PAGE_ACCESS_CONFIG: Record<string, PageAccessRule> = {
   // the commerce-configuration permission rather than with Phase 7's dispute rights.
   [PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_SEARCH]: {
     anyOf: ["ROLE_ADMIN", "PERM_VIEW_MENTORSHIP_V2_INTERNALS"],
-    label: "Mentorship V2 — Phase 9 Search",
+    label: "Mentorship V2 — Marketplace & Search (Phase 9)",
   },
 
   // Read access only. The write actions on the semantic console — re-probing for pgvector, running an
@@ -175,7 +183,7 @@ export const PAGE_ACCESS_CONFIG: Record<string, PageAccessRule> = {
   // tag) is the same class of change that permission already covers.
   [PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_SEMANTIC]: {
     anyOf: ["ROLE_ADMIN", "PERM_VIEW_MENTORSHIP_V2_INTERNALS"],
-    label: "Mentorship V2 — Phase 10 Semantic Search",
+    label: "Mentorship V2 — Semantic Search (Phase 10)",
   },
 
   // Read access only. The write actions on the cutover console — running or rolling back the backfill, and
@@ -186,7 +194,15 @@ export const PAGE_ACCESS_CONFIG: Record<string, PageAccessRule> = {
   // authority, held by different people", and this fails it.
   [PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_CUTOVER]: {
     anyOf: ["ROLE_ADMIN", "PERM_VIEW_MENTORSHIP_V2_INTERNALS"],
-    label: "Mentorship V2 — Phase 11 Migration & Cutover",
+    label: "Mentorship V2 — Migration & Cutover (Phase 11)",
+  },
+
+  // The console index. Registered LAST in this block on purpose — see the ordering note above: its
+  // path is a prefix of every console's, and PageGuard takes the first matching key. Same permission
+  // as the consoles it links to, so the directory can never advertise a page the viewer is refused.
+  [PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_HOME]: {
+    anyOf: ["ROLE_ADMIN", "PERM_VIEW_MENTORSHIP_V2_INTERNALS"],
+    label: "Mentorship V2 — Console Home",
   },
 
 

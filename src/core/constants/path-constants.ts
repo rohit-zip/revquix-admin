@@ -64,6 +64,12 @@ export const PATH_CONSTANTS = {
   ADMIN_ASSETS: "/assets",
 
   // ── Professional Mentor V2 (Phase 0+ internal verification tools) ────────
+  /**
+   * Console index for the whole subsystem — one card per console below, with what each one
+   * answers. Exists because the eleven consoles were previously reachable only from sidebar
+   * entries named after build phases, which told nobody where disputes or payouts live.
+   */
+  ADMIN_MENTORSHIP_V2_HOME: "/mentorship-v2",
   ADMIN_MENTORSHIP_V2_VERIFICATION: "/mentorship-v2/verification",
   /** Phase 1 — availability engine inspector, mentor health, exclusion-constraint proof, Google round trip. */
   ADMIN_MENTORSHIP_V2_AVAILABILITY: "/mentorship-v2/availability",

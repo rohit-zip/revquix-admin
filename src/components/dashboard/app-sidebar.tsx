@@ -71,8 +71,8 @@ export function AppSidebar() {
                 {section.items.map((item) => {
                   const ItemIcon = item.Icon
                   const isActive =
-                    item.href === "/"
-                      ? pathname === "/"
+                    item.exact || item.href === "/"
+                      ? pathname === item.href
                       : pathname === item.href || pathname.startsWith(item.href + "/")
                   return (
                     <SidebarMenuItem key={item.href}>

@@ -163,6 +163,14 @@ export interface NavItem {
   label: string
   href: string
   access?: AuthorityGuard
+  /**
+   * Highlight this item only when the pathname matches `href` exactly.
+   *
+   * Needed for section-index entries whose href is a prefix of their siblings' — e.g. the V2
+   * console home at `/mentorship-v2` sits above `/mentorship-v2/disputes`, and the default
+   * prefix match would keep "home" lit while the user is on any of the eleven child consoles.
+   */
+  exact?: boolean
 }
 
 export interface NavSection {
@@ -592,57 +600,30 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
     ],
   },
 
-  // ── Internal Tools ──────────────────────────────────────────────────────────
+  // ── Professional Mentor V2 ──────────────────────────────────────────────────
+  //
+  // These eleven consoles were previously labelled "Mentorship V2 (Phase 0…11)" under a section
+  // called "Internal Tools". The phase numbers are how the subsystem was BUILT, not what the pages
+  // DO — so an admin looking for the dispute queue or the FX health table had no way to guess which
+  // number to click. Labels are now the feature; the phase number is kept in the code comment and on
+  // each console's own heading, where it is useful for cross-referencing the strategy doc and does
+  // not have to serve as navigation.
+  //
+  // Every item is gated on the READ permission (PERM_VIEW_MENTORSHIP_V2_INTERNALS). Writes on these
+  // pages need PERM_MANAGE_MENTORSHIP_V2_COMMERCE or PERM_MANAGE_MENTORSHIP_DISPUTES and are enforced
+  // server-side — hiding a nav entry is convenience, never the control.
   {
-    title: "Internal Tools",
+    title: "Professional Mentor V2",
     access: {
       anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
     },
     items: [
       {
-        Icon: FlaskConical,
-        label: "Mentorship V2 (Phase 0)",
-        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_VERIFICATION,
-        access: {
-          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
-        },
-      },
-      {
-        Icon: CalendarSearch,
-        label: "Mentorship V2 (Phase 1)",
-        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_AVAILABILITY,
-        access: {
-          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
-        },
-      },
-      {
-        Icon: ShoppingBag,
-        label: "Mentorship V2 (Phase 2)",
-        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_SERVICES,
-        access: {
-          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
-        },
-      },
-      {
-        Icon: Receipt,
-        label: "Mentorship V2 (Phase 3)",
-        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_COMMERCE,
-        access: {
-          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
-        },
-      },
-      {
-        Icon: Video,
-        label: "Mentorship V2 (Phase 4)",
-        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_CALLS,
-        access: {
-          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
-        },
-      },
-      {
-        Icon: Package,
-        label: "Mentorship V2 (Phase 6)",
-        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_PACKAGES,
+        // The console index. First entry on purpose: it is the answer to "where do I find X".
+        Icon: LayoutDashboard,
+        label: "V2 Console Home",
+        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_HOME,
+        exact: true,
         access: {
           anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
         },
@@ -652,9 +633,57 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         // need PERM_MANAGE_MENTORSHIP_DISPUTES, enforced server-side. Gating the nav entry on the
         // write permission would hide the SLA breach view from the on-call engineer who needs it
         // to debug the sweep.
+        //
+        // Placed second rather than in phase order: the dispute queue is the one surface here with a
+        // live human queue behind it, so it is the one most often opened.
         Icon: ShieldAlert,
-        label: "Mentorship V2 (Phase 7)",
+        label: "Disputes & Reliability",
         href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_DISPUTES,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
+        },
+      },
+      {
+        // Phase 3.
+        Icon: Receipt,
+        label: "Orders & Checkout",
+        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_COMMERCE,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
+        },
+      },
+      {
+        // Phase 4/5 — the call lifecycle and mock-interview feedback share one console.
+        Icon: Video,
+        label: "Sessions & Feedback",
+        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_CALLS,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
+        },
+      },
+      {
+        // Phase 2.
+        Icon: ShoppingBag,
+        label: "Service Catalogue",
+        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_SERVICES,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
+        },
+      },
+      {
+        // Phase 6.
+        Icon: Package,
+        label: "Packages & Entitlements",
+        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_PACKAGES,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
+        },
+      },
+      {
+        // Phase 1.
+        Icon: CalendarSearch,
+        label: "Availability Engine",
+        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_AVAILABILITY,
         access: {
           anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
         },
@@ -664,7 +693,7 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         // PERM_MANAGE_MENTORSHIP_V2_COMMERCE, enforced server-side. Gating the nav entry on the write
         // permission would hide the FX-health view from the engineer who needs it to debug the fetch job.
         Icon: Coins,
-        label: "Mentorship V2 (Phase 8)",
+        label: "Pricing Zones & FX",
         href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_PRICING,
         access: {
           anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
@@ -676,7 +705,7 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         // diagnose why a mentor's service is not appearing in the marketplace — which is the single most
         // likely support question this subsystem generates.
         Icon: Search,
-        label: "Mentorship V2 (Phase 9)",
+        label: "Marketplace & Search",
         href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_SEARCH,
         access: {
           anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
@@ -688,7 +717,7 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         // suppressed — so gating it on the write permission would hide the diagnosis from the engineer doing
         // the diagnosing.
         Icon: Brain,
-        label: "Mentorship V2 (Phase 10)",
+        label: "Semantic Search",
         href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_SEMANTIC,
         access: {
           anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
@@ -700,8 +729,19 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         // systems, whether the revenue reports reconcile — so gating it on the write permission would hide
         // the go/no-go decision from the people who have to make it.
         Icon: ArrowRightLeft,
-        label: "Mentorship V2 (Phase 11)",
+        label: "Migration & Cutover",
         href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_CUTOVER,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
+        },
+      },
+      {
+        // Phase 0. Last, not first: it is the foundations check (schema health, seeded reference data,
+        // the rollout flag and the fee calculator), which is what you open when something is wrong
+        // everywhere rather than what you open day to day.
+        Icon: FlaskConical,
+        label: "Foundations & Rollout Flag",
+        href: PATH_CONSTANTS.ADMIN_MENTORSHIP_V2_VERIFICATION,
         access: {
           anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_MENTORSHIP_V2_INTERNALS],
         },

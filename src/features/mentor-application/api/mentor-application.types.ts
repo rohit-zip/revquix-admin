@@ -54,18 +54,11 @@ export interface ExperienceResponse {
 
 // ─── Requests ─────────────────────────────────────────────────────────────────
 
-export interface MentorApplicationRequest {
-  headline: string
-  bio: string
-  linkedinUrl: string
-  yearsOfExperience: number
-  currentCompany?: string
-  currentRole?: string
-  categoryIds: string[]
-  skillIds: string[]
-  portfolioUrl?: string
-  whyMentor: string
-}
+// `MentorApplicationRequest` is deliberately absent. Submitting an application is
+// revquix-web's job (its wizard sends `{ whyMentor }` and nothing else); the admin
+// console only reviews. The old copy here still declared `bio`, `yearsOfExperience`,
+// `categoryIds` and `skillIds` as required, none of which the backend accepts or
+// requires any more, so keeping it around was a contract that lied.
 
 export interface MentorApplicationRejectRequest {
   reason: string
@@ -117,14 +110,7 @@ export interface MentorApplicationResponse {
   experiences: ExperienceResponse[]
 }
 
-// ─── Limits ───────────────────────────────────────────────────────────────────
-
-/**
- * Limits returned by GET /mentor-application/category-skill-limits.
- * Includes both category/skill caps and price bounds for the application.
- */
-export interface ApplicationLimits {
-  maxCategories: number
-  maxSkills: number
-}
+// The `ApplicationLimits` type was removed with the applicant-side API surface:
+// GET /mentor-application/category-skill-limits exists to help someone building an
+// application, which is not something the admin console does.
 

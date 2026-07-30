@@ -1,66 +1,26 @@
 /**
- * ─── MENTOR APPLICATION API ──────────────────────────────────────────────────
+ * ─── MENTOR APPLICATION API (admin console) ──────────────────────────────────
  *
- * API calls for MentorApplicationController endpoints.
- * All paths are relative to the apiClient baseURL (/api/v1).
+ * API calls for the ADMIN half of MentorApplicationController — search, read,
+ * approve, reject, permanently reject, revoke. All paths are relative to the
+ * apiClient baseURL (/api/v1).
+ *
+ * The applicant-side endpoints (`/apply`, `/my`, `/my/history`, `/my/withdraw`,
+ * `/category-skill-limits`) deliberately do NOT live here. Applying is done in
+ * revquix-web's apply wizard; the admin console reviews applications, it does not
+ * submit them. The stale copies of those calls were removed along with the
+ * unrouted applicant form they served, which still demanded a resume and a
+ * 100-character bio after those requirements were dropped.
  */
 
 import { apiClient } from "@/lib/axios"
 import type { GenericFilterRequest, GenericFilterResponse } from "@/core/filters/filter.types"
 import type {
-  ApplicationLimits,
   MentorApplicationRejectRequest,
-  MentorApplicationRequest,
   MentorApplicationResponse,
 } from "./mentor-application.types"
 
 const BASE = "/mentor-application"
-
-// ─── Config ───────────────────────────────────────────────────────────────────
-
-/** GET /mentor-application/category-skill-limits — Get all limits (categories, skills, pricing) */
-export const getCategorySkillLimits = (): Promise<ApplicationLimits> =>
-  apiClient
-    .get<ApplicationLimits>(`${BASE}/category-skill-limits`)
-    .then((r) => r.data)
-
-// ─── User Endpoints ───────────────────────────────────────────────────────────
-
-/** POST /mentor-application/apply — Submit application (multipart: JSON + resume) */
-export const applyMentor = (
-  data: MentorApplicationRequest,
-  resume: File,
-): Promise<MentorApplicationResponse> => {
-  const formData = new FormData()
-  formData.append(
-    "application",
-    new Blob([JSON.stringify(data)], { type: "application/json" }),
-  )
-  formData.append("resume", resume)
-  return apiClient
-    .post<MentorApplicationResponse>(`${BASE}/apply`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    })
-    .then((r) => r.data)
-}
-
-/** GET /mentor-application/my — Get current user's latest application */
-export const getMyApplication = (): Promise<MentorApplicationResponse | null> =>
-  apiClient
-    .get<MentorApplicationResponse>(`${BASE}/my`)
-    .then((r) => r.data)
-    .catch((e) => {
-      if (e?.response?.status === 204) return null
-      throw e
-    })
-
-/** GET /mentor-application/my/history — Get all applications */
-export const getMyApplicationHistory = (): Promise<MentorApplicationResponse[]> =>
-  apiClient.get<MentorApplicationResponse[]>(`${BASE}/my/history`).then((r) => r.data)
-
-/** DELETE /mentor-application/my/withdraw — Withdraw pending application */
-export const withdrawApplication = (): Promise<void> =>
-  apiClient.delete(`${BASE}/my/withdraw`).then(() => undefined)
 
 // ─── Admin Endpoints ──────────────────────────────────────────────────────────
 

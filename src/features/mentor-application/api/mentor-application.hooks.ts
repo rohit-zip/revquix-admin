@@ -1,7 +1,10 @@
 /**
- * ─── MENTOR APPLICATION HOOKS ────────────────────────────────────────────────
+ * ─── MENTOR APPLICATION HOOKS (admin console) ────────────────────────────────
  *
- * React Query hooks for MentorApplicationController endpoints.
+ * React Query hooks for the ADMIN half of MentorApplicationController. The
+ * applicant-side hooks (apply / my / my-history / withdraw / limits) were removed
+ * with the unrouted applicant form they served — see the note in
+ * mentor-application.api.ts.
  */
 
 "use client"
@@ -9,45 +12,23 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { showErrorToast, showSuccessToast } from "@/lib/show-toast"
 import type { ApiError, NetworkError } from "@/lib/api-error"
-import type { MentorApplicationRejectRequest, MentorApplicationRequest, ApplicationLimits } from "./mentor-application.types"
+import type { MentorApplicationRejectRequest } from "./mentor-application.types"
 import {
-  applyMentor,
   approveApplication,
   getApplicationById,
-  getCategorySkillLimits,
-  getMyApplication,
-  getMyApplicationHistory,
   permanentlyRejectApplication,
   rejectApplication,
   revokeMentor,
-  withdrawApplication,
 } from "./mentor-application.api"
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
 
 export const applicationKeys = {
-  my: ["mentor-application", "my"] as const,
-  myHistory: ["mentor-application", "my-history"] as const,
   search: ["mentor-application", "search"] as const,
   detail: (id: string) => ["mentor-application", id] as const,
-  limits: ["mentor-application", "limits"] as const,
 }
 
-// ─── User Queries ─────────────────────────────────────────────────────────────
-
-export function useMyApplication() {
-  return useQuery({
-    queryKey: applicationKeys.my,
-    queryFn: getMyApplication,
-  })
-}
-
-export function useMyApplicationHistory() {
-  return useQuery({
-    queryKey: applicationKeys.myHistory,
-    queryFn: getMyApplicationHistory,
-  })
-}
+// ─── Queries ──────────────────────────────────────────────────────────────────
 
 export function useApplicationDetail(id: string) {
   return useQuery({
@@ -57,46 +38,6 @@ export function useApplicationDetail(id: string) {
   })
 }
 
-export function useCategorySkillLimits() {
-  return useQuery<ApplicationLimits>({
-    queryKey: applicationKeys.limits,
-    queryFn: getCategorySkillLimits,
-    staleTime: 1000 * 60 * 30, // 30 minutes — limits rarely change
-  })
-}
-
-// ─── User Mutations ───────────────────────────────────────────────────────────
-
-export function useApplyMentor(onSuccess?: () => void) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ data, resume }: { data: MentorApplicationRequest; resume: File }) =>
-      applyMentor(data, resume),
-    retry: false,
-    onSuccess: () => {
-      showSuccessToast("Mentor application submitted successfully!")
-      qc.invalidateQueries({ queryKey: applicationKeys.my })
-      qc.invalidateQueries({ queryKey: applicationKeys.myHistory })
-      onSuccess?.()
-    },
-    onError: (error: ApiError | NetworkError) => showErrorToast(error),
-  })
-}
-
-export function useWithdrawApplication(onSuccess?: () => void) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: withdrawApplication,
-    retry: false,
-    onSuccess: () => {
-      showSuccessToast("Application withdrawn successfully")
-      qc.invalidateQueries({ queryKey: applicationKeys.my })
-      qc.invalidateQueries({ queryKey: applicationKeys.myHistory })
-      onSuccess?.()
-    },
-    onError: (error: ApiError | NetworkError) => showErrorToast(error),
-  })
-}
 
 // ─── Admin Mutations ──────────────────────────────────────────────────────────
 
