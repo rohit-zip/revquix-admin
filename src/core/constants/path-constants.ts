@@ -113,6 +113,7 @@ export const PATH_CONSTANTS = {
 
   // ── Marketing / Lead Generation ────────────────────────────────────────────
   ADMIN_LEAD_MAIL: "/lead-mail",
+  ADMIN_LEAD_MAIL_COMPOSE: "/lead-mail/compose",
   ADMIN_LEAD_MAIL_CAMPAIGN_DETAIL: "/lead-mail/campaigns",
 
   // ── Tools platform admin control plane (Phase 8) ───────────────────────────

@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useLeadMailRecipientSearch } from "@/features/lead-mail/api/lead-mail.hooks"
 import type { LeadMailRecipientInput as RecipientInput } from "@/features/lead-mail/api/lead-mail.types"
+import { useDebouncedValue } from "@/features/lead-mail/use-debounced-value"
 
 interface LeadMailRecipientInputProps {
   value: RecipientInput[]
@@ -30,14 +31,6 @@ interface LeadMailRecipientInputProps {
 
 const isValidEmail = (email: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
 
-function useDebouncedValue(value: string, delayMs: number): string {
-  const [debounced, setDebounced] = useState(value)
-  useEffect(() => {
-    const handle = setTimeout(() => setDebounced(value), delayMs)
-    return () => clearTimeout(handle)
-  }, [value, delayMs])
-  return debounced
-}
 
 export function LeadMailRecipientInput({
   value,

@@ -775,9 +775,20 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
     },
     items: [
       {
-        Icon: Send,
-        label: "Lead Mailer",
+        Icon: History,
+        label: "Campaigns",
         href: PATH_CONSTANTS.ADMIN_LEAD_MAIL,
+        // Exact match: without it the Campaigns entry would also highlight while the operator is
+        // on /lead-mail/compose, since that path starts with this one.
+        exact: true,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_SEND_LEAD_MAIL],
+        },
+      },
+      {
+        Icon: Send,
+        label: "New Campaign",
+        href: PATH_CONSTANTS.ADMIN_LEAD_MAIL_COMPOSE,
         access: {
           anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_SEND_LEAD_MAIL],
         },

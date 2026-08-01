@@ -240,6 +240,11 @@ export const PAGE_ACCESS_CONFIG: Record<string, PageAccessRule> = {
     label: "Lead Mailer",
   },
 
+  [PATH_CONSTANTS.ADMIN_LEAD_MAIL_COMPOSE]: {
+    anyOf: ["ROLE_ADMIN", "PERM_SEND_LEAD_MAIL"],
+    label: "New Campaign",
+  },
+
   // ── Tools platform admin control plane (Phase 8) ───────────────────────────
   //
   // Matching is `pathname === key || pathname.startsWith(key + "/")`, so the ADMIN_TOOL_CREDITS entry

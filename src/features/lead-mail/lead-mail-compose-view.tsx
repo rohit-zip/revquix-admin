@@ -6,27 +6,33 @@
  * A single-page form (no wizard) covering:
  *  1. Sending method (ZeptoMail vs ad-hoc SMTP — Phase 2, Option A) + sender fields
  *  2. Subject + Text/HTML content toggle
- *  3. Recipients — either an Excel upload OR manual entry (mutually exclusive)
+ *  3. Recipients — four audience-building modes (Phase 3, requirements 2/3/4/5): Excel/CSV
+ *     upload, manual entry, Revquix-user search, or every eligible Revquix user. The first three
+ *     feed a shared, reviewable <RecipientReviewTable>; the fourth resolves its own audience
+ *     server-side and shows a dry-run count + typed confirmation instead.
  *  4. Preview dialog (resolves {{name}} against an editable sample name)
  *  5. Test send (throwaway, not persisted as a campaign)
  *  6. Send — creates the campaign and redirects to the live send-report view
  *
- * See docs/ADMIN_LEAD_MAILER_MVP_PLAN.md §1.3 / §2.1 / §2.5.
+ * See docs/ADMIN_LEAD_MAILER_V2_ENHANCEMENT_PLAN.md §9.2, which replaces this single-page form
+ * with a four-step wizard backed by a persisted DRAFT.
  *
  * Phase 2 SMTP fields (host/port/username/password/encryption/from) are
  * component-local state only — never persisted, cleared on unmount, and only
  * ever sent as part of a test-connection / test-send / send request body.
  */
 
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "nextjs-toploader/app"
 import {
   AlertTriangle,
   CheckCircle2,
   CloudUpload,
+  Download,
   FileSpreadsheet,
   Loader2,
   Send,
+  Users,
   X,
   XCircle,
 } from "lucide-react"
@@ -49,30 +55,68 @@ import { Textarea } from "@/components/ui/textarea"
 import { TiptapEditor } from "@/components/ui/tiptap-editor"
 import { PATH_CONSTANTS } from "@/core/constants/path-constants"
 import {
-  useParseLeadMailExcel,
+  useAnnotateLeadMailRecipients,
+  useDownloadLeadMailRecipientTemplate,
+  useParseLeadMailRecipients,
   usePreviewLeadMail,
   useSendLeadMail,
   useTestSendLeadMail,
   useTestSmtpConnection,
 } from "./api/lead-mail.hooks"
 import {
+  LEAD_MAIL_AUDIENCE_TYPE,
   LEAD_MAIL_CONTENT_TYPE,
   LEAD_MAIL_DEFAULT_FROM_PREFIX,
   LEAD_MAIL_SENDER_DOMAIN,
   LEAD_MAIL_SEND_METHOD,
   LEAD_MAIL_SMTP_ENCRYPTION_MODE,
+  type LeadMailAudienceType,
   type LeadMailContentType,
-  type LeadMailRecipientInput,
   type LeadMailSendMethod,
   type LeadMailSmtpEncryptionMode,
   type SmtpCredentialsInput,
 } from "./api/lead-mail.types"
-import { LeadMailRecipientInput as RecipientChipsInput } from "./lead-mail-recipient-input"
+import { AllUsersAudiencePanel, useAllUsersSendReady } from "./components/all-users-audience-panel"
+import { AudienceUserSearchPicker } from "./components/audience-user-search-picker"
+import { ManualRecipientAddRow } from "./components/manual-recipient-add-row"
+import { RecipientReviewTable } from "./components/recipient-review-table"
+import { applyAnnotations, RECIPIENT_SOURCE, toRecipientInputs, type RecipientRow } from "./components/recipient-row"
 
 /** Matches {{name}}, {{ name }}, case-insensitive — client-side mirror of the server check. */
 const NAME_TOKEN = /\{\{\s*name\s*\}\}/i
 
-type RecipientMode = "excel" | "manual"
+/** Four audience-building modes (Phase 3, requirements 2/3/4/5). */
+type RecipientTab = "excel" | "manual" | "search" | "all-users"
+
+/** Chunk size for /recipients/annotate calls — a 2000-row upload becomes 4 requests, not 2000. */
+const ANNOTATE_BATCH_SIZE = 500
+
+/** Maps a compose-screen recipient tab to the audienceType persisted on the campaign row. There is
+ * no CSV variant in LeadMailAudienceType — a .csv upload is recorded as EXCEL, same as .xlsx,
+ * since both are "a sheet the admin uploaded" from the backend's point of view. */
+const AUDIENCE_TYPE_BY_TAB: Record<RecipientTab, LeadMailAudienceType> = {
+  excel: LEAD_MAIL_AUDIENCE_TYPE.EXCEL,
+  manual: LEAD_MAIL_AUDIENCE_TYPE.MANUAL,
+  search: LEAD_MAIL_AUDIENCE_TYPE.USER_SEARCH,
+  "all-users": LEAD_MAIL_AUDIENCE_TYPE.ALL_USERS,
+}
+
+/**
+ * Generates an idempotency key for one composition.
+ *
+ * Defined outside the component and only ever called from an event handler, so the impure calls
+ * inside never run during render — React's purity rule forbids that, and it is a real hazard here:
+ * a re-render producing a different key would silently disable the duplicate-send guard.
+ *
+ * `crypto.randomUUID` is unavailable on non-secure origins in some browsers, hence the fallback. It
+ * does not need to be cryptographically strong, only unique per composition for one admin.
+ */
+function newClientRequestId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID()
+  }
+  return `lm-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+}
 
 const SMTP_ENCRYPTION_OPTIONS: { label: string; value: LeadMailSmtpEncryptionMode }[] = [
   { label: "SSL", value: LEAD_MAIL_SMTP_ENCRYPTION_MODE.SSL },
@@ -129,6 +173,7 @@ export function LeadMailComposeView() {
   }
 
   // ── Content ─────────────────────────────────────────────────────────────
+  const [campaignName, setCampaignName] = useState("")
   const [subject, setSubject] = useState("")
   const [contentType, setContentType] = useState<LeadMailContentType>(LEAD_MAIL_CONTENT_TYPE.TEXT)
   const [textBody, setTextBody] = useState("")
@@ -137,14 +182,15 @@ export function LeadMailComposeView() {
   const [htmlMode, setHtmlMode] = useState<"rich" | "source" | "preview">("rich")
   const body = contentType === LEAD_MAIL_CONTENT_TYPE.HTML ? htmlBody : textBody
 
-  // ── Recipients ──────────────────────────────────────────────────────────
-  const [recipientMode, setRecipientMode] = useState<RecipientMode>("excel")
-  const [excelRecipients, setExcelRecipients] = useState<LeadMailRecipientInput[]>([])
+  // ── Recipients (Phase 3 audience builder) ────────────────────────────────
+  const [recipientTab, setRecipientTab] = useState<RecipientTab>("excel")
+  const [rows, setRows] = useState<RecipientRow[]>([])
+  const [allUsersConfirmationInput, setAllUsersConfirmationInput] = useState("")
   const [excelFileName, setExcelFileName] = useState<string | null>(null)
-  const [excelSkippedCount, setExcelSkippedCount] = useState<number | null>(null)
+  const [excelInvalidCount, setExcelInvalidCount] = useState<number | null>(null)
+  const [excelDuplicateCount, setExcelDuplicateCount] = useState<number | null>(null)
   const [dragActive, setDragActive] = useState(false)
-  const [manualRecipients, setManualRecipients] = useState<LeadMailRecipientInput[]>([])
-  const recipients = recipientMode === "excel" ? excelRecipients : manualRecipients
+  const sendableRecipients = toRecipientInputs(rows)
 
   // ── Preview dialog ──────────────────────────────────────────────────────
   const [previewOpen, setPreviewOpen] = useState(false)
@@ -154,53 +200,87 @@ export function LeadMailComposeView() {
   const [testDialogOpen, setTestDialogOpen] = useState(false)
   const [testEmail, setTestEmail] = useState("")
 
-  const parseExcelMutation = useParseLeadMailExcel()
+  const parseRecipientsMutation = useParseLeadMailRecipients()
+  const downloadTemplateMutation = useDownloadLeadMailRecipientTemplate()
+  const annotateMutation = useAnnotateLeadMailRecipients()
   const previewMutation = usePreviewLeadMail()
   const testSendMutation = useTestSendLeadMail()
   const sendMutation = useSendLeadMail()
   const testSmtpMutation = useTestSmtpConnection()
 
   const usesNameToken = NAME_TOKEN.test(subject) || NAME_TOKEN.test(body)
-  const recipientsMissingName = recipients.filter((r) => !r.name || !r.name.trim())
-  const nameTokenBlocked = usesNameToken && recipientsMissingName.length > 0
+  const recipientsMissingName = sendableRecipients.filter((r) => !r.name || !r.name.trim())
+  const nameTokenBlocked =
+    recipientTab !== "all-users" && usesNameToken && recipientsMissingName.length > 0
 
   const isSmtp = sendMethod === LEAD_MAIL_SEND_METHOD.SMTP
   /** SMTP mode must have passed a connection test THIS session; ZeptoMail needs a from-prefix. */
   const senderReady = isSmtp ? smtpTestPassed : fromPrefix.trim().length > 0
 
+  const allUsersReady = useAllUsersSendReady(recipientTab === "all-users", allUsersConfirmationInput)
+
   const canSubmit =
+    campaignName.trim().length > 0 &&
     subject.trim().length > 0 &&
     body.trim().length > 0 &&
     replyToAddress.trim().length > 0 &&
-    recipients.length > 0 &&
+    (recipientTab === "all-users" ? allUsersReady : sendableRecipients.length > 0) &&
     !nameTokenBlocked &&
     senderReady
 
-  // ── Excel upload ────────────────────────────────────────────────────────
-  const handleExcelFile = useCallback(
+  // ── Annotate rows lacking a suppression/Revquix-user check yet ─────────
+  // Runs whenever `rows` grows. Chunks a large upload into batches of 500 so a 2000-row sheet
+  // never becomes 2000 individual requests (plan §9.3).
+  useEffect(() => {
+    const unannotated = rows.filter((r) => !r.annotation)
+    if (unannotated.length === 0) return
+
+    const batch = unannotated.slice(0, ANNOTATE_BATCH_SIZE).map((r) => r.email)
+    annotateMutation.mutate(batch, {
+      onSuccess: (results) => setRows((prev) => applyAnnotations(prev, results)),
+    })
+    // annotateMutation is intentionally omitted — it is a stable mutation object from
+    // useMutation and including it would re-run this effect on every render, not just when the
+    // set of rows needing annotation actually changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows])
+
+  // ── Excel/CSV upload (Phase 3: supersedes .xlsx-only /parse-excel) ─────
+  const handleRecipientsFile = useCallback(
     (file: File) => {
-      parseExcelMutation.mutate(file, {
+      const isCsv = file.name.toLowerCase().endsWith(".csv")
+      parseRecipientsMutation.mutate(file, {
         onSuccess: (data) => {
-          setExcelRecipients(data.recipients)
+          const existingEmails = new Set(rows.map((r) => r.email.toLowerCase()))
+          const newRows: RecipientRow[] = data.recipients
+            .filter((parsed) => !existingEmails.has(parsed.email.toLowerCase()))
+            .map((parsed) => ({
+              id: parsed.rowId,
+              email: parsed.email,
+              name: parsed.name,
+              source: isCsv ? RECIPIENT_SOURCE.CSV : RECIPIENT_SOURCE.EXCEL,
+            }))
+          setRows((prev) => [...prev, ...newRows])
           setExcelFileName(file.name)
-          setExcelSkippedCount(data.skippedRowCount)
+          setExcelInvalidCount(data.invalidRows.length)
+          setExcelDuplicateCount(data.duplicateRows.length)
         },
       })
     },
-    [parseExcelMutation],
+    [parseRecipientsMutation, rows],
   )
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setDragActive(false)
     const file = e.dataTransfer.files?.[0]
-    if (file) handleExcelFile(file)
+    if (file) handleRecipientsFile(file)
   }
 
-  const clearExcel = () => {
-    setExcelRecipients([])
+  const clearExcelSummary = () => {
     setExcelFileName(null)
-    setExcelSkippedCount(null)
+    setExcelInvalidCount(null)
+    setExcelDuplicateCount(null)
   }
 
   // ── SMTP test connection ────────────────────────────────────────────────
@@ -249,10 +329,29 @@ export function LeadMailComposeView() {
   }
 
   // ── Send ────────────────────────────────────────────────────────────────
+  /**
+   * Idempotency key for this composition.
+   *
+   * Generated on the first send attempt and then reused, which is what makes it work: a fresh key per
+   * click would defeat the guard entirely. The server rejects a second submission carrying the same
+   * key (RQ-VE-415), so a double-clicked Send button, or a retry after a network timeout, cannot mail
+   * the whole list twice.
+   *
+   * Created lazily inside the handler rather than during render — `crypto.randomUUID`, `Date.now` and
+   * `Math.random` are all impure, and calling them while rendering is both a React rule violation and
+   * a real hazard, since a re-render could produce a different key and silently disable the guard.
+   */
+  const clientRequestIdRef = useRef<string | null>(null)
+
   const handleSend = () => {
     if (!canSubmit) return
+    if (clientRequestIdRef.current === null) {
+      clientRequestIdRef.current = newClientRequestId()
+    }
+    const audienceType = AUDIENCE_TYPE_BY_TAB[recipientTab]
     sendMutation.mutate(
       {
+        campaignName: campaignName.trim(),
         subject,
         body,
         contentType,
@@ -261,11 +360,16 @@ export function LeadMailComposeView() {
         smtpCredentials: isSmtp ? smtpCredentials : undefined,
         replyToAddress,
         replyToName: replyToName || undefined,
-        recipients,
+        // Ignored server-side when audienceType is ALL_USERS — the audience is resolved from the
+        // live user table instead. See LeadMailSendRequest#getAudienceType().
+        recipients: recipientTab === "all-users" ? [] : sendableRecipients,
+        audienceType,
+        allUsersConfirmationPhrase: recipientTab === "all-users" ? allUsersConfirmationInput.trim() : undefined,
+        clientRequestId: clientRequestIdRef.current,
       },
       {
         onSuccess: (data) => {
-          router.push(`${PATH_CONSTANTS.ADMIN_LEAD_MAIL}/campaigns/${data.leadMailCampaignId}`)
+          router.push(`${PATH_CONSTANTS.ADMIN_LEAD_MAIL_CAMPAIGN_DETAIL}/${data.leadMailCampaignId}`)
         },
       },
     )
@@ -483,8 +587,29 @@ export function LeadMailComposeView() {
           <CardTitle>Content</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Requirement 7. Distinct from the subject on purpose: the subject is what the recipient
+              reads, the name is what the operator recognises in campaign history six months later —
+              and those are rarely the same sentence. */}
           <div className="space-y-1.5">
-            <Label htmlFor="lm-subject">Subject</Label>
+            <Label htmlFor="lm-campaign-name">
+              Campaign name <span className="text-rose-500">*</span>
+            </Label>
+            <Input
+              id="lm-campaign-name"
+              placeholder="October founder outreach"
+              value={campaignName}
+              maxLength={160}
+              onChange={(e) => setCampaignName(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Internal label shown in campaign history. Recipients never see this.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="lm-subject">
+              Subject <span className="text-rose-500">*</span>
+            </Label>
             <Input
               id="lm-subject"
               placeholder="Quick question about {{name}}'s team"
@@ -577,22 +702,39 @@ export function LeadMailComposeView() {
         </CardContent>
       </Card>
 
-      {/* ── Recipients ────────────────────────────────────────────────────── */}
-      {/* overflow-visible override: the manual-entry autocomplete dropdown is
-          absolutely positioned and must escape the card's rounded border
-          instead of being clipped by the default overflow-hidden. */}
+      {/* ── Recipients (Phase 3 audience builder) ────────────────────────── */}
+      {/* overflow-visible override: the user-search picker's own scroll/overflow content must
+          escape the card's rounded border instead of being clipped. */}
       <Card className="overflow-visible">
         <CardHeader>
           <CardTitle>Recipients</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Tabs value={recipientMode} onValueChange={(v) => setRecipientMode(v as RecipientMode)}>
+          <Tabs value={recipientTab} onValueChange={(v) => setRecipientTab(v as RecipientTab)}>
             <TabsList>
-              <TabsTrigger value="excel">Upload Excel</TabsTrigger>
+              <TabsTrigger value="excel">Upload Excel/CSV</TabsTrigger>
               <TabsTrigger value="manual">Manual Entry</TabsTrigger>
+              <TabsTrigger value="search">Search Users</TabsTrigger>
+              <TabsTrigger value="all-users">All Users</TabsTrigger>
             </TabsList>
 
             <TabsContent value="excel" className="mt-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Requires an &quot;Email&quot; column; &quot;Name&quot; column is optional.
+                </p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 px-2 text-xs"
+                  onClick={() => downloadTemplateMutation.mutate()}
+                  disabled={downloadTemplateMutation.isPending}
+                >
+                  <Download className="size-3.5" /> Download sample template
+                </Button>
+              </div>
+
               {excelFileName ? (
                 <div className="flex items-center justify-between rounded-md border p-3">
                   <div className="flex items-center gap-2.5">
@@ -600,12 +742,14 @@ export function LeadMailComposeView() {
                     <div>
                       <p className="text-sm font-medium">{excelFileName}</p>
                       <p className="text-xs text-muted-foreground">
-                        {excelRecipients.length} recipient{excelRecipients.length === 1 ? "" : "s"} parsed
-                        {excelSkippedCount ? ` · ${excelSkippedCount} row(s) skipped (invalid/duplicate email)` : ""}
+                        {(excelInvalidCount ?? 0) > 0 && `${excelInvalidCount} invalid row(s)`}
+                        {(excelInvalidCount ?? 0) > 0 && (excelDuplicateCount ?? 0) > 0 && " · "}
+                        {(excelDuplicateCount ?? 0) > 0 && `${excelDuplicateCount} duplicate row(s)`}
+                        {!excelInvalidCount && !excelDuplicateCount && "All rows parsed cleanly"}
                       </p>
                     </div>
                   </div>
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={clearExcel}>
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={clearExcelSummary}>
                     <X className="h-3.5 w-3.5" />
                   </Button>
                 </div>
@@ -619,28 +763,26 @@ export function LeadMailComposeView() {
                   }}
                   onDragLeave={() => setDragActive(false)}
                   onDrop={handleDrop}
-                  disabled={parseExcelMutation.isPending}
+                  disabled={parseRecipientsMutation.isPending}
                   className={`flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
                     dragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:bg-muted/40"
                   }`}
                 >
-                  {parseExcelMutation.isPending ? (
+                  {parseRecipientsMutation.isPending ? (
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                   ) : (
                     <CloudUpload className="h-8 w-8 text-muted-foreground" />
                   )}
                   <span className="text-sm font-medium">Drag & drop or click to browse</span>
-                  <span className="text-xs text-muted-foreground">
-                    .xlsx only · must have an &quot;Email&quot; column, &quot;Name&quot; column optional · max 5&nbsp;MB
-                  </span>
+                  <span className="text-xs text-muted-foreground">.xlsx or .csv · max 5&nbsp;MB</span>
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".xlsx"
+                    accept=".xlsx,.csv"
                     hidden
                     onChange={(e) => {
                       const file = e.target.files?.[0]
-                      if (file) handleExcelFile(file)
+                      if (file) handleRecipientsFile(file)
                       e.target.value = ""
                     }}
                   />
@@ -649,15 +791,31 @@ export function LeadMailComposeView() {
             </TabsContent>
 
             <TabsContent value="manual" className="mt-3">
-              <RecipientChipsInput
-                value={manualRecipients}
-                onChange={setManualRecipients}
-                helperText="Search registered users by name/email, or type an email and press Enter."
+              <ManualRecipientAddRow existingRows={rows} onAdd={(row) => setRows((prev) => [...prev, row])} />
+            </TabsContent>
+
+            <TabsContent value="search" className="mt-3">
+              <AudienceUserSearchPicker
+                existingRows={rows}
+                onAddSelected={(newRows) => setRows((prev) => [...prev, ...newRows])}
+              />
+            </TabsContent>
+
+            <TabsContent value="all-users" className="mt-3">
+              <AllUsersAudiencePanel
+                active={recipientTab === "all-users"}
+                sendMethod={sendMethod}
+                confirmationInput={allUsersConfirmationInput}
+                onConfirmationInputChange={setAllUsersConfirmationInput}
               />
             </TabsContent>
           </Tabs>
 
-          {isSmtp && recipients.length > 300 && (
+          {recipientTab !== "all-users" && (
+            <RecipientReviewTable rows={rows} onChange={setRows} isAnnotating={annotateMutation.isPending} />
+          )}
+
+          {isSmtp && recipientTab !== "all-users" && sendableRecipients.length > 300 && (
             <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
@@ -686,9 +844,14 @@ export function LeadMailComposeView() {
             <>
               <Loader2 className="h-4 w-4 animate-spin" /> Sending…
             </>
+          ) : recipientTab === "all-users" ? (
+            <>
+              <Users className="h-4 w-4" /> Send to all eligible users
+            </>
           ) : (
             <>
-              <Send className="h-4 w-4" /> Send to {recipients.length} recipient{recipients.length === 1 ? "" : "s"}
+              <Send className="h-4 w-4" /> Send to {sendableRecipients.length} recipient
+              {sendableRecipients.length === 1 ? "" : "s"}
             </>
           )}
         </Button>

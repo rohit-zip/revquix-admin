@@ -140,7 +140,7 @@ export default function AdminPaymentsView() {
             </TableCell>
             <TableCell>
               <Badge variant="outline" className="text-xs">
-                {payment.paymentContext.replace(/_/g, " ")}
+                {payment.contextLabel}
               </Badge>
             </TableCell>
             <TableCell className="font-medium">

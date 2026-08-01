@@ -38,18 +38,6 @@ function formatDateTime(iso: string | null | undefined) {
   })
 }
 
-function getContextLabel(ctx: string) {
-  const map: Record<string, string> = {
-    MOCK_INTERVIEW: "Mock Interview Session",
-    HOURLY_SESSION: "Hourly Mentorship Session",
-    CAREER_COACHING: "Career Coaching Session",
-    GROUP_WORKSHOP: "Group Workshop",
-    SUBSCRIPTION: "Platform Subscription",
-    GLOBAL_OFFER_SERVICE: "Professional Service",
-  }
-  return map[ctx] ?? ctx.replace(/_/g, " ")
-}
-
 function getStatusLabel(status: string) {
   const map: Record<string, string> = {
     CREATED: "Created",
@@ -268,7 +256,7 @@ export default function PaymentInvoice({ payment, itemName, lineItems, children 
                 ))
               ) : (
                 <tr>
-                  <td>{itemName ?? getContextLabel(payment.paymentContext)}</td>
+                  <td>{itemName ?? payment.title}</td>
                   <td style={{ fontFamily: "monospace", fontSize: "11px" }}>
                     {payment.contextEntityId}
                   </td>

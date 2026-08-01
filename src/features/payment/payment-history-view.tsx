@@ -65,8 +65,8 @@ export default function PaymentHistoryView() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Order ID</TableHead>
-                <TableHead>Context</TableHead>
+                <TableHead>Service</TableHead>
+                <TableHead>Category</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Discount</TableHead>
                 <TableHead>Status</TableHead>
@@ -98,12 +98,15 @@ export default function PaymentHistoryView() {
                     className="cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => router.push(`/payments/history/${p.paymentOrderId}`)}
                   >
-                    <TableCell className="font-mono text-xs">
-                      {p.razorpayOrderId ?? p.paymentOrderId}
+                    <TableCell>
+                      <p className="text-sm font-medium">{p.title}</p>
+                      <p className="font-mono text-xs text-muted-foreground">
+                        {p.orderNumber ?? p.razorpayOrderId ?? p.paymentOrderId}
+                      </p>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-xs">
-                        {p.paymentContext.replace(/_/g, " ")}
+                        {p.contextLabel}
                       </Badge>
                     </TableCell>
                     <TableCell className="font-medium">

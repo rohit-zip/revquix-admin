@@ -467,7 +467,7 @@ export default function PaymentDetailView({ paymentOrderId }: PaymentDetailViewP
               label="Payment Context"
               value={
                 <Badge variant="outline" className="text-xs">
-                  {payment.paymentContext.replace(/_/g, " ")}
+                  {payment.contextLabel}
                 </Badge>
               }
             />

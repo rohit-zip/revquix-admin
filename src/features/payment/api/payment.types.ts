@@ -26,8 +26,24 @@ export const PAYMENT_CONTEXT = {
   GROUP_WORKSHOP: "GROUP_WORKSHOP",
   SUBSCRIPTION: "SUBSCRIPTION",
   GLOBAL_OFFER_SERVICE: "GLOBAL_OFFER_SERVICE",
+  CREDIT_TOPUP: "CREDIT_TOPUP",
+  CREDIT_PASS: "CREDIT_PASS",
 } as const
 export type PaymentContext = (typeof PAYMENT_CONTEXT)[keyof typeof PAYMENT_CONTEXT]
+
+/**
+ * Which commerce stack a payment row came from.
+ *
+ * `LEGACY` rows are backed by `payment_order`; `MENTORSHIP_V2` rows are Professional Mentor V2
+ * purchases backed by `mentorship.commerce_order`, projected into the same shape by the backend.
+ * Admin *search* only ever returns `LEGACY` (it filters the legacy table directly), but the detail
+ * endpoint resolves either id space, so any single-payment view must handle both.
+ */
+export const PAYMENT_SOURCE = {
+  LEGACY: "LEGACY",
+  MENTORSHIP_V2: "MENTORSHIP_V2",
+} as const
+export type PaymentSource = (typeof PAYMENT_SOURCE)[keyof typeof PAYMENT_SOURCE]
 
 // ─── Responses ────────────────────────────────────────────────────────────────
 
@@ -36,8 +52,11 @@ export interface PaymentOrderResponse {
   razorpayOrderId: string
   razorpayPaymentId: string | null
   currency: CurrencyCode
+  /** Raw ISO code actually charged. Prefer this over `currency` for display. */
+  currencyCode: string | null
   amountMinor: number
-  paymentContext: PaymentContext
+  /** Null for `MENTORSHIP_V2` rows. Use `contextLabel` for display. */
+  paymentContext: PaymentContext | null
   contextEntityId: string
   status: PaymentStatus
   failureReason: string | null
@@ -66,6 +85,18 @@ export interface PaymentOrderResponse {
   userId: string | null
   userName: string | null
   userEmail: string | null
+  // ── Unified history metadata ────────────────────────────────────────
+  source: PaymentSource
+  /** What was purchased, in words. Server-resolved; never a raw enum constant. */
+  title: string
+  subtitle: string | null
+  /** Human label for the purchase category. Populated for both sources. */
+  contextLabel: string
+  orderNumber: string | null
+  platformFeeMinor: number | null
+  listAmountMinor: number | null
+  mentorName: string | null
+  bookingId: string | null
 }
 
 export interface PaymentWebhookLogResponse {

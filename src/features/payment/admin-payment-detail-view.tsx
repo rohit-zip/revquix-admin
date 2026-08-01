@@ -375,7 +375,9 @@ export default function AdminPaymentDetailView({ paymentOrderId }: AdminPaymentD
             <Separator />
             <DetailField label="Razorpay Payment ID" value={payment.razorpayPaymentId ?? "—"} mono copyable={!!payment.razorpayPaymentId} />
             <Separator />
-            <DetailField label="Payment Context" value={<Badge variant="outline" className="text-xs">{payment.paymentContext.replace(/_/g, " ")}</Badge>} />
+            <DetailField label="Payment Context" value={<Badge variant="outline" className="text-xs">{payment.contextLabel}</Badge>} />
+            <Separator />
+            <DetailField label="Service" value={payment.title} />
             <Separator />
             <DetailField label="Booking ID" value={payment.contextEntityId} mono copyable />
             <Separator />
