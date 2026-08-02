@@ -64,7 +64,8 @@ export interface CommerceOrderRow {
   mentorUsername: string | null
   buyerUserId: string
   buyerName: string | null
-  buyerEmail: string | null
+  /** The buyer's public handle. Their email is no longer returned on this response at all. */
+  buyerUsername: string | null
   currency: string
   currencySymbol: string
   basePriceMinor: number
@@ -98,7 +99,12 @@ export interface CommerceOrderRow {
     endsAt: string | null
     durationMinutes: number | null
     intervalId?: string | null
-    meetingUrl: string | null
+    /**
+     * Whether a joining link exists — the address itself is not in this payload for anyone, admin
+     * included. It is released only by the participant-facing join endpoint, in exchange for a
+     * recorded join event. `AdminCallInspectionService`'s snapshot is the admin route to the raw URL.
+     */
+    meetingLinkReady: boolean
     canCancel: boolean
   } | null
   intakeAnswers:
