@@ -59,8 +59,30 @@ const MONTH_NAMES = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ]
 
-function formatAmount(minor: number): string {
-  return `₹${(minor / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+/**
+ * Formats a minor-unit amount in the currency it was actually aggregated in.
+ *
+ * Rows are grouped by currency server-side (payments-plan Part 9 item 9), so a hardcoded ₹ would
+ * mislabel a USD row — the same defect the mentor wallet carried before the currency split.
+ */
+function formatAmount(minor: number, currency = "INR"): string {
+  const symbol = currency === "USD" ? "$" : currency === "INR" ? "₹" : `${currency} `
+  const locale = currency === "INR" ? "en-IN" : "en-US"
+  return `${symbol}${(minor / 100).toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+/**
+ * Totals a set of rows, refusing to add across currencies.
+ *
+ * Returns `null` when the rows span more than one currency — the caller renders "Mixed" rather than
+ * a number that is not money in any currency. Deliberately not an FX conversion: inventing a rate
+ * on a finance report would present a made-up figure as a fact.
+ */
+function totalOf<T extends { currency: string }>(rows: T[], pick: (row: T) => number): string {
+  if (rows.length === 0) return formatAmount(0)
+  const currency = rows[0].currency
+  if (rows.some((r) => r.currency !== currency)) return "Mixed currencies"
+  return formatAmount(rows.reduce((sum, r) => sum + pick(r), 0), currency)
 }
 
 // ─── Date-range controls ──────────────────────────────────────────────────────
@@ -194,10 +216,11 @@ function MonthlySummaryPanel() {
     toInstant(to, true),
   )
 
-  const totalPayout = data.reduce((s, r) => s + r.totalPayoutMinor, 0)
-  const totalGross = data.reduce((s, r) => s + r.totalGrossMinor, 0)
-  const totalFee = data.reduce((s, r) => s + r.totalPlatformFeeMinor, 0)
+  // Counts add across currencies; money does not. totalOf refuses rather than inventing a rate.
   const totalCount = data.reduce((s, r) => s + r.completedCount, 0)
+  const totalPayout = totalOf(data, (r) => r.totalPayoutMinor)
+  const totalGross = totalOf(data, (r) => r.totalGrossMinor)
+  const totalFee = totalOf(data, (r) => r.totalPlatformFeeMinor)
 
   return (
     <div className="space-y-4">
@@ -208,9 +231,9 @@ function MonthlySummaryPanel() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
             { label: "Completed payouts", value: totalCount.toLocaleString() },
-            { label: "Total paid out (net)", value: formatAmount(totalPayout) },
-            { label: "Gross revenue", value: formatAmount(totalGross) },
-            { label: "Platform commission", value: formatAmount(totalFee) },
+            { label: "Total paid out (net)", value: totalPayout },
+            { label: "Gross revenue", value: totalGross },
+            { label: "Platform commission", value: totalFee },
           ].map((card) => (
             <Card key={card.label} className="py-3">
               <CardContent className="px-4">
@@ -255,10 +278,10 @@ function MonthlySummaryPanel() {
                       {MONTH_NAMES[row.month]} {row.year}
                     </TableCell>
                     <TableCell className="text-right">{row.completedCount}</TableCell>
-                    <TableCell className="text-right">{formatAmount(row.totalPayoutMinor)}</TableCell>
-                    <TableCell className="text-right">{formatAmount(row.totalGrossMinor)}</TableCell>
-                    <TableCell className="text-right">{formatAmount(row.totalPlatformFeeMinor)}</TableCell>
-                    <TableCell className="text-right">{formatAmount(row.totalGstMinor)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(row.totalPayoutMinor, row.currency)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(row.totalGrossMinor, row.currency)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(row.totalPlatformFeeMinor, row.currency)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(row.totalGstMinor, row.currency)}</TableCell>
                   </TableRow>
                 ))
               )}
@@ -281,9 +304,9 @@ function CommissionRevenuePanel() {
     toInstant(to, true),
   )
 
-  const totalRevenue = data.reduce((s, r) => s + r.totalRevenueMinor, 0)
-  const totalFee = data.reduce((s, r) => s + r.platformFeeMinor, 0)
-  const totalGst = data.reduce((s, r) => s + r.gstMinor, 0)
+  const totalRevenue = totalOf(data, (r) => r.totalRevenueMinor)
+  const totalFee = totalOf(data, (r) => r.platformFeeMinor)
+  const totalGst = totalOf(data, (r) => r.gstMinor)
 
   return (
     <div className="space-y-4">
@@ -292,9 +315,9 @@ function CommissionRevenuePanel() {
       {data.length > 0 && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {[
-            { label: "Total revenue (fee + GST)", value: formatAmount(totalRevenue) },
-            { label: "Platform commission", value: formatAmount(totalFee) },
-            { label: "GST collected", value: formatAmount(totalGst) },
+            { label: "Total revenue (fee + GST)", value: totalRevenue },
+            { label: "Platform commission", value: totalFee },
+            { label: "GST collected", value: totalGst },
           ].map((card) => (
             <Card key={card.label} className="py-3">
               <CardContent className="px-4">
@@ -338,9 +361,9 @@ function CommissionRevenuePanel() {
                       {MONTH_NAMES[row.month]} {row.year}
                     </TableCell>
                     <TableCell className="text-right">{row.transactionCount}</TableCell>
-                    <TableCell className="text-right">{formatAmount(row.platformFeeMinor)}</TableCell>
-                    <TableCell className="text-right">{formatAmount(row.gstMinor)}</TableCell>
-                    <TableCell className="text-right font-medium">{formatAmount(row.totalRevenueMinor)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(row.platformFeeMinor, row.currency)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(row.gstMinor, row.currency)}</TableCell>
+                    <TableCell className="text-right font-medium">{formatAmount(row.totalRevenueMinor, row.currency)}</TableCell>
                   </TableRow>
                 ))
               )}
@@ -400,9 +423,9 @@ function MentorEarningsPanel() {
                       <div className="text-xs text-muted-foreground">{row.mentorEmail}</div>
                     </TableCell>
                     <TableCell className="text-right">{row.completedPayouts}</TableCell>
-                    <TableCell className="text-right font-medium">{formatAmount(row.totalPayoutMinor)}</TableCell>
-                    <TableCell className="text-right">{formatAmount(row.totalGrossMinor)}</TableCell>
-                    <TableCell className="text-right">{formatAmount(row.totalPlatformFeeMinor)}</TableCell>
+                    <TableCell className="text-right font-medium">{formatAmount(row.totalPayoutMinor, row.currency)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(row.totalGrossMinor, row.currency)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(row.totalPlatformFeeMinor, row.currency)}</TableCell>
                   </TableRow>
                 ))
               )}

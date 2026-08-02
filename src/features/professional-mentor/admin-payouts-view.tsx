@@ -25,7 +25,7 @@
 
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo } from "react"
 import {
   AlertTriangle,
   CheckCircle2,
@@ -83,6 +83,7 @@ import {
 import type {
   MentorPayoutResponse,
   PayoutStatus,
+  PayoutStage,
 } from "@/features/professional-mentor/api/professional-mentor.types"
 
 // ─── Filter Config ────────────────────────────────────────────────────────────
@@ -129,6 +130,7 @@ const columns: DataColumn<MentorPayoutResponse>[] = [
   { key: "payoutAmountMinor", header: "Net Payout", sortable: true },
   { key: "commissionPercentage", header: "Comm.", sortable: false },
   { key: "status", header: "Payout Status", sortable: true },
+  { key: "payoutStage", header: "Stage", sortable: false },
   { key: "sessionStatus", header: "Session Status", sortable: false },
   { key: "createdAt", header: "Date", sortable: true },
   { key: "actions", header: "", sortable: false },
@@ -144,6 +146,42 @@ function getPayoutBadge(status: PayoutStatus) {
     case "FAILED":     return <Badge variant="destructive">Failed</Badge>
     case "ON_HOLD":    return <Badge variant="outline" className="border-amber-500 text-amber-600">On Hold</Badge>
     default:           return <Badge variant="outline">{status}</Badge>
+  }
+}
+
+/**
+ * The derived stage (payments-plan Part 9) — distinct from the payout *status* above.
+ *
+ * `status` is what finance has done with the row; the stage is whether the platform is even
+ * finished waiting on the session. Both are shown, because an admin needs to know a row is PENDING
+ * *and* why it is not yet processable.
+ */
+function getStageBadge(stage: PayoutStage | null | undefined, daysLeft: number | null | undefined) {
+  switch (stage) {
+    case "READY_TO_PROCESS":
+      return <Badge className="bg-emerald-600 text-white">Ready</Badge>
+    case "IN_DISPUTE_WINDOW":
+      return (
+        <Badge variant="outline" className="border-amber-500 text-amber-600">
+          Clearing{daysLeft != null ? ` · ${daysLeft}d` : ""}
+        </Badge>
+      )
+    case "AWAITING_SESSION":
+      return <Badge variant="outline">Awaiting session</Badge>
+    case "IN_PROGRESS":
+      return <Badge className="bg-blue-600 text-white">In session</Badge>
+    case "REFUNDED":
+      return <Badge variant="outline" className="border-rose-500 text-rose-600">Refunded</Badge>
+    case "ON_HOLD":
+      return <Badge variant="outline" className="border-amber-500 text-amber-600">On hold</Badge>
+    case "PAID":
+      return <Badge className="bg-green-600 text-white">Paid</Badge>
+    case "PROCESSING":
+      return <Badge className="bg-blue-600 text-white">Processing</Badge>
+    case "FAILED":
+      return <Badge variant="destructive">Failed</Badge>
+    default:
+      return <span className="text-muted-foreground text-xs">—</span>
   }
 }
 
@@ -402,6 +440,21 @@ export default function AdminPayoutsView() {
 
   const selectedCount = selectedIds.size
 
+  // How the current selection breaks down against the Part 9 processing gate. The server re-derives
+  // every stage and is the real authority — these counts only exist so the button can say what will
+  // actually happen before it is clicked, instead of reporting a surprise afterwards.
+  const { selectedProcessable, selectedInDisputeWindow } = useMemo(() => {
+    const rows = search.data?.content ?? []
+    let processable = 0
+    let inWindow = 0
+    for (const row of rows) {
+      if (!selectedIds.has(row.payoutId)) continue
+      if (row.processable) processable++
+      else if (row.payoutStage === "IN_DISPUTE_WINDOW") inWindow++
+    }
+    return { selectedProcessable: processable, selectedInDisputeWindow: inWindow }
+  }, [search.data, selectedIds])
+
   return (
     <div className="space-y-6">
       {/* ── Page Header ──────────────────────────────────────────────────── */}
@@ -488,21 +541,54 @@ export default function AdminPayoutsView() {
 
       {/* ── Bulk Action Bar ───────────────────────────────────────────────── */}
       {selectedCount > 0 && (
-        <div className="flex items-center gap-3 rounded-lg border bg-muted/50 px-4 py-2">
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/50 px-4 py-2">
           <span className="text-sm font-medium">
             {selectedCount} payout{selectedCount !== 1 ? "s" : ""} selected
           </span>
+          {/* The server is the real gate — it re-derives every stage and refuses anything not
+              READY_TO_PROCESS. This count is here so an admin knows *before* clicking why the
+              result will be smaller than the selection, rather than reading it as a failure. */}
+          {selectedInDisputeWindow > 0 && (
+            <span className="flex items-center gap-1 text-xs text-amber-600">
+              <AlertTriangle className="h-3 w-3" />
+              {selectedInDisputeWindow} still inside the buyer&apos;s dispute window
+            </span>
+          )}
           <Button
             size="sm"
             className="h-7 bg-blue-600 hover:bg-blue-700"
             disabled={bulkMutation.isPending}
-            onClick={() => bulkMutation.mutate(Array.from(selectedIds))}
+            onClick={() => bulkMutation.mutate({ payoutIds: Array.from(selectedIds) })}
           >
             {bulkMutation.isPending
               ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
               : null}
-            Bulk Process ({selectedCount})
+            Bulk Process ({selectedProcessable})
           </Button>
+          {selectedInDisputeWindow > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 border-amber-500 text-amber-600"
+              disabled={bulkMutation.isPending}
+              onClick={() => {
+                const reason = window.prompt(
+                  `Release ${selectedInDisputeWindow} payout(s) before the buyer's dispute window closes?\n\n` +
+                    "If a dispute is upheld afterwards the money has already gone. Give a reason — " +
+                    "it is written to each payout's audit log.",
+                )
+                if (reason && reason.trim()) {
+                  bulkMutation.mutate({
+                    payoutIds: Array.from(selectedIds),
+                    overrideDisputeWindow: true,
+                    overrideReason: reason.trim(),
+                  })
+                }
+              }}
+            >
+              Release early…
+            </Button>
+          )}
           <Button size="sm" variant="ghost" className="h-7" onClick={clearSelection}>
             Clear
           </Button>
@@ -592,6 +678,17 @@ export default function AdminPayoutsView() {
                       Needs Review
                     </Badge>
                   )}
+                </div>
+              </TableCell>
+
+              <TableCell>
+                <div className="flex flex-col gap-0.5">
+                  {getStageBadge(payout.payoutStage, payout.daysUntilProcessable)}
+                  {payout.stageReason ? (
+                    <span className="text-muted-foreground text-[10px] leading-tight">
+                      {payout.stageReason}
+                    </span>
+                  ) : null}
                 </div>
               </TableCell>
 

@@ -253,11 +253,24 @@ export const getPayoutStats = (): Promise<PayoutStatsResponse> =>
   apiClient.get<PayoutStatsResponse>(`${PAYOUTS}/admin/stats`).then((r) => r.data)
 
 /** POST /payouts/admin/bulk-process — Bulk transition PENDING payouts to PROCESSING (admin) */
+/**
+ * POST /payouts/admin/bulk-process
+ *
+ * The server refuses anything not in `READY_TO_PROCESS` — most importantly payouts whose buyer
+ * dispute window is still open. `overrideDisputeWindow` releases those early and **requires** a
+ * reason, which is written to each payout's audit log: releasing before a buyer can dispute is a
+ * decision that needs an owner.
+ */
 export const bulkProcessPayouts = (
   payoutIds: string[],
+  options?: { overrideDisputeWindow?: boolean; overrideReason?: string },
 ): Promise<BulkProcessPayoutsResponse> =>
   apiClient
-    .post<BulkProcessPayoutsResponse>(`${PAYOUTS}/admin/bulk-process`, { payoutIds })
+    .post<BulkProcessPayoutsResponse>(`${PAYOUTS}/admin/bulk-process`, {
+      payoutIds,
+      overrideDisputeWindow: options?.overrideDisputeWindow ?? false,
+      overrideReason: options?.overrideReason,
+    })
     .then((r) => r.data)
 
 /** PUT /payouts/{payoutId}/hold — Manually place a payout ON_HOLD (admin) */

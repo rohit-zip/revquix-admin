@@ -86,6 +86,7 @@ const COUPON_FILTER_CONFIG: FilterConfig = {
 const columns: DataColumn<CouponResponse>[] = [
   { key: "code", header: "Code", sortable: true },
   { key: "discountType", header: "Discount", sortable: false },
+  { key: "applicableContexts", header: "Applies to", sortable: false },
   { key: "totalRedemptions", header: "Usage", sortable: false },
   { key: "validUntil", header: "Valid Until", sortable: true },
   { key: "isActive", header: "Status", sortable: false },
@@ -99,6 +100,42 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {
     month: "short", day: "numeric", year: "numeric",
   })
+}
+
+/**
+ * Renders `applicableContexts` — the JSON array naming which checkout flows accept this coupon.
+ *
+ * Worth surfacing in the list because the two validators read it differently and, until
+ * payments-plan Part 8, the V2 one did not read it at all: a coupon marked "Mock Interview only"
+ * silently discounted every V2 service. Making it visible is what stops that class of surprise
+ * recurring unnoticed.
+ */
+function renderContexts(raw: string | null | undefined) {
+  if (!raw) return <span className="text-muted-foreground text-xs">—</span>
+  let contexts: string[]
+  try {
+    contexts = JSON.parse(raw)
+  } catch {
+    return <span className="text-destructive text-xs">unreadable</span>
+  }
+  if (contexts.includes("ALL_SERVICES")) {
+    return <Badge variant="outline">Everything</Badge>
+  }
+  const label = (c: string) =>
+    c === "MENTORSHIP_V2" ? "V2" : c === "MOCK_INTERVIEW" ? "Mock" : c === "HOURLY_SESSION" ? "Hourly" : c
+  return (
+    <div className="flex flex-wrap gap-1">
+      {contexts.map((c) => (
+        <Badge
+          key={c}
+          variant="outline"
+          className={c === "MENTORSHIP_V2" ? "border-primary/50 text-primary text-[10px]" : "text-[10px]"}
+        >
+          {label(c)}
+        </Badge>
+      ))}
+    </div>
+  )
 }
 
 function formatDiscount(coupon: CouponResponse) {
@@ -173,6 +210,7 @@ export default function MentorCouponManagement() {
               <Badge variant="outline" className="font-mono">{coupon.code}</Badge>
             </TableCell>
             <TableCell>{formatDiscount(coupon)}</TableCell>
+            <TableCell>{renderContexts(coupon.applicableContexts)}</TableCell>
             <TableCell>
               {coupon.totalRedemptions}
               {coupon.maxTotalRedemptions ? `/${coupon.maxTotalRedemptions}` : ""}
@@ -373,11 +411,19 @@ export default function MentorCouponManagement() {
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="BOTH">Both Services</SelectItem>
+                  <SelectItem value="BOTH">Both legacy services</SelectItem>
                   <SelectItem value="MOCK_INTERVIEW">Mock Interview only</SelectItem>
                   <SelectItem value="HOURLY_SESSION">Hourly Session only</SelectItem>
+                  <SelectItem value="MENTORSHIP_V2">Professional Mentor V2 only</SelectItem>
+                  <SelectItem value="ALL_SERVICES">Everything (V1 and V2)</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-muted-foreground text-xs">
+                These are the contexts a coupon is accepted in. Until payments-plan Part 8 the V2
+                validator ignored this field entirely, so every coupon applied to V2 orders whatever
+                was chosen here — V235 backfilled `MENTORSHIP_V2` onto existing coupons so no live
+                code broke, and this control is now honoured on both sides.
+              </p>
             </div>
 
             {/* Targeted emails */}

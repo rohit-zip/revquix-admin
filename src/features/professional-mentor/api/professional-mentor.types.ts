@@ -27,6 +27,27 @@ export const PAYOUT_STATUS = {
 } as const
 export type PayoutStatus = (typeof PAYOUT_STATUS)[keyof typeof PAYOUT_STATUS]
 
+/**
+ * Derived, mentor-facing payout state (payments-plan Part 9).
+ *
+ * `PAYOUT_STATUS` above is what finance has done with a row; this is what the person waiting for
+ * the money should understand about it. A payout row is created at payment capture — often weeks
+ * before the session — so `PENDING` alone cannot distinguish "session is next Tuesday" from
+ * "finished a month ago and is genuinely waiting on us".
+ */
+export const PAYOUT_STAGE = {
+  AWAITING_SESSION: "AWAITING_SESSION",
+  IN_PROGRESS: "IN_PROGRESS",
+  IN_DISPUTE_WINDOW: "IN_DISPUTE_WINDOW",
+  READY_TO_PROCESS: "READY_TO_PROCESS",
+  PROCESSING: "PROCESSING",
+  PAID: "PAID",
+  REFUNDED: "REFUNDED",
+  ON_HOLD: "ON_HOLD",
+  FAILED: "FAILED",
+} as const
+export type PayoutStage = (typeof PAYOUT_STAGE)[keyof typeof PAYOUT_STAGE]
+
 export const CURRENCY_CODE = { INR: "INR", USD: "USD" } as const
 export type CurrencyCode = (typeof CURRENCY_CODE)[keyof typeof CURRENCY_CODE]
 
@@ -319,7 +340,31 @@ export interface MentorPayoutResponse {
   /** Cumulative refunded amount in minor units. Null if no refund has been issued. */
   refundAmountMinor: number | null
 
-  // ── Session reference (resolved from the linked PaymentOrder) ──────────────
+  // ── Derived stage (payments-plan Part 9) ───────────────────────────────────
+  /**
+   * The mentor-facing state, derived server-side from the booking + dispute window + refund state.
+   * Distinct from `status`, which stays the finance processing lifecycle this console drives.
+   */
+  payoutStage: PayoutStage | null
+  /** Server-written explanation of `payoutStage`. */
+  stageReason: string | null
+  /** When the buyer's dispute window closes. Null when none applies. */
+  disputeWindowEndsAt: string | null
+  /** Whole days until `disputeWindowEndsAt`, rounded up. */
+  daysUntilProcessable: number | null
+  /**
+   * Whether this may be processed now — true only in `READY_TO_PROCESS`.
+   *
+   * **Gate bulk-processing on this.** Until Part 9 nothing stopped a payout being processed while
+   * the buyer's dispute window was open, so a dispute upheld afterwards found the money already gone.
+   */
+  processable: boolean | null
+  /** The V2 commerce order behind this payout. Null for legacy V1 payouts. */
+  commerceOrderId: string | null
+  /** Service title for V2 payouts. */
+  sessionServiceTitle: string | null
+
+  // ── Session reference (V1: from the linked PaymentOrder; V2: from service_booking) ──
   /** What kind of session this payout is for — "MOCK_INTERVIEW" or "HOURLY_SESSION". Null if not a session payout. */
   sessionContext: string | null
   /** The bookingId of the underlying session. */
@@ -394,11 +439,25 @@ export interface BulkProcessPayoutsResponse {
   total: number
   processed: number
   skipped: number
+  /** Skipped specifically because the buyer's dispute window is still open. */
+  skippedInDisputeWindow: number
+  /** Processed via an explicit dispute-window override. */
+  overridden: number
+  /** One entry per skipped payout — an admin who selected 40 and processed 31 needs to know which. */
+  skippedDetails: Array<{ payoutId: string; stage: string | null; reason: string }>
 }
 
 // ── Phase 8 — Reports & Export ──────────────────────────────────────────────
 
 export interface MonthlyPayoutSummaryRow {
+  /**
+   * Currency of every minor-unit amount on this row. // currency on MonthlyPayoutSummaryRow
+   *
+   * Rows are grouped by currency server-side rather than summed across it, so a month with payouts
+   * in two currencies produces two rows. Never total rows with different currencies.
+   */
+  currency: string
+
   year: number
   month: number
   completedCount: number
@@ -409,6 +468,14 @@ export interface MonthlyPayoutSummaryRow {
 }
 
 export interface CommissionRevenueRow {
+  /**
+   * Currency of every minor-unit amount on this row. // currency on CommissionRevenueRow
+   *
+   * Rows are grouped by currency server-side rather than summed across it, so a month with payouts
+   * in two currencies produces two rows. Never total rows with different currencies.
+   */
+  currency: string
+
   year: number
   month: number
   transactionCount: number
@@ -418,6 +485,14 @@ export interface CommissionRevenueRow {
 }
 
 export interface MentorEarningsBreakdownRow {
+  /**
+   * Currency of every minor-unit amount on this row. // currency on MentorEarningsBreakdownRow
+   *
+   * Rows are grouped by currency server-side rather than summed across it, so a month with payouts
+   * in two currencies produces two rows. Never total rows with different currencies.
+   */
+  currency: string
+
   mentorUserId: string
   mentorName: string
   mentorEmail: string

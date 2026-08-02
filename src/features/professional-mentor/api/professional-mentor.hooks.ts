@@ -413,10 +413,22 @@ export function usePayoutAuditLog(payoutId: string | null) {
 export function useBulkProcessPayouts(onSuccess?: (processed: number) => void) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (payoutIds: string[]) => bulkProcessPayouts(payoutIds),
+    mutationFn: (vars: { payoutIds: string[]; overrideDisputeWindow?: boolean; overrideReason?: string }) =>
+      bulkProcessPayouts(vars.payoutIds, {
+        overrideDisputeWindow: vars.overrideDisputeWindow,
+        overrideReason: vars.overrideReason,
+      }),
     retry: false,
     onSuccess: (data) => {
-      showSuccessToast(`${data.processed} payout(s) moved to Processing${data.skipped > 0 ? ` (${data.skipped} skipped)` : ""}`)
+      // Name the dispute-window skips explicitly. A bare "9 skipped" reads as a glitch, when it is
+      // the gate doing its job — and an admin who does not know that will just click again.
+      const parts: string[] = [`${data.processed} payout(s) moved to Processing`]
+      if (data.overridden > 0) parts.push(`${data.overridden} released early`)
+      if (data.skippedInDisputeWindow > 0)
+        parts.push(`${data.skippedInDisputeWindow} still in the dispute window`)
+      const otherSkips = data.skipped - (data.skippedInDisputeWindow ?? 0)
+      if (otherSkips > 0) parts.push(`${otherSkips} not eligible`)
+      showSuccessToast(parts.join(" · "))
       qc.invalidateQueries({ queryKey: proMentorKeys.payouts })
       qc.invalidateQueries({ queryKey: proMentorKeys.payoutStats })
       onSuccess?.(data.processed)
