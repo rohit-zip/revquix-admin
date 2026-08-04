@@ -423,7 +423,12 @@ export default function AdminCommerceVerificationView() {
                     <Kv k="Type" v={order.serviceType} />
                     <Kv k="Mentor" v={order.mentorName ?? order.mentorUserId} />
                     <Kv k="Buyer" v={order.buyerName ?? order.buyerUserId} />
-                    <Kv k="Base price" v={formatMinor(order.basePriceMinor, order.currency)} />
+                    {/* Named for the currency it is in. It used to be the mentor's own listed price
+                        rendered with the buyer's symbol, which showed a ₹799 service as $799. */}
+                    <Kv
+                      k="Price before discount"
+                      v={formatMinor(order.basePriceMinor, order.currency)}
+                    />
                     <Kv
                       k="Discount"
                       v={`${formatMinor(order.discountAmountMinor, order.currency)}${
@@ -445,16 +450,26 @@ export default function AdminCommerceVerificationView() {
                       v={formatMinor(order.grossAmountMinor, order.currency)}
                       strong
                     />
+                    {/* Every mentor-side row below is in mentorCurrency, not the buyer's. On a
+                        cross-currency order these are different units, and the buyer's symbol over
+                        the mentor's rupees is what this page exists to catch rather than commit. */}
+                    <Kv
+                      k="Mentor list amount"
+                      v={formatMinor(order.mentorListAmountMinor, order.mentorCurrency)}
+                    />
                     <Kv
                       k="Mentor commission"
-                      v={`${formatMinor(order.platformFeeMinor, order.currency)} @ ${
+                      v={`${formatMinor(order.platformFeeMinor, order.mentorCurrency)} @ ${
                         order.platformFeePercentage
                       }%`}
                     />
-                    <Kv k="GST on commission" v={formatMinor(order.taxMinor, order.currency)} />
+                    <Kv
+                      k="GST on commission"
+                      v={formatMinor(order.taxMinor, order.mentorCurrency)}
+                    />
                     <Kv
                       k="Mentor net"
-                      v={formatMinor(order.mentorNetMinor, order.currency)}
+                      v={formatMinor(order.mentorNetMinor, order.mentorCurrency)}
                       strong
                     />
                     <Kv k="Refunded" v={formatMinor(order.refundedAmountMinor, order.currency)} />
@@ -469,13 +484,20 @@ export default function AdminCommerceVerificationView() {
                   <Alert>
                     <CheckCircle2 className="size-4" />
                     <AlertDescription className="text-xs">
-                      Identity check: gross ({formatMinor(order.grossAmountMinor, order.currency)}) =
-                      list ({formatMinor(order.listAmountMinor, order.currency)}) + buyer fee (
-                      {formatMinor(order.buyerPlatformFeeMinor, order.currency)}). Mentor net (
-                      {formatMinor(order.mentorNetMinor, order.currency)}) = list − commission (
-                      {formatMinor(order.platformFeeMinor, order.currency)}) − tax (
-                      {formatMinor(order.taxMinor, order.currency)}). Both are also enforced as DB
-                      CHECK constraints, so a row that violated either could not have been inserted.
+                      {/* The mentor-side identity is stated against mentorListAmountMinor, which is
+                          what ck_commerce_order_mentor_net_identity was re-anchored to in V234. It
+                          read "= list − commission − tax" against the BUYER's list amount, which is
+                          a different number in a different currency the moment FX is involved — so
+                          the one line on this page whose job is to prove an invariant was quoting an
+                          equation the database does not enforce and that cross-currency rows fail. */}
+                      Buyer side: gross ({formatMinor(order.grossAmountMinor, order.currency)}) = list
+                      ({formatMinor(order.listAmountMinor, order.currency)}) + buyer fee (
+                      {formatMinor(order.buyerPlatformFeeMinor, order.currency)}). Mentor side:
+                      net ({formatMinor(order.mentorNetMinor, order.mentorCurrency)}) = mentor list (
+                      {formatMinor(order.mentorListAmountMinor, order.mentorCurrency)}) − commission (
+                      {formatMinor(order.platformFeeMinor, order.mentorCurrency)}) − tax (
+                      {formatMinor(order.taxMinor, order.mentorCurrency)}). Both are also enforced as
+                      DB CHECK constraints, so a row that violated either could not have been inserted.
                     </AlertDescription>
                   </Alert>
 

@@ -294,6 +294,8 @@ export default function PaymentDetailView({ paymentOrderId }: PaymentDetailViewP
     payment.status === "PARTIALLY_REFUNDED"
   const hasDiscount = payment.discountAmountMinor != null && payment.discountAmountMinor > 0
   const showInvoice = payment.status === "CAPTURED" || hasRefund
+  /** "Gateway" only for `NONE` - a zero-amount order, whose id rows are all "—" anyway. */
+  const gatewayName = payment.gatewayLabel ?? "Gateway"
 
   const invoiceItemName = offerOrder?.serviceName
   const invoiceLineItems = offerOrder
@@ -449,18 +451,20 @@ export default function PaymentDetailView({ paymentOrderId }: PaymentDetailViewP
               copyable
             />
             <Separator />
+            {/* Named after the processor on this row, not after the only one that existed when this
+                page was written. */}
             <DetailField
-              label="Razorpay Order ID"
-              value={payment.razorpayOrderId ?? "—"}
+              label={`${gatewayName} Order ID`}
+              value={payment.gatewayOrderId ?? "—"}
               mono
-              copyable={!!payment.razorpayOrderId}
+              copyable={!!payment.gatewayOrderId}
             />
             <Separator />
             <DetailField
-              label="Razorpay Payment ID"
-              value={payment.razorpayPaymentId ?? "—"}
+              label={`${gatewayName} Payment ID`}
+              value={payment.gatewayPaymentId ?? "—"}
               mono
-              copyable={!!payment.razorpayPaymentId}
+              copyable={!!payment.gatewayPaymentId}
             />
             <Separator />
             <DetailField
@@ -591,12 +595,12 @@ export default function PaymentDetailView({ paymentOrderId }: PaymentDetailViewP
                     />
                   </>
                 )}
-                {payment.razorpayRefundId && (
+                {payment.gatewayRefundId && (
                   <>
                     <Separator />
                     <DetailField
                       label="Refund ID"
-                      value={payment.razorpayRefundId}
+                      value={payment.gatewayRefundId}
                       mono
                       copyable
                     />
@@ -673,8 +677,8 @@ export default function PaymentDetailView({ paymentOrderId }: PaymentDetailViewP
                   payment.refundAmountMinor != null && payment.refundAmountMinor > 0
                     ? `Amount: ${formatAmount(payment.refundAmountMinor, payment.currency)}`
                     : null,
-                  payment.razorpayRefundId
-                    ? `Refund ID: ${payment.razorpayRefundId}`
+                  payment.gatewayRefundId
+                    ? `Refund ID: ${payment.gatewayRefundId}`
                     : null,
                 ].filter(Boolean).join(" · ") || undefined}
               />

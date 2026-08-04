@@ -414,9 +414,16 @@ export default function AdminCallVerificationView() {
                     />
                     <Field label="Auto-complete at" value={formatDate(booking.autoCompleteAt)} />
                     <Field label="Auto-completed" value={booking.autoCompleted ? "Yes" : "No"} />
+                    {/* Two tallies against one cap: each side has its own budget, so "1 / 1"
+                        on the customer's line says nothing about whether the mentor may still
+                        move this booking. Shown separately for exactly that reason. */}
                     <Field
-                      label="Reschedules used"
+                      label="Reschedules used (customer)"
                       value={`${booking.rescheduleCount ?? 0} / ${booking.maxReschedules ?? 0}`}
+                    />
+                    <Field
+                      label="Reschedules used (mentor)"
+                      value={`${booking.mentorRescheduleCount ?? 0} / ${booking.maxReschedules ?? 0}`}
                     />
                     {booking.feedbackRequired ? (
                       <>

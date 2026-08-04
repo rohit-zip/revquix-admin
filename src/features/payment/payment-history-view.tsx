@@ -101,7 +101,7 @@ export default function PaymentHistoryView() {
                     <TableCell>
                       <p className="text-sm font-medium">{p.title}</p>
                       <p className="font-mono text-xs text-muted-foreground">
-                        {p.orderNumber ?? p.razorpayOrderId ?? p.paymentOrderId}
+                        {p.orderNumber ?? p.gatewayOrderId ?? p.paymentOrderId}
                       </p>
                     </TableCell>
                     <TableCell>
@@ -136,7 +136,7 @@ export default function PaymentHistoryView() {
                             {p.refundAmountMinor != null && p.refundAmountMinor > 0 && (
                               <p className="text-xs">Refund: {formatAmount(p.refundAmountMinor, p.currency)}</p>
                             )}
-                            {p.razorpayRefundId && <p className="text-xs">Refund ID: {p.razorpayRefundId}</p>}
+                            {p.gatewayRefundId && <p className="text-xs">Refund ID: {p.gatewayRefundId}</p>}
                             {p.refundedAt && <p className="text-xs">Refunded: {formatDate(p.refundedAt)}</p>}
                           </TooltipContent>
                         </Tooltip>

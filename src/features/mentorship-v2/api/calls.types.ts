@@ -114,6 +114,8 @@ export interface BookingSessionDiagnostics {
   autoCompleted: boolean
 
   rescheduleCount: number | null
+  /** The mentor's own tally - a separate budget of the same `maxReschedules` cap (V242). */
+  mentorRescheduleCount: number | null
   maxReschedules: number | null
   rescheduleMinNoticeMinutes: number | null
 

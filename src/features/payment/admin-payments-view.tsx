@@ -100,7 +100,9 @@ function formatDate(iso: string | null | undefined) {
 
 const columns: DataColumn<PaymentOrderResponse>[] = [
   { key: "paymentOrderId", header: "Payment ID", sortable: false },
-  { key: "razorpayOrderId", header: "Razorpay Order", sortable: false },
+  // Not "Razorpay Order": this column has carried PayPal ids since the USD rail shipped, and the
+  // gateway differs row to row so no single processor name is right in a header.
+  { key: "gatewayOrderId", header: "Gateway Order", sortable: false },
   { key: "paymentContext", header: "Context", sortable: false },
   { key: "amountMinor", header: "Amount", sortable: false },
   { key: "status", header: "Status", sortable: true },
@@ -136,7 +138,7 @@ export default function AdminPaymentsView() {
           >
             <TableCell className="font-mono text-xs">{payment.paymentOrderId}</TableCell>
             <TableCell className="font-mono text-xs">
-              {payment.razorpayOrderId ?? "—"}
+              {payment.gatewayOrderId ?? "—"}
             </TableCell>
             <TableCell>
               <Badge variant="outline" className="text-xs">
@@ -158,7 +160,7 @@ export default function AdminPaymentsView() {
               {formatDate(payment.createdAt)}
             </TableCell>
             <TableCell>
-              {payment.razorpayRefundId ? (
+              {payment.gatewayRefundId ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span className="flex items-center gap-1 text-xs text-amber-600 cursor-default">
@@ -172,7 +174,7 @@ export default function AdminPaymentsView() {
                     {payment.refundAmountMinor != null && payment.refundAmountMinor > 0 && (
                       <p className="text-xs">Refund: {formatAmount(payment.refundAmountMinor, payment.currency)}</p>
                     )}
-                    <p className="text-xs">Refund ID: {payment.razorpayRefundId}</p>
+                    <p className="text-xs">Refund ID: {payment.gatewayRefundId}</p>
                     {payment.refundedAt && (
                       <p className="text-xs">Date: {formatDate(payment.refundedAt)}</p>
                     )}

@@ -283,16 +283,16 @@ export default function PaymentInvoice({ payment, itemName, lineItems, children 
                   </span>
                 </div>
               )}
-              {payment.razorpayFee != null && payment.razorpayFee > 0 && (
+              {payment.gatewayFeeMinor != null && payment.gatewayFeeMinor > 0 && (
                 <div className="totals-row">
                   <span className="label">Processing Fee</span>
-                  <span className="value">{formatAmount(payment.razorpayFee, payment.currency)}</span>
+                  <span className="value">{formatAmount(payment.gatewayFeeMinor, payment.currency)}</span>
                 </div>
               )}
-              {payment.razorpayTax != null && payment.razorpayTax > 0 && (
+              {payment.gatewayTaxMinor != null && payment.gatewayTaxMinor > 0 && (
                 <div className="totals-row">
                   <span className="label">Tax (GST)</span>
-                  <span className="value">{formatAmount(payment.razorpayTax, payment.currency)}</span>
+                  <span className="value">{formatAmount(payment.gatewayTaxMinor, payment.currency)}</span>
                 </div>
               )}
               <div className="totals-row total">
@@ -322,10 +322,10 @@ export default function PaymentInvoice({ payment, itemName, lineItems, children 
                   </span>
                 </div>
               )}
-              {payment.razorpayRefundId && (
+              {payment.gatewayRefundId && (
                 <div className="payment-info-row">
                   <span className="label">Refund ID</span>
-                  <span className="value">{payment.razorpayRefundId}</span>
+                  <span className="value">{payment.gatewayRefundId}</span>
                 </div>
               )}
               <div className="payment-info-row">
@@ -342,16 +342,16 @@ export default function PaymentInvoice({ payment, itemName, lineItems, children 
               <span className="label">Order ID</span>
               <span className="value">{payment.paymentOrderId}</span>
             </div>
-            {payment.razorpayOrderId && (
+            {payment.gatewayOrderId && (
               <div className="payment-info-row">
-                <span className="label">Razorpay Order</span>
-                <span className="value">{payment.razorpayOrderId}</span>
+                <span className="label">{payment.gatewayLabel ?? "Gateway"} Order</span>
+                <span className="value">{payment.gatewayOrderId}</span>
               </div>
             )}
-            {payment.razorpayPaymentId && (
+            {payment.gatewayPaymentId && (
               <div className="payment-info-row">
-                <span className="label">Razorpay Payment</span>
-                <span className="value">{payment.razorpayPaymentId}</span>
+                <span className="label">{payment.gatewayLabel ?? "Gateway"} Payment</span>
+                <span className="value">{payment.gatewayPaymentId}</span>
               </div>
             )}
             <div className="payment-info-row">

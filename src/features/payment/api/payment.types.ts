@@ -49,8 +49,14 @@ export type PaymentSource = (typeof PAYMENT_SOURCE)[keyof typeof PAYMENT_SOURCE]
 
 export interface PaymentOrderResponse {
   paymentOrderId: string
-  razorpayOrderId: string
-  razorpayPaymentId: string | null
+  /** Which processor took the payment - `"RAZORPAY"`, `"PAYPAL"`, or `"NONE"`. Always `"RAZORPAY"` on `LEGACY` rows. */
+  gateway: string
+  /** The processor's name as a human reads it (`"PayPal"`, not `"Paypal"`). Null when `gateway` is `NONE`. */
+  gatewayLabel: string | null
+  /** The processor's order id. Was `razorpayOrderId`, which held PayPal ids the moment that rail shipped. */
+  gatewayOrderId: string | null
+  /** The processor's id for the money movement - Razorpay's `pay_…`, PayPal's *capture* id. */
+  gatewayPaymentId: string | null
   currency: CurrencyCode
   /** Raw ISO code actually charged. Prefer this over `currency` for display. */
   currencyCode: string | null
@@ -64,8 +70,10 @@ export interface PaymentOrderResponse {
   paymentMethodDetail: string | null
   payerEmail: string | null
   payerContact: string | null
-  razorpayFee: number | null
-  razorpayTax: number | null
+  /** What the processor charged the platform, in minor units. Deducted from settlement, never added to the buyer's charge. */
+  gatewayFeeMinor: number | null
+  /** Tax on `gatewayFeeMinor`. Razorpay reports it separately; PayPal folds it into the fee and leaves this null. */
+  gatewayTaxMinor: number | null
   upiVpa: string | null
   cardNetwork: string | null
   cardType: string | null
@@ -75,7 +83,8 @@ export interface PaymentOrderResponse {
   walletName: string | null
   appliedCouponCode: string | null
   discountAmountMinor: number | null
-  razorpayRefundId: string | null
+  /** The processor's refund id, for the most recent refund on this payment. */
+  gatewayRefundId: string | null
   refundAmountMinor: number | null
   refundedAt: string | null
   createdAt: string

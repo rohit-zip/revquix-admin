@@ -273,6 +273,8 @@ export default function AdminPaymentDetailView({ paymentOrderId }: AdminPaymentD
   const hasRefund = payment.status === "REFUNDED" || payment.status === "REFUND_INITIATED" || payment.status === "PARTIALLY_REFUNDED"
   const hasDiscount = payment.discountAmountMinor != null && payment.discountAmountMinor > 0
   const showInvoice = payment.status === "CAPTURED" || hasRefund
+  /** "Gateway" only for `NONE` - a zero-amount order, whose ids and fee rows are all "—" anyway. */
+  const gatewayName = payment.gatewayLabel ?? "Gateway"
 
   const invoiceItemName = offerOrder?.serviceName
   const invoiceLineItems = offerOrder
@@ -371,9 +373,13 @@ export default function AdminPaymentDetailView({ paymentOrderId }: AdminPaymentD
           <CardContent className="space-y-1">
             <DetailField label="Order ID" value={payment.paymentOrderId} mono copyable />
             <Separator />
-            <DetailField label="Razorpay Order ID" value={payment.razorpayOrderId ?? "—"} mono copyable={!!payment.razorpayOrderId} />
+            {/* Named after the processor on this row. Fixed labels read "Razorpay" over a PayPal id,
+                which is the wrong desk to raise a manual refund with — the one job this card has. */}
+            <DetailField label="Gateway" value={payment.gatewayLabel ?? payment.gateway} />
             <Separator />
-            <DetailField label="Razorpay Payment ID" value={payment.razorpayPaymentId ?? "—"} mono copyable={!!payment.razorpayPaymentId} />
+            <DetailField label={`${gatewayName} Order ID`} value={payment.gatewayOrderId ?? "—"} mono copyable={!!payment.gatewayOrderId} />
+            <Separator />
+            <DetailField label={`${gatewayName} Payment ID`} value={payment.gatewayPaymentId ?? "—"} mono copyable={!!payment.gatewayPaymentId} />
             <Separator />
             <DetailField label="Payment Context" value={<Badge variant="outline" className="text-xs">{payment.contextLabel}</Badge>} />
             <Separator />
@@ -382,8 +388,8 @@ export default function AdminPaymentDetailView({ paymentOrderId }: AdminPaymentD
             <DetailField label="Booking ID" value={payment.contextEntityId} mono copyable />
             <Separator />
             <DetailField label="Currency" value={payment.currency} />
-            {payment.razorpayRefundId && (
-              <><Separator /><DetailField label="Refund ID" value={payment.razorpayRefundId} mono copyable /></>
+            {payment.gatewayRefundId && (
+              <><Separator /><DetailField label="Refund ID" value={payment.gatewayRefundId} mono copyable /></>
             )}
           </CardContent>
         </Card>
@@ -406,20 +412,20 @@ export default function AdminPaymentDetailView({ paymentOrderId }: AdminPaymentD
               <><DetailField label="Discount" value="None" /><Separator /></>
             )}
             <DetailField
-              label="Razorpay Fee"
-              value={payment.razorpayFee != null && payment.razorpayFee > 0 ? formatAmount(payment.razorpayFee, payment.currency) : "—"}
+              label={`${gatewayName} Fee`}
+              value={payment.gatewayFeeMinor != null && payment.gatewayFeeMinor > 0 ? formatAmount(payment.gatewayFeeMinor, payment.currency) : "—"}
             />
             <Separator />
             <DetailField
               label="Tax (GST on Fee)"
-              value={payment.razorpayTax != null && payment.razorpayTax > 0 ? formatAmount(payment.razorpayTax, payment.currency) : "—"}
+              value={payment.gatewayTaxMinor != null && payment.gatewayTaxMinor > 0 ? formatAmount(payment.gatewayTaxMinor, payment.currency) : "—"}
             />
-            {payment.razorpayFee != null && payment.razorpayFee > 0 && (
+            {payment.gatewayFeeMinor != null && payment.gatewayFeeMinor > 0 && (
               <>
                 <Separator />
                 <DetailField
                   label="Net Settlement"
-                  value={<span className="font-semibold">{formatAmount(payment.amountMinor - payment.razorpayFee, payment.currency)}</span>}
+                  value={<span className="font-semibold">{formatAmount(payment.amountMinor - payment.gatewayFeeMinor, payment.currency)}</span>}
                 />
               </>
             )}
@@ -528,8 +534,8 @@ export default function AdminPaymentDetailView({ paymentOrderId }: AdminPaymentD
                   payment.refundAmountMinor != null && payment.refundAmountMinor > 0
                     ? `Amount: ${formatAmount(payment.refundAmountMinor, payment.currency)}`
                     : null,
-                  payment.razorpayRefundId
-                    ? `Refund ID: ${payment.razorpayRefundId}`
+                  payment.gatewayRefundId
+                    ? `Refund ID: ${payment.gatewayRefundId}`
                     : null,
                 ].filter(Boolean).join(" · ") || undefined}
               />

@@ -66,15 +66,34 @@ export interface CommerceOrderRow {
   buyerName: string | null
   /** The buyer's public handle. Their email is no longer returned on this response at all. */
   buyerUsername: string | null
+  /**
+   * The BUYER's charge currency. `basePriceMinor`, `discountAmountMinor`, `listAmountMinor`,
+   * `buyerPlatformFeeMinor`, `grossAmountMinor` and every refund figure are in this.
+   */
   currency: string
   currencySymbol: string
+  /**
+   * The MENTOR's earning currency. `platformFeeMinor`, `taxMinor`, `mentorNetMinor` and
+   * `mentorListAmountMinor` are in this - never in `currency`. The two coincide on a same-currency
+   * order, which is most of them, and rendering a payout with the buyer's symbol is how ₹71,910
+   * becomes $71,910.
+   */
+  mentorCurrency: string
+  mentorCurrencySymbol: string
+  /** The service price before any coupon, in `currency`. */
   basePriceMinor: number
+  /** The buyer's coupon deduction, in `currency` - not the mentor-side figure. */
   discountAmountMinor: number
   couponCode: string | null
   listAmountMinor: number
   buyerPlatformFeeMinor: number
   buyerPlatformFeeType: string | null
   grossAmountMinor: number
+  /**
+   * What the mentor sold, in `mentorCurrency`. Since V234 this - not `listAmountMinor` - is what
+   * `mentorNetMinor` is derived from, and what `ck_commerce_order_mentor_net_identity` checks.
+   */
+  mentorListAmountMinor: number
   platformFeeMinor: number
   platformFeePercentage: number
   taxMinor: number
