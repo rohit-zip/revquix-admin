@@ -1,5 +1,6 @@
 "use client"
 
+import { Suspense } from "react"
 import PageGuard from "@/components/page-guard"
 import AdminDisputeVerificationView from "@/features/mentorship-v2/admin-dispute-verification-view"
 
@@ -15,11 +16,18 @@ import AdminDisputeVerificationView from "@/features/mentorship-v2/admin-dispute
  * (V190), enforced server-side. A reviewer holding only the read permission sees the whole console
  * and gets a clean 403 on the action buttons, which is better than hiding controls whose absence
  * would be confusing.
+ *
+ * The `Suspense` boundary is required, not decorative: the view reads `?disputeId=` through
+ * `useSearchParams` so the admin dispute-alert emails can deep-link straight into one dispute, and
+ * that hook has nothing to return while this route is being prerendered. Same pattern the auth pages
+ * already use for the same reason.
  */
 export default function MentorshipV2DisputesPage() {
   return (
     <PageGuard>
-      <AdminDisputeVerificationView />
+      <Suspense fallback={null}>
+        <AdminDisputeVerificationView />
+      </Suspense>
     </PageGuard>
   )
 }

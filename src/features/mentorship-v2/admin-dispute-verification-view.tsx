@@ -30,6 +30,7 @@
  */
 
 import { useState } from "react"
+import { useSearchParams } from "next/navigation"
 import {
   AlertTriangle,
   CheckCircle2,
@@ -114,8 +115,16 @@ export default function AdminDisputeVerificationView() {
     size: 25,
   })
 
-  const [disputeIdInput, setDisputeIdInput] = useState("")
-  const [activeDisputeId, setActiveDisputeId] = useState("")
+  /*
+    `?disputeId=` opens the inspector straight onto one dispute. The admin alert emails link here,
+    and without this they would land on a queue with a lookup box and a reference to paste into it -
+    which is a link people stop clicking. Read once as the initial state rather than synced: an
+    admin who then looks at a different dispute should not have it yanked back by the URL.
+  */
+  const searchParams = useSearchParams()
+  const linkedDisputeId = searchParams.get("disputeId")?.trim() ?? ""
+  const [disputeIdInput, setDisputeIdInput] = useState(linkedDisputeId)
+  const [activeDisputeId, setActiveDisputeId] = useState(linkedDisputeId)
 
   const invariantsBroken = (snapshot?.invariantViolations.length ?? 0) > 0
 
