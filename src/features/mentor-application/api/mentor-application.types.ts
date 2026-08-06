@@ -73,8 +73,9 @@ export interface MentorApplicationResponse {
   userEmail: string
   headline: string
   /**
-   * Profile bio snapshot. Nullable: a bio is not an application requirement, so an
-   * applicant can legitimately have submitted without one.
+   * Profile bio snapshot. Bio is a required application field. Stays nullable in
+   * the type only because legacy applications submitted while bio was relaxed to
+   * optional can still have one on record.
    */
   bio: string | null
   linkedinUrl: string

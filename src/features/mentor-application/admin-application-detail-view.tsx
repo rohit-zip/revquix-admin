@@ -364,10 +364,12 @@ export default function AdminApplicationDetailView({
             </CardHeader>
             <CardContent>
               {!app.bio || app.bio.trim() === "" ? (
-                // A bio is no longer an application requirement, so "absent" is a normal
-                // outcome and needs to read as one rather than as an empty card.
+                // Bio is a required application field, so an absent bio here means this
+                // application was submitted while that requirement was relaxed (legacy
+                // data) rather than something a new applicant can still do.
                 <p className="text-sm italic text-muted-foreground">
-                  The applicant has not added a bio. This is optional and does not block approval.
+                  The applicant has not added a bio. Bio is required for new applications;
+                  this is a legacy application submitted before that requirement applied.
                 </p>
               ) : isSanitisedHtml(app.bio) ? (
                 // Rich-text path — HTML is sanitised server-side (BioHtmlSanitiserService)
