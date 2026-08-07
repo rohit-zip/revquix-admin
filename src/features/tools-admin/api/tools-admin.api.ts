@@ -33,6 +33,8 @@ import type {
   AdminContentLibraryStatus,
   AdminCreditAdjustmentRequest,
   AdminFraudQueue,
+  AdminReferralDecisionRequest,
+  AdminReferralReview,
   AdminFreeQuotaOverrideRequest,
   AdminGuardrailStatus,
   AdminIpHashLookupRequest,
@@ -278,6 +280,34 @@ export const whitelistSubject = (
 ): Promise<AdminAdjustmentResult> =>
   apiClient
     .post<AdminAdjustmentResult>(`${TOOLS}/fraud/whitelist`, payload)
+    .then((r) => r.data);
+
+// ─── Referral review ─────────────────────────────────────────────────────────
+
+/**
+ * Referrals awaiting a human decision, plus the funnel that says whether the guard's thresholds
+ * are right. This queue is what makes granting on conversion safe: an ambiguous signal is held for
+ * review rather than silently refused, which is only an improvement if someone can see it.
+ */
+export const getReferralReview = (): Promise<AdminReferralReview> =>
+  apiClient
+    .get<AdminReferralReview>(`${TOOLS}/referrals/review`)
+    .then((r) => r.data);
+
+/** Pays a held referral. Re-runs the ordinary grant with the heuristic rules suppressed. */
+export const releaseReferral = (
+  payload: AdminReferralDecisionRequest,
+): Promise<{ attemptId: string; granted: boolean }> =>
+  apiClient
+    .post<{ attemptId: string; granted: boolean }>(`${TOOLS}/referrals/release`, payload)
+    .then((r) => r.data);
+
+/** Refuses a held referral. Terminal, and silent to both parties. */
+export const rejectReferral = (
+  payload: AdminReferralDecisionRequest,
+): Promise<{ attemptId: string; status: string }> =>
+  apiClient
+    .post<{ attemptId: string; status: string }>(`${TOOLS}/referrals/reject`, payload)
     .then((r) => r.data);
 
 // ─── §8.5 / §8.6 / §8.8 Governance ───────────────────────────────────────────

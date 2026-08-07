@@ -174,20 +174,20 @@ export default function AdminApplicationDetailView({
 
   // ── Mutations ──────────────────────────────────────────────────────────────
   const approveMutation = useApproveApplication(() =>
-    router.push(PATH_CONSTANTS.ADMIN_MENTOR_APPLICATIONS)
+    router.push(PATH_CONSTANTS.ADMIN_PM_APPLICATIONS)
   )
   const rejectMutation = useRejectApplication(() => {
     setRejectDialogOpen(false)
     setRejectionReason("")
-    router.push(PATH_CONSTANTS.ADMIN_MENTOR_APPLICATIONS)
+    router.push(PATH_CONSTANTS.ADMIN_PM_APPLICATIONS)
   })
   const permRejectMutation = usePermanentlyRejectApplication(() => {
     setPermRejectDialogOpen(false)
     setRejectionReason("")
-    router.push(PATH_CONSTANTS.ADMIN_MENTOR_APPLICATIONS)
+    router.push(PATH_CONSTANTS.ADMIN_PM_APPLICATIONS)
   })
   const revokeMutation = useRevokeMentor(() =>
-    router.push(PATH_CONSTANTS.ADMIN_MENTOR_APPLICATIONS)
+    router.push(PATH_CONSTANTS.ADMIN_PM_APPLICATIONS)
   )
 
   // ── Resolve category & skill names ─────────────────────────────────────────
@@ -246,7 +246,7 @@ export default function AdminApplicationDetailView({
           variant="ghost"
           size="icon"
           className="mt-0.5 shrink-0"
-          onClick={() => router.push(PATH_CONSTANTS.ADMIN_MENTOR_APPLICATIONS)}
+          onClick={() => router.push(PATH_CONSTANTS.ADMIN_PM_APPLICATIONS)}
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>

@@ -90,11 +90,11 @@ export default function AdminCallVerificationView() {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-xl font-semibold">
-            <Video className="size-5" /> Mentorship V2 — Call Lifecycle & Feedback (Phase 4/5)
+            <Video className="size-5" /> Sessions engine
           </h1>
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
             Verification surface for meeting links, join evidence, reminders, attendance,
-            auto-completion (Phase 4) and mock-interview structured feedback (Phase 5). Almost
+            auto-completion and mock-interview structured feedback. Almost
             everything here is normally driven by time passing — the sweep button runs the same
             code the scheduler runs, so it can be verified in seconds instead of a day.
           </p>
@@ -232,11 +232,11 @@ export default function AdminCallVerificationView() {
             </CardContent>
           </Card>
 
-          {/* ── 3. Feedback (Phase 5) ── */}
+          {/* ── 3. Feedback ── */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
-                <ClipboardList className="size-4" /> Mock-interview feedback (Phase 5)
+                <ClipboardList className="size-4" /> Mock-interview feedback
               </CardTitle>
               <CardDescription>
                 Reminders fire at {snapshot.feedbackReminderFirstPercentage}% and{" "}
@@ -262,9 +262,13 @@ export default function AdminCallVerificationView() {
               </div>
               <p className="text-xs text-muted-foreground">
                 On a breach: the booking moves <code>FEEDBACK_PENDING → DISPUTED</code>, the
-                mentor&apos;s payout for the session is held, and their reliability record is
-                penalised — mirroring the same three actions the legacy mock-interview flow
-                already took for a missed feedback report, reused rather than duplicated.
+                mentor&apos;s payout for the session is held, their reliability record is penalised,
+                and a <code>FEEDBACK_NOT_SUBMITTED</code> dispute is opened by the platform —
+                mirroring the same four actions the legacy mock-interview flow already took for a
+                missed feedback report, reused rather than duplicated. The dispute is where these
+                are undone: resolving it is what releases the payout and moves the booking off
+                <code>DISPUTED</code>, so a breached booking should always have one in the Disputes
+                queue.
               </p>
             </CardContent>
           </Card>

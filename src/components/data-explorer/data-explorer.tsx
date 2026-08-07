@@ -73,7 +73,6 @@ import {
 } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
 // ─── Column definition ───────────────────────────────────────────────────────
 
@@ -278,9 +277,18 @@ export function DataExplorer<T>({
         />
       </div>
 
-      {/* ── Table ───────────────────────────────────────────────────────── */}
+      {/*
+        ── Table ─────────────────────────────────────────────────────────
+        No ScrollArea wrapper. `<Table>` already renders its own
+        `relative w-full overflow-x-auto` container, and nesting that inside a Radix ScrollArea
+        viewport broke horizontal scrolling outright: the inner div absorbed the overflow, so the
+        viewport never overflowed, so ScrollArea's horizontal ScrollBar never activated — and the
+        inner scroller was clipped by the viewport's `size-full`. The result was a table whose
+        right-hand columns were unreachable by any means. Wide tables (disputes, sessions, orders,
+        payouts) all lost their last column or two to this.
+      */}
       <div className="rounded-lg border">
-        <ScrollArea className="w-full">
+        <div className="w-full">
           <Table>
             <TableHeader>
               <TableRow>
@@ -360,8 +368,7 @@ export function DataExplorer<T>({
               )}
             </TableBody>
           </Table>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        </div>
       </div>
 
       {/* ── Pagination ──────────────────────────────────────────────────── */}

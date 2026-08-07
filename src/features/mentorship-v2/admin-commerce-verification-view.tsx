@@ -97,7 +97,7 @@ export default function AdminCommerceVerificationView() {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-xl font-semibold">
-            <Receipt className="size-5" /> Mentorship V2 — Commerce &amp; Checkout (Phase 3)
+            <Receipt className="size-5" /> Commerce engine
           </h1>
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
             Verification surface for the checkout, webhook, reservation, refund and payout paths.

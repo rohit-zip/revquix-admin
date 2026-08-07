@@ -17,6 +17,7 @@
 "use client"
 
 import React from "react"
+import Link from "next/link"
 import { AlertTriangle, CheckCircle2, Flag, ShieldOff } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -30,7 +31,6 @@ import {
   ConstraintNote,
   IdCell,
   OutcomeBadge,
-  PendingPhasePanel,
   ScreenHeader,
   SectionCard,
   StatCard,
@@ -312,12 +312,65 @@ export default function AdminToolFraudView() {
               </SectionCard>
             </TabsContent>
 
+            {/*
+              A summary, not a decision surface. Acting on a referral needs the per-attempt detail
+              — which rule fired, the referrer's full history, both emails — and that lives on the
+              dedicated review queue. This panel exists so someone scanning abuse signals across the
+              whole platform sees referral farming alongside the others rather than having to know
+              to go looking for it.
+
+              Ranked by blocked count rather than total: a referrer with thirty conversions and one
+              hold is the programme working, and would otherwise sit at the top of the list.
+            */}
             <TabsContent value="referral" className="mt-4">
-              <PendingPhasePanel
-                title="Referral abuse clusters"
-                phase="P12"
-                reason={data.referralUnavailableReason ?? "Not available."}
-              />
+              <SectionCard
+                title="Referrers with blocked attempts"
+                description="Summary only. Decisions are made on the referral review queue, which carries the per-attempt detail."
+                actions={
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/tools/referrals">Open review queue</Link>
+                  </Button>
+                }
+              >
+                {data.referralClusters.length === 0 ? (
+                  <EmptyRow text="No referrer currently has a held attempt." />
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Referrer</TableHead>
+                        <TableHead className="text-right">Referrals</TableHead>
+                        <TableHead className="text-right">Blocked</TableHead>
+                        <TableHead>Latest rule</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data.referralClusters.map((row) => (
+                        <TableRow key={row.referrerUserId}>
+                          <TableCell>
+                            <IdCell value={row.referrerUserId} />
+                          </TableCell>
+                          <TableCell className="text-right text-xs tabular-nums">
+                            {row.refereeCount}
+                          </TableCell>
+                          <TableCell className="text-right text-xs tabular-nums font-semibold">
+                            {row.rejectedCount}
+                          </TableCell>
+                          <TableCell>
+                            {row.reasonCode ? (
+                              <Badge variant="secondary" className="font-mono text-[11px]">
+                                {row.reasonCode}
+                              </Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </SectionCard>
             </TabsContent>
 
             <TabsContent value="triage" className="mt-4">

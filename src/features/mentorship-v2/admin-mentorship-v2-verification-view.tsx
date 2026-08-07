@@ -121,7 +121,7 @@ export default function AdminMentorshipV2VerificationView() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Professional Mentor V2 — Phase 0 Verification</h1>
+        <h2 className="text-lg font-semibold">Foundations &amp; rollout flag</h2>
         <p className="text-muted-foreground">
           Internal, admin-only tool to visually confirm the Phase 0 foundations built for
           Professional Mentor V2: schema health, seeded pricing reference data, and a live

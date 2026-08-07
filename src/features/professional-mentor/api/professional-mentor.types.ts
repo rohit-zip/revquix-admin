@@ -359,6 +359,15 @@ export interface MentorPayoutResponse {
    * the buyer's dispute window was open, so a dispute upheld afterwards found the money already gone.
    */
   processable: boolean | null
+  /**
+   * Whether the mentor has a VERIFIED payout account — i.e. whether there is anywhere to send it.
+   *
+   * Distinct from `processable`, which answers "has the dispute window closed and did the session
+   * happen". A payout can be perfectly processable and still unpayable, and that combination was
+   * invisible: the queue showed an amount and a green stage with no bank account behind it.
+   * `bulkProcessPayouts` refuses these server-side; this is so an operator sees why before clicking.
+   */
+  payoutAccountVerified: boolean | null
   /** The V2 commerce order behind this payout. Null for legacy V1 payouts. */
   commerceOrderId: string | null
   /** Service title for V2 payouts. */

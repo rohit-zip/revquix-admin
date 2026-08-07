@@ -134,7 +134,7 @@ export default function AdminAvailabilityVerificationView() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">Mentorship V2 — Availability (Phase 1)</h1>
+        <h2 className="text-lg font-semibold">Availability engine</h2>
         <p className="text-sm text-muted-foreground">
           Verification tools for the availability engine: run it for any mentor, read the step-by-step
           trace, prove the database rejects double-bookings, and round-trip a Google Calendar event.

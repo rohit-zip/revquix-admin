@@ -59,7 +59,7 @@ export default function AdminPricingVerificationView() {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-xl font-semibold">
-            <Globe2 className="size-5" /> Mentorship V2 — Currency &amp; Country Pricing (Phase 8)
+            <Globe2 className="size-5" /> Pricing zones &amp; FX
           </h1>
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
             The purchasing-power multiplier ladder, the country map it is applied through, and the FX

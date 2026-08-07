@@ -97,10 +97,10 @@ export default function AdminSemanticVerificationView() {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-xl font-semibold">
-            <Brain className="size-5" /> Mentorship V2 — Semantic Search (Phase 10)
+            <Brain className="size-5" /> Semantic search
           </h1>
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-            A second retriever alongside Phase 9&apos;s keyword search: a 384-dimension embedding per listing,
+            A second retriever alongside the keyword search: a 384-dimension embedding per listing,
             an HNSW index, and Reciprocal Rank Fusion merging the two rank lists. Everything here is
             <strong> off by default</strong> and degrades to keyword search when unavailable — the phase&apos;s
             own exit criterion allows the answer &ldquo;keep V1&rdquo;.
@@ -194,7 +194,7 @@ export default function AdminSemanticVerificationView() {
                   <AlertDescription className="space-y-2">
                     <p>{snapshot.unavailableReason}</p>
                     <p className="text-xs">
-                      This is a <strong>supported state</strong>, not a fault. The marketplace runs Phase 9
+                      This is a <strong>supported state</strong>, not a fault. The marketplace runs the
                       keyword search with no errors. To enable semantic search: set{" "}
                       <code>POSTGRES_IMAGE=pgvector/pgvector:pg15</code>, recreate the postgres container, run{" "}
                       <code>REINDEX DATABASE …</code> once (the collation changes musl → glibc, and text index
@@ -444,7 +444,7 @@ export default function AdminSemanticVerificationView() {
                 V1 vs V2 — the only panel that decides anything
               </CardTitle>
               <CardDescription>
-                Phase 10&apos;s exit criterion: <strong>V2 beats V1 on booking conversion, or V1 is kept and V2
+                The exit criterion: <strong>V2 beats V1 on booking conversion, or V1 is kept and V2
                 is shelved.</strong> Everything above this panel tells you whether semantic search is built
                 correctly. Only this table tells you whether it is <em>better</em>, and it stays empty until
                 real traffic has been served by the treatment arm. Do not ship on aesthetics.
@@ -572,7 +572,7 @@ export default function AdminSemanticVerificationView() {
                 Run all three now
               </Button>
               <p className="text-xs text-muted-foreground">
-                Mined synonym rules are written <strong>inactive</strong> and live in the Phase 9 search console
+                Mined synonym rules are written <strong>inactive</strong> and live in the Search tab
                 at <code>/mentorship-v2/search</code>, where they can be reviewed and enabled alongside the
                 hand-written ones. An automated job must not change live search behaviour without a human.
               </p>

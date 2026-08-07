@@ -28,6 +28,7 @@
 import { useState, useCallback, useMemo } from "react"
 import {
   AlertTriangle,
+  Ban,
   CheckCircle2,
   Clock,
   Loader2,
@@ -131,6 +132,7 @@ const columns: DataColumn<MentorPayoutResponse>[] = [
   { key: "commissionPercentage", header: "Comm.", sortable: false },
   { key: "status", header: "Payout Status", sortable: true },
   { key: "payoutStage", header: "Stage", sortable: false },
+  { key: "payable", header: "Payable", sortable: false },
   { key: "sessionStatus", header: "Session Status", sortable: false },
   { key: "createdAt", header: "Date", sortable: true },
   { key: "actions", header: "", sortable: false },
@@ -632,6 +634,12 @@ export default function AdminPayoutsView() {
               <TableCell className="text-xs">
                 <div className="flex items-center gap-1.5">
                   <span className="font-medium">{payout.mentorName ?? "—"}</span>
+                  {payout.payoutAccountVerified === false && (
+                    <Ban
+                      className="h-3.5 w-3.5 text-destructive shrink-0"
+                      aria-label="No verified payout account"
+                    />
+                  )}
                   {needsReview && (
                     <AlertTriangle
                       className="h-3.5 w-3.5 text-amber-500 shrink-0"
@@ -690,6 +698,27 @@ export default function AdminPayoutsView() {
                     </span>
                   ) : null}
                 </div>
+              </TableCell>
+
+              {/*
+                Payable is NOT the same question as the stage beside it. The stage answers "has the
+                dispute window closed and did the session happen"; this answers "is there anywhere to
+                send the money". A payout can be perfectly processable and still unpayable — which
+                was the actual state of every payout in this queue until the account check existed.
+                bulk-process refuses these server-side; the column is so an operator sees it first.
+              */}
+              <TableCell>
+                {payout.payoutAccountVerified === false ? (
+                  <span className="inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-medium text-destructive">
+                    <Ban className="h-3 w-3" aria-hidden="true" /> no account
+                  </span>
+                ) : payout.payoutAccountVerified ? (
+                  <span className="inline-flex items-center gap-1 whitespace-nowrap text-[11px] text-emerald-600">
+                    <CheckCircle2 className="h-3 w-3" aria-hidden="true" /> verified
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-muted-foreground">—</span>
+                )}
               </TableCell>
 
               <TableCell>

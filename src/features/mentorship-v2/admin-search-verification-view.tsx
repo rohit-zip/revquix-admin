@@ -91,7 +91,7 @@ export default function AdminSearchVerificationView() {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-xl font-semibold">
-            <Search className="size-5" /> Mentorship V2 — Marketplace &amp; Search (Phase 9)
+            <Search className="size-5" /> Marketplace &amp; search
           </h1>
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
             The denormalised search projection, the query pipeline that reads it, and the automated
@@ -379,7 +379,7 @@ export default function AdminSearchVerificationView() {
               <CardTitle className="text-base">Query analytics (last 30 days)</CardTitle>
               <CardDescription>
                 Zero-result queries are, in the master plan’s own words, the single most valuable product
-                input this system produces — and they are the literal input to Phase 10’s synonym-mining
+                input this system produces — and they are the literal input to the semantic layer’s synonym-mining
                 job. The variant table works with one variant today on purpose: it means the V1 baseline
                 is already measured on the day the hybrid experiment starts.
               </CardDescription>

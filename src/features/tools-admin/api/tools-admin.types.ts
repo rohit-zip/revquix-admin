@@ -445,13 +445,25 @@ export interface FraudThresholds {
   windowDays: number;
 }
 
+export interface FraudReferralClusterRow {
+  referrerUserId: string;
+  /** Every attempt this referrer has produced, in any status. */
+  refereeCount: number;
+  /** How many were rejected or are held. Ranked on this, not on the total - a referrer with
+   *  thirty conversions and one hold is the programme working, and would otherwise top the list. */
+  rejectedCount: number;
+  /** The most recent rule to fire. Per-attempt detail lives in the referral review queue. */
+  reasonCode: string | null;
+}
+
 export interface AdminFraudQueue {
   negativeBalances: FraudNegativeBalanceRow[];
   abnormalRunRates: FraudAbnormalRateRow[];
   ipClusters: FraudIpClusterRow[];
   quotaExhaustion: FraudQuotaExhaustionRow[];
   recentTriage: AdminAuditRow[];
-  referralClusters: unknown[];
+  referralClusters: FraudReferralClusterRow[];
+  /** Non-null only while the panel cannot be computed. Now always null. */
   referralUnavailableReason: string | null;
   ipCorrelationNote: string;
   thresholds: FraudThresholds;
@@ -688,3 +700,79 @@ export interface AdminAuditRow {
 export type AdminLedgerPage = GenericFilterResponse<AdminLedgerEntry>;
 export type AdminRunPage = GenericFilterResponse<AdminRunRow>;
 export type AdminAuditPage = GenericFilterResponse<AdminAuditRow>;
+
+// ─── Referral review ─────────────────────────────────────────────────────────
+
+/** Which rule the guard fired. Mirrors `ReferralRejectionReason`. */
+export type ReferralRejectionReason =
+  | "SELF_REFERRAL"
+  | "EMAIL_ROOT_MATCH"
+  | "IP_HASH_MATCH"
+  | "DEVICE_HASH_MATCH"
+  | "RUN_IP_OVERLAP"
+  | "VELOCITY_EXCEEDED"
+  | "REFERRER_NOT_ESTABLISHED"
+  | "MONTHLY_CAP_EXCEEDED"
+  | "REFERRER_NOT_FOUND";
+
+export type ReferralAttemptStatus =
+  | "PENDING"
+  | "ELIGIBLE"
+  | "HELD"
+  | "GRANTED"
+  | "REJECTED";
+
+/**
+ * One referral awaiting a human decision.
+ *
+ * The referrer-history counts are the part that turns a signal into a judgement: the tripped rule
+ * alone cannot tell a household apart from a farm. One held attempt from someone with one other
+ * referral is a flatmate; the same rule firing on their ninth is a pattern.
+ */
+export interface AdminReferralReviewRow {
+  attemptId: string;
+  referrerUserId: string;
+  referrerEmail: string | null;
+  refereeUserId: string;
+  refereeEmail: string | null;
+  reasonCode: ReferralRejectionReason | null;
+  referralSource: string | null;
+  createdAt: string;
+  referrerTotalAttempts: number;
+  referrerGrantedAttempts: number;
+  referrerBlockedAttempts: number;
+  sharedRegistrationIp: boolean;
+  sharedDevice: boolean;
+}
+
+export interface AdminReferralRuleCount {
+  status: ReferralAttemptStatus;
+  reasonCode: ReferralRejectionReason;
+  count: number;
+}
+
+export interface AdminReferralGuardConfig {
+  monthlyCap: number;
+  /** 0 = credits land on conversion. Non-zero is the fraud-wave lever. */
+  grantDelayHours: number;
+  ipMatchAction: "HOLD" | "REJECT";
+  velocityPerHour: number;
+  velocityPerDay: number;
+  referrerMinAccountAgeHours: number;
+  requireReferrerHasRun: boolean;
+}
+
+export interface AdminReferralReview {
+  held: AdminReferralReviewRow[];
+  statusCounts: Record<ReferralAttemptStatus, number>;
+  /** Read this before tuning any threshold - a spike in IP_HASH_MATCH is usually one campus. */
+  rejectionsByRule: AdminReferralRuleCount[];
+  windowDays: number;
+  guardConfig: AdminReferralGuardConfig;
+}
+
+export interface AdminReferralDecisionRequest {
+  attemptId: string;
+  /** Mandatory. For a rejection it is the only explanation that will ever exist. */
+  reason: string;
+}

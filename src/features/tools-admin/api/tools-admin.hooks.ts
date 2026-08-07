@@ -23,6 +23,9 @@ import {
   getContentLibraryStatus,
   getCreditGuardrails,
   getFraudQueue,
+  getReferralReview,
+  releaseReferral,
+  rejectReferral,
   getRubricDistribution,
   getToolAuditBatch,
   getToolAuditRow,
@@ -46,6 +49,7 @@ import {
   whitelistSubject,
 } from "./tools-admin.api";
 import type {
+  AdminReferralDecisionRequest,
   AdminAdjustmentResult,
   AdminBulkGrantRequest,
   AdminCreditAdjustmentRequest,
@@ -71,6 +75,7 @@ export const toolsAdminKeys = {
     ["tools-admin", "spend", from ?? "", to ?? "", brand ?? "REVQUIX"] as const,
   fraud: (brand?: string) =>
     ["tools-admin", "fraud", brand ?? "REVQUIX"] as const,
+  referralReview: () => ["tools-admin", "referral-review"] as const,
   pricing: ["tools-admin", "pricing"] as const,
   passes: (userId: string) => ["tools-admin", "passes", userId] as const,
   rubric: (toolKey?: string, before?: string, after?: string) =>
@@ -382,6 +387,57 @@ export function useMarkSubjectAbuse() {
     onSuccess: (result) => {
       invalidate();
       toastForOutcome(result);
+    },
+    onError: (error) => showErrorToast(error),
+  });
+}
+
+// ─── Referral review ─────────────────────────────────────────────────────────
+
+/**
+ * The held-referral queue and the guard's funnel.
+ *
+ * A shorter `staleTime` than the other admin reads: two admins working the same queue is the normal
+ * case, and a minute-old list means the second one clicks an attempt the first already decided. The
+ * server answers that with a 409 rather than a double-grant, but meeting a conflict is a worse
+ * experience than not seeing the row.
+ */
+export function useReferralReview() {
+  return useQuery({
+    queryKey: toolsAdminKeys.referralReview(),
+    queryFn: getReferralReview,
+    staleTime: 15 * 1000,
+  });
+}
+
+export function useReleaseReferral() {
+  const invalidate = useInvalidateToolsAdmin();
+  return useMutation({
+    mutationFn: (payload: AdminReferralDecisionRequest) => releaseReferral(payload),
+    onSuccess: (result) => {
+      invalidate();
+      // `granted: false` is a real outcome, not a failure: a structural rule (self-referral, same
+      // mailbox) survives an override by design. Saying so plainly beats a success toast for a
+      // payment that did not happen.
+      if (result.granted) {
+        showSuccessToast("Referral released and paid");
+      } else {
+        showSuccessToast(
+          "Recorded, but not paid - a structural rule (same person or same mailbox) cannot be overridden",
+        );
+      }
+    },
+    onError: (error) => showErrorToast(error),
+  });
+}
+
+export function useRejectReferral() {
+  const invalidate = useInvalidateToolsAdmin();
+  return useMutation({
+    mutationFn: (payload: AdminReferralDecisionRequest) => rejectReferral(payload),
+    onSuccess: () => {
+      invalidate();
+      showSuccessToast("Referral rejected");
     },
     onError: (error) => showErrorToast(error),
   });

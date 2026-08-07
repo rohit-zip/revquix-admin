@@ -171,7 +171,7 @@ export default function AdminApplicationReview() {
             key={app.applicationId}
             className="cursor-pointer hover:bg-accent/50 transition-colors"
             onClick={() => {
-              router.push(`${PATH_CONSTANTS.ADMIN_MENTOR_APPLICATIONS}/${app.applicationId}`)
+              router.push(`${PATH_CONSTANTS.ADMIN_PM_APPLICATIONS}/${app.applicationId}`)
             }
           }
           >

@@ -1,13 +1,24 @@
 "use client"
 
-import PageGuard from "@/components/page-guard"
-import MentorCouponManagement from "@/features/professional-mentor/mentor-coupon-management"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { Loader2 } from "lucide-react"
+import { PATH_CONSTANTS } from "@/core/constants/path-constants"
 
-export default function CouponsPage() {
+/**
+ * Moved: coupons now live under the Professional Mentor section.
+ *
+ * Kept because this path is bookmarked. `replace`, not `push`, so the back button does not bounce.
+ */
+export default function Page() {
+  const router = useRouter()
+  useEffect(() => {
+    router.replace(PATH_CONSTANTS.ADMIN_PM_COUPONS)
+  }, [router])
+
   return (
-    <PageGuard>
-      <MentorCouponManagement />
-    </PageGuard>
+    <p className="flex items-center justify-center gap-2 py-20 text-sm text-muted-foreground">
+      <Loader2 className="size-4 animate-spin" /> Redirecting…
+    </p>
   )
 }
-

@@ -69,7 +69,7 @@ export default function AdminPackageVerificationView() {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-xl font-semibold">
-            <Package className="size-5" /> Mentorship V2 — Packages &amp; Entitlements (Phase 6)
+            <Package className="size-5" /> Packages engine
           </h1>
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
             Verification surface for the entitlement ledger, redemption-driven escrow release, the

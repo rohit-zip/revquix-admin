@@ -97,7 +97,7 @@ export default function AdminServiceCatalogVerificationView() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">Mentorship V2 — Service Catalog (Phase 2)</h1>
+        <h2 className="text-lg font-semibold">Catalogue tools</h2>
         <p className="text-sm text-muted-foreground">
           Verification tools for the service catalog: what exists across the platform, whether any
           given service can publish, whether the description sanitiser actually strips attacks, and

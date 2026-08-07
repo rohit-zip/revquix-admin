@@ -15,6 +15,7 @@ import {
 import { useAuth } from "@/hooks/useAuth"
 import { useLogout } from "@/features/auth/api/auth.hooks"
 import { NotificationCenterButton } from "@/components/dashboard/notification-center-button"
+import { ReferenceLookup } from "@/components/dashboard/reference-lookup"
 
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || "http://localhost:2000"
 
@@ -86,6 +87,12 @@ export function DashboardTopbar(_props: DashboardTopbarProps) {
       <SidebarTrigger className="-ml-1" />
 
       <div className="ml-auto flex items-center gap-2">
+        {/*
+          Paste any BKG/ORD/DSP/MSV/PEN/MPO reference and land on its page. In the topbar because
+          it is the first thing an operator does in a support interaction, and a lookup that lived on
+          a page would just be another page to navigate to first.
+        */}
+        <ReferenceLookup />
         <NotificationCenterButton />
         <TopbarUserMenu />
       </div>

@@ -165,7 +165,7 @@ export default function AdminCutoverVerificationView() {
         <div className="flex items-start gap-3">
           <ArrowRightLeft className="mt-0.5 size-6 text-muted-foreground" />
           <div>
-            <h1 className="text-xl font-semibold">Mentorship V2 — Phase 11 Migration &amp; Cutover</h1>
+            <h2 className="text-lg font-semibold">Migration &amp; cutover</h2>
             <p className="text-sm text-muted-foreground">
               Legacy backfill, the dual-run blocking bridge, revenue reconciliation across the boundary,
               and decommission readiness.

@@ -29,21 +29,40 @@ export const PATH_CONSTANTS = {
   ADMIN_ROLE: "/roles",
   ADMIN_ROLE_ASSIGN: "/roles/assign",
 
-  // ── Mock Interview Admin ──────────────────────────────────────────────────
-  ADMIN_MENTOR_APPLICATIONS: "/mentor-applications",
-  ADMIN_MENTOR_APPLICATION_DETAIL: "/mentor-applications",
-  ADMIN_MOCK_BOOKINGS: "/mock-bookings",
-  ADMIN_HOURLY_BOOKINGS: "/hourly-bookings",
-  ADMIN_COUPONS: "/coupons",
-  ADMIN_SESSION_DISPUTES: "/session-disputes",
+  // ── Support ───────────────────────────────────────────────────────────────
   ADMIN_CONTACT_QUERIES: "/contact-queries",
-  ADMIN_PROFESSIONAL_MENTORS: "/professional-mentor/mentors",
+
+  // ── Professional Mentor ───────────────────────────────────────────────────
+  //
+  // One section, ten routes. This replaces both the old nine-item "Professional Mentor" section
+  // (built for V1, three of whose pages were windows onto empty tables) and the twelve-item
+  // "Professional Mentor V2" section of per-phase verification consoles.
+  //
+  // The path is `/professional-mentor` rather than `/mentorship-v2` because V2 *is* Professional
+  // Mentor now — a version number in a URL an operator reads is the same leak as a phase number in
+  // a nav label. The old paths redirect; see `src/app/(protected)/(dash)/mentorship-v2`.
+  ADMIN_PM_HOME: "/professional-mentor",
+  ADMIN_PM_DISPUTES: "/professional-mentor/disputes",
+  ADMIN_PM_SESSIONS: "/professional-mentor/sessions",
+  ADMIN_PM_ORDERS: "/professional-mentor/orders",
+  ADMIN_PM_SERVICES: "/professional-mentor/services",
+  ADMIN_PM_MENTORS: "/professional-mentor/mentors",
+  ADMIN_PM_APPLICATIONS: "/professional-mentor/applications",
+  ADMIN_PM_PAYOUTS: "/professional-mentor/payouts",
+  ADMIN_PM_COUPONS: "/professional-mentor/coupons",
+  ADMIN_PM_PLATFORM: "/professional-mentor/platform",
+
+  /**
+   * Wallet drill-down. A route rather than a tab because it is deep — balance, ledger, payout
+   * accounts and their verification state — and because the payouts queue links into it per mentor.
+   */
+  ADMIN_PM_WALLET_DETAIL: "/professional-mentor/payouts/wallets",
+
+  // Retained: the mentor-application detail route is built by appending `/${applicationId}`.
+  ADMIN_MENTOR_APPLICATION_DETAIL: "/professional-mentor/applications",
 
   // ── Payments Admin ────────────────────────────────────────────────────────
   ADMIN_PAYMENTS: "/payments",
-  ADMIN_PAYOUTS: "/payouts",
-  ADMIN_PAYOUT_REPORTS: "/payouts/reports",
-  ADMIN_WALLETS: "/wallets",
   ADMIN_WEBHOOKS: "/webhooks",
 
 
@@ -63,34 +82,27 @@ export const PATH_CONSTANTS = {
   ADMIN_SKILLS: "/skills",
   ADMIN_ASSETS: "/assets",
 
-  // ── Professional Mentor V2 (Phase 0+ internal verification tools) ────────
   /**
-   * Console index for the whole subsystem — one card per console below, with what each one
-   * answers. Exists because the eleven consoles were previously reachable only from sidebar
-   * entries named after build phases, which told nobody where disputes or payouts live.
+   * The eight engineering diagnostics, now tabs on one page rather than eight sidebar rows.
+   *
+   * Values match the `?tab=` the Platform Health page reads, and the old `/mentorship-v2/<name>`
+   * routes redirect onto them — an engineer's bookmark keeps working, it just arrives as a tab.
    */
-  ADMIN_MENTORSHIP_V2_HOME: "/mentorship-v2",
-  ADMIN_MENTORSHIP_V2_VERIFICATION: "/mentorship-v2/verification",
-  /** Phase 1 — availability engine inspector, mentor health, exclusion-constraint proof, Google round trip. */
-  ADMIN_MENTORSHIP_V2_AVAILABILITY: "/mentorship-v2/availability",
-  /** Phase 2 — service catalog snapshot, publish-gate inspector, sanitiser XSS probe, type registry. */
-  ADMIN_MENTORSHIP_V2_SERVICES: "/mentorship-v2/services",
-  /** Phase 3 — commerce invariants, revenue lines, reservations/sweeps, webhook feed, order inspector, lifecycles. */
-  ADMIN_MENTORSHIP_V2_COMMERCE: "/mentorship-v2/commerce",
-  /** Phase 4 — 1:1 call lifecycle: meeting links, join evidence, reminders, attendance, auto-completion, reviews. */
-  ADMIN_MENTORSHIP_V2_CALLS: "/mentorship-v2/calls",
-  /** Phase 6 — package entitlement ledger, escrow invariant, SLA breach ladder, lifecycle sweep. */
-  ADMIN_MENTORSHIP_V2_PACKAGES: "/mentorship-v2/packages",
-  /** Phase 7 — dispute queue, SLA breach view, one-click executable resolutions, reliability feed. */
-  ADMIN_MENTORSHIP_V2_DISPUTES: "/mentorship-v2/disputes",
-  /** Phase 8 — pricing zones, multipliers, the country map and FX source health. */
-  ADMIN_MENTORSHIP_V2_PRICING: "/mentorship-v2/pricing",
-  /** Phase 9 — search projection health, content gate, query analytics, synonyms, SEO landing coverage. */
-  ADMIN_MENTORSHIP_V2_SEARCH: "/mentorship-v2/search",
-  /** Phase 10 — pgvector capability, embedding coverage, HNSW budget, V1/V2 A/B, offline job queues. */
-  ADMIN_MENTORSHIP_V2_SEMANTIC: "/mentorship-v2/semantic",
-  /** Phase 11 — legacy backfill ledger, dual-run bridge, revenue reconciliation, decommission readiness. */
-  ADMIN_MENTORSHIP_V2_CUTOVER: "/mentorship-v2/cutover",
+  ADMIN_PM_PLATFORM_TABS: {
+    JOBS: "jobs",
+    AUDIT: "audit",
+    SESSIONS_ENGINE: "sessions-engine",
+    COMMERCE_ENGINE: "commerce-engine",
+    DISPUTES_ENGINE: "disputes-engine",
+    AVAILABILITY: "availability",
+    PRICING: "pricing",
+    SEARCH: "search",
+    SEMANTIC: "semantic",
+    PACKAGES: "packages",
+    CATALOGUE_TOOLS: "catalogue-tools",
+    MIGRATION: "migration",
+    FOUNDATIONS: "foundations",
+  },
 
   // ── News / Editorial (admin curation control plane) ───────────────────────
   ADMIN_NEWS: "/news",
