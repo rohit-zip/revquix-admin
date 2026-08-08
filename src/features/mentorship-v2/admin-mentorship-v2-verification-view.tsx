@@ -161,15 +161,6 @@ export default function AdminMentorshipV2VerificationView() {
                 <HealthStat label="FX rates" value={String(health.fxRateCount)} ok={health.fxRateCount >= 4} />
               </div>
 
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground">V2 feature flag (app.mentorship.v2.enabled):</span>
-                <Badge variant={health.v2FeatureFlagEnabled ? "default" : "secondary"}>
-                  {health.v2FeatureFlagEnabled ? "ENABLED" : "DISABLED"}
-                </Badge>
-                <span className="text-muted-foreground ml-4">Pilot mentors:</span>
-                <span>{health.pilotUserIds.length === 0 ? "none" : health.pilotUserIds.join(", ")}</span>
-              </div>
-
               <Separator />
 
               <div>

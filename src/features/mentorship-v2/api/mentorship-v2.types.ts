@@ -20,8 +20,6 @@ export interface MentorshipV2HealthResponse {
   pricingZoneCount: number
   pricingZoneCountryCount: number
   fxRateCount: number
-  v2FeatureFlagEnabled: boolean
-  pilotUserIds: string[]
   phases: PhaseStatusEntry[]
 }
 

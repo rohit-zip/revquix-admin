@@ -25,6 +25,7 @@ import {
   useInspectBookingSession,
 } from "@/features/mentorship-v2/api/calls.hooks"
 import { PersonCell, RefLink, StatusBadge, formatWhen } from "./console-format"
+import SessionMessagesCard from "./session-messages-card"
 
 export default function SessionDetailView({ bookingId }: { bookingId: string }) {
   const router = useRouter()
@@ -236,6 +237,18 @@ export default function SessionDetailView({ bookingId }: { bookingId: string }) 
               </CardContent>
             </Card>
           ) : null}
+
+          {/*
+            The private buyer/mentor conversation. Below the join evidence and above the
+            notification log, because it sits between them in what it answers: the join ledger is
+            what the platform recorded, the notifications are what the platform sent, and this is
+            what the two people actually said to each other.
+
+            Collapsed and un-fetched until opened — every read writes an audit row, and a panel
+            that loaded with the page would record every operator who opened a booking for any
+            reason as having read a private conversation.
+          */}
+          <SessionMessagesCard bookingId={booking.bookingId} />
 
           {booking.notifications && booking.notifications.length > 0 ? (
             <Card>

@@ -202,3 +202,88 @@ export interface ForceSubmitFeedbackRequest {
   overallRating: number
   summary: string
 }
+
+// ─── Booking messaging (read-only) ───────────────────────────────────────────
+//
+// Mirrors AdminMessageThreadResponse / MessageResponse / MessageAttachmentResponse /
+// MessageWindowResponse. The console reads this thread; there is deliberately no write
+// path — admins do not join a two-party conversation, that is what a dispute is for.
+
+export interface AdminMessageAttachment {
+  attachmentId: string
+  filename: string
+  mimeType: string
+  sizeBytes: number
+  sizeLabel: string
+  /**
+   * A presigned URL with a 15-minute life. Never a permanent link, and never an object key:
+   * a chat attachment is frequently a resume, and it lives in the private bucket.
+   */
+  downloadUrl: string | null
+  previewable: boolean
+  createdAt: string
+}
+
+export interface AdminMessage {
+  messageId: string
+  /** The session this was sent from, or null for a message between sessions. */
+  bookingId: string | null
+  authorUserId: string | null
+  authorName: string | null
+  authorAvatarUrl: string | null
+  authorRole: "USER" | "MENTOR" | "SYSTEM" | "ADMIN"
+  /** Always false in an admin payload — an admin is not a party, so nothing here is "theirs". */
+  authoredByViewer: boolean
+  body: string | null
+  attachments: AdminMessageAttachment[]
+  seenByCounterpart: boolean
+  /**
+   * The operational payload of this whole view. Messaging warns and delivers rather than
+   * hiding, so a message that tripped a contact-detail pattern is here, delivered, with the
+   * flag recorded — which is what makes "they asked me to move off-platform" answerable.
+   */
+  contentFlags: string[]
+  /** The sender saw the interstitial and chose to send anyway. */
+  warningAcknowledged: boolean
+  deleted: boolean
+  canDelete: boolean
+  createdAt: string
+}
+
+export interface AdminMessageWindow {
+  open: boolean
+  closesAt: string | null
+  remainingHours: number | null
+  /** Rendered verbatim — it answers "why can't they reply?" without reconstructing the rule. */
+  reason: string | null
+  readable: boolean
+}
+
+export interface AdminMessageThread {
+  /** False when this pair has never opened a thread — a real answer, not an empty list. */
+  exists: boolean
+  threadId: string | null
+  bookingId: string
+  buyerUserId: string
+  buyerName: string | null
+  mentorUserId: string
+  mentorName: string | null
+  createdAt: string | null
+  lastMessageAt: string | null
+  messageCount: number
+  flaggedMessageCount: number
+  attachmentCount: number
+  deletedMessageCount: number
+  buyerLastReadAt: string | null
+  mentorLastReadAt: string | null
+  window: AdminMessageWindow | null
+  /**
+   * The whole conversation, not only this booking's messages.
+   *
+   * The thread is keyed on the buyer/mentor pair, so the message that explains a dispute about
+   * session 3 was very often sent between sessions 2 and 3 with no booking stamp at all. Each
+   * message carries its own bookingId so the UI can still show which is which.
+   */
+  messages: AdminMessage[]
+  hasMore: boolean
+}

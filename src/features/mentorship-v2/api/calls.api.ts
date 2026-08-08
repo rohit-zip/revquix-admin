@@ -11,6 +11,7 @@
 import { apiClient } from "@/lib/axios"
 import type {
   AdminCallSnapshot,
+  AdminMessageThread,
   BookingReviewRow,
   BookingSessionDiagnostics,
   ForceSubmitFeedbackRequest,
@@ -61,3 +62,14 @@ export const forceSubmitFeedback = (
   apiClient
     .post<BookingSessionDiagnostics>(`${BASE}/bookings/${bookingId}/feedback/force-submit`, payload)
     .then((r) => r.data)
+
+/**
+ * The private buyer/mentor conversation for a booking, read-only.
+ *
+ * ⚠ Every call writes an `AdminActionType.MESSAGE_THREAD_VIEWED` audit row. This console audits
+ * changes rather than reads, so that is the exception — and it is deliberate: this is a private
+ * conversation between two people who have no reason to expect staff are reading it, and it
+ * frequently contains the customer's resume. Open it to answer a question, not to browse.
+ */
+export const inspectBookingMessages = (bookingId: string): Promise<AdminMessageThread> =>
+  apiClient.get<AdminMessageThread>(`${BASE}/bookings/${bookingId}/messages`).then((r) => r.data)

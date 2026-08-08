@@ -317,14 +317,8 @@ export default function ProfessionalMentorOverviewView() {
             </Alert>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant={health.data?.v2FeatureFlagEnabled ? "secondary" : "destructive"}>
-                {health.data?.v2FeatureFlagEnabled ? "V2 flag enabled" : "V2 flag disabled"}
-              </Badge>
               <Badge variant={health.data?.schemaExists ? "secondary" : "destructive"}>
                 {health.data?.schemaExists ? "schema present" : "schema missing"}
-              </Badge>
-              <Badge variant="secondary">
-                {health.data?.pilotUserIds.length ?? 0} mentor(s) in the pilot allowlist
               </Badge>
               <Button asChild size="sm" variant="ghost" className="ml-auto">
                 <Link href={PATH_CONSTANTS.ADMIN_PM_PLATFORM}>

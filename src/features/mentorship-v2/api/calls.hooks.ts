@@ -10,6 +10,7 @@ import {
   forceCompleteBooking,
   forceSubmitFeedback,
   getCallSnapshot,
+  inspectBookingMessages,
   inspectBookingSession,
   moderateReview,
   runLifecycleSweep,
@@ -20,6 +21,8 @@ export const callKeys = {
   all: ["mentorship-v2", "calls"] as const,
   snapshot: ["mentorship-v2", "calls", "snapshot"] as const,
   booking: (bookingId: string) => ["mentorship-v2", "calls", "booking", bookingId] as const,
+  bookingMessages: (bookingId: string) =>
+    ["mentorship-v2", "calls", "booking", bookingId, "messages"] as const,
 }
 
 export function useCallSnapshot() {
@@ -124,5 +127,22 @@ export function useForceSubmitFeedback() {
       showSuccessToast("Feedback filed on the mentor's behalf. The candidate has been notified.")
     },
     onError: (error) => showErrorToast(error),
+  })
+}
+
+/**
+ * The booking's message thread, read-only.
+ *
+ * Not polled, and that is a decision rather than an omission: every fetch writes an audit row, and
+ * a panel that re-read itself every few seconds would fill the audit trail with an operator who
+ * looked once and left the tab open. An operator who needs it fresh can reload.
+ */
+export function useInspectBookingMessages(bookingId: string, enabled = true) {
+  return useQuery({
+    queryKey: callKeys.bookingMessages(bookingId),
+    queryFn: () => inspectBookingMessages(bookingId),
+    enabled: enabled && bookingId.trim().length > 0,
+    retry: false,
+    staleTime: 60 * 1000,
   })
 }

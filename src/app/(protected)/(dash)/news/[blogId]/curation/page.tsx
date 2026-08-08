@@ -1,7 +1,5 @@
-import { notFound } from "next/navigation"
 import PageGuard from "@/components/page-guard"
 import { PERMISSIONS } from "@/config/dashboard/nav.config"
-import { EDITORIAL_ENABLED } from "@/core/constants/feature-flags"
 import { NewsCurationView } from "@/features/news/news-curation-view"
 
 interface NewsCurationPageProps {
@@ -9,7 +7,6 @@ interface NewsCurationPageProps {
 }
 
 export default async function NewsCurationPage({ params }: NewsCurationPageProps) {
-  if (!EDITORIAL_ENABLED) notFound()
   const { blogId } = await params
   return (
     <PageGuard requireAnyAuthority={[PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_EDITORIAL]}>

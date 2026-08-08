@@ -1,10 +1,29 @@
+"use client"
+
+/**
+ * ⚠️ PROFESSIONAL MENTOR V1 — RETIRED SURFACE
+ *
+ * Part of the legacy (V1) mentorship stack that Professional Mentor V2 replaced. Nothing
+ * advertises it: no sidebar entry, no command-palette row, no avatar-menu item, and every public
+ * "Book session" CTA resolves to the mentor's V2 storefront instead.
+ *
+ * It stays mounted deliberately. `app.mentorship.cutover.stage` is still `DUAL_RUN`, legacy
+ * bookings that already exist have to stay readable, and notification mail already delivered
+ * carries deep links straight into these pages. `LegacyV1Notice` renders on each one to name its
+ * V2 successor.
+ *
+ * Deletion is gated on `legacy.archive_readiness()` reading zero blocking rows, the cutover stage
+ * reaching `DECOMMISSIONED`, and the 90-day `archive-retention-days` window.
+ *
+ * @deprecated Superseded by Professional Mentor V2. Do not add features here.
+ */
+
 /**
  * ─── MOCK INTERVIEW HOOKS ────────────────────────────────────────────────────
  *
  * React Query hooks for MockInterviewBookingController endpoints.
  */
 
-"use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { showErrorToast, showSuccessToast } from "@/lib/show-toast"
