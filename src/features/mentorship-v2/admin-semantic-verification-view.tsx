@@ -53,7 +53,9 @@ import {
   useClearEmbeddings,
   useRefreshSemanticCapability,
   useRejectSkillSuggestion,
+  useCorpusCoverage,
   useRunEmbeddingPass,
+  useRunMentorEmbeddingPass,
   useRunOfflineJobs,
   useSemanticComparison,
   useSemanticSnapshot,
@@ -89,6 +91,8 @@ export default function AdminSemanticVerificationView() {
   const runEmbedding = useRunEmbeddingPass()
   const clearEmbeddings = useClearEmbeddings()
   const runOfflineJobs = useRunOfflineJobs()
+  const mentorCoverage = useCorpusCoverage("MENTOR")
+  const runMentorEmbedding = useRunMentorEmbeddingPass()
 
   const invariantsBroken = (snapshot?.invariantViolations.length ?? 0) > 0
 
@@ -121,6 +125,59 @@ export default function AdminSemanticVerificationView() {
           Refresh
         </Button>
       </header>
+
+      {/* ── Mentor corpus ────────────────────────────────────────────────────
+          Its own panel, not a row in the service snapshot. The two corpora share a model and an
+          inference container but not a sweep, so "the services are fully embedded" says nothing
+          about the mentors — a combined number would answer a question nobody asked. */}
+      <section className="rounded-lg border p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold">Mentor corpus</h2>
+            <p className="mt-1 max-w-2xl text-xs text-muted-foreground">
+              <code>mentorship.mentor_search_document</code> — the /mentors read model. Embeds
+              headline, top skills, designation and the first 400 characters of bio. Name and company
+              are excluded on purpose: similarity between people&apos;s names is noise.
+            </p>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => runMentorEmbedding.mutate(undefined)}
+            disabled={runMentorEmbedding.isPending}
+          >
+            {runMentorEmbedding.isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Brain className="size-4" />
+            )}
+            Run mentor pass
+          </Button>
+        </div>
+
+        {mentorCoverage.isLoading ? (
+          <p className="mt-3 text-xs text-muted-foreground">Loading coverage…</p>
+        ) : mentorCoverage.data ? (
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Stat label="Listable" value={Number(mentorCoverage.data.listable_rows ?? 0)} />
+            <Stat label="Embedded" value={Number(mentorCoverage.data.embedded_rows ?? 0)} />
+            <Stat
+              label="Missing"
+              value={Number(mentorCoverage.data.unembedded_rows ?? 0)}
+              tone={Number(mentorCoverage.data.unembedded_rows ?? 0) > 0 ? "warning" : "default"}
+            />
+            <Stat
+              label="Parked"
+              value={Number(mentorCoverage.data.parked_rows ?? 0)}
+              tone={Number(mentorCoverage.data.parked_rows ?? 0) > 0 ? "warning" : "default"}
+            />
+          </div>
+        ) : (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Coverage unavailable — the corpus may predate its migration.
+          </p>
+        )}
+      </section>
 
       {snapshotQuery.isLoading ? (
         <Card>

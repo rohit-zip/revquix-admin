@@ -16,6 +16,7 @@
 
 import { apiClient } from "@/lib/axios"
 import type {
+  CorpusCoverage,
   AdminSemanticSnapshot,
   EmbeddingSweepReport,
   OfflineJobsReport,
@@ -48,6 +49,20 @@ export const refreshSemanticCapability = (): Promise<SemanticCapabilityProbe> =>
 
 export const runEmbeddingPass = (): Promise<EmbeddingSweepReport> =>
   apiClient.post<EmbeddingSweepReport>(`${BASE}/embeddings/run`).then((r) => r.data)
+
+/**
+ * Runs the MENTOR corpus pass.
+ *
+ * Separate endpoint, not a parameter on the one above, because the two corpora have separate
+ * coverage and separate `embedding_run` histories — "the services are fully embedded" says nothing
+ * about the mentors, and a shared button would imply otherwise.
+ */
+export const runMentorEmbeddingPass = (): Promise<Record<string, unknown>> =>
+  apiClient.post<Record<string, unknown>>(`${BASE}/embeddings/run/mentor`).then((r) => r.data)
+
+/** Per-corpus coverage: listable rows, how many carry a vector, how many are parked at the cap. */
+export const fetchCorpusCoverage = (corpus: "SERVICE" | "MENTOR"): Promise<CorpusCoverage> =>
+  apiClient.get<CorpusCoverage>(`${BASE}/coverage/${corpus}`).then((r) => r.data)
 
 /** Destructive. Removes all semantic ranking until the next pass completes. */
 export const clearEmbeddings = (): Promise<number> =>

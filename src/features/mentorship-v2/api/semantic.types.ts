@@ -206,3 +206,13 @@ export interface OfflineJobsReport {
   skillTagging: SkillTaggingReport
   intentClustering: IntentClusteringReport
 }
+
+
+/** Coverage for one embedding corpus. Keys mirror CorpusEmbeddingDao.coverage()'s SQL aliases. */
+export interface CorpusCoverage {
+  listable_rows: number
+  embedded_rows: number
+  unembedded_rows: number
+  parked_rows: number
+  newest_embedded_at: string | null
+}

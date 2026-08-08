@@ -15,7 +15,9 @@ import {
   getSemanticSnapshot,
   refreshSemanticCapability,
   rejectSkillSuggestion,
+  fetchCorpusCoverage,
   runEmbeddingPass,
+  runMentorEmbeddingPass,
   runOfflineJobs,
 } from "./semantic.api"
 
@@ -24,6 +26,49 @@ export const semanticAdminKeys = {
   snapshot: ["mentorship-v2", "semantic-admin", "snapshot"] as const,
   compare: (signature: string) =>
     ["mentorship-v2", "semantic-admin", "compare", signature] as const,
+  coverage: (corpus: string) =>
+    ["mentorship-v2", "semantic-admin", "coverage", corpus] as const,
+}
+
+/** Coverage for one corpus. Polled separately from the snapshot, which is SERVICE-only. */
+export function useCorpusCoverage(corpus: "SERVICE" | "MENTOR") {
+  return useQuery({
+    queryKey: semanticAdminKeys.coverage(corpus),
+    queryFn: () => fetchCorpusCoverage(corpus),
+    staleTime: 30_000,
+  })
+}
+
+/**
+ * Runs the MENTOR pass.
+ *
+ * Reports the outcome from the counters the sweep itself returned rather than assuming success: a
+ * pass that skipped entirely (no pgvector, no embedding column, semantic disabled) is not an error,
+ * but it is emphatically not "embedded 0 rows" either, and conflating the two is how a dormant
+ * corpus goes unnoticed.
+ */
+export function useRunMentorEmbeddingPass() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: runMentorEmbeddingPass,
+    onSuccess: (counters) => {
+      const skipped = counters?.skipped as string | undefined
+      if (skipped) {
+        showErrorToast(new Error(`The mentor pass did not run — ${skipped}`))
+      } else {
+        const embedded = Number(counters?.embedded ?? 0)
+        const failed = Number(counters?.failed ?? 0)
+        if (failed > 0) {
+          showErrorToast(new Error(`Embedded ${embedded}, but ${failed} failed. Check the run history.`))
+        } else {
+          showSuccessToast(`Mentor pass complete — embedded ${embedded}.`)
+        }
+      }
+      void qc.invalidateQueries({ queryKey: semanticAdminKeys.coverage("MENTOR") })
+      void qc.invalidateQueries({ queryKey: semanticAdminKeys.snapshot })
+    },
+    onError: showErrorToast,
+  })
 }
 
 export function useSemanticSnapshot() {
