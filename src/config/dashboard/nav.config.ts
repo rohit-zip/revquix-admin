@@ -33,6 +33,7 @@ import {
   Image as ImageIcon,
   Key,
   LayoutDashboard,
+  Megaphone,
   type LucideIcon,
   Newspaper,
   Package,
@@ -119,6 +120,17 @@ export const PERMISSIONS = {
 
   // ── Skill Registry (Skill-only taxonomy migration) ──────────────────────────
   PERM_MANAGE_SKILL_REGISTRY: "PERM_MANAGE_SKILL_REGISTRY",
+
+  // ── Announcements (docs/ANNOUNCEMENTS_MASTER_PLAN.md, seeded by V273) ───────
+  /**
+   * Create, edit, schedule, publish, pause and archive the site-wide announcement bar.
+   *
+   * One permission rather than the obvious author / publish / analytics split. At this size that
+   * split is wrong: the console has a single editor screen, and anybody trusted to write copy that
+   * appears above the navbar on every page of the site is trusted to publish it. Split it the day
+   * there is an editorial team that is not the same people as the operators.
+   */
+  PERM_MANAGE_ANNOUNCEMENTS: "PERM_MANAGE_ANNOUNCEMENTS",
 
   // ── Tools platform (seeded by V213 — docs/tools-platform §P3) ───────────────
   // PERM_USE_TOOLS is deliberately absent: it is a USER-facing permission granted to
@@ -483,6 +495,17 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         href: PATH_CONSTANTS.ADMIN_SKILLS,
         access: {
           anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_SKILL_REGISTRY],
+        },
+      },
+      {
+        // One row, not a section. The Professional Mentor console work deliberately collapsed
+        // 21 sidebar rows to 10; adding a section for a single CRUD screen would start undoing
+        // that on the day it shipped.
+        Icon: Megaphone,
+        label: "Announcements",
+        href: PATH_CONSTANTS.ADMIN_ANNOUNCEMENTS,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_ANNOUNCEMENTS],
         },
       },
     ],

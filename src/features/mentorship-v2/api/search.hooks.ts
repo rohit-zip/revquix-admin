@@ -14,6 +14,7 @@ import {
   listSearchSynonyms,
   refreshSearchDocument,
   reindexProjection,
+  runMentorProjectionSweep,
   runProjectionSweep,
   saveSearchSynonym,
   testSearchQuery,
@@ -94,6 +95,24 @@ export function useRunProjectionSweep() {
       // Invalidated rather than written back: the sweep report is not a snapshot, and every counter on
       // the page may have moved.
       void qc.invalidateQueries({ queryKey: searchAdminKeys.snapshot })
+    },
+    onError: (error) => showErrorToast(error),
+  })
+}
+
+/**
+ * Runs the /mentors directory's own sweep — separate from {@link useRunProjectionSweep} above, which
+ * only touches service_search_document. mentor_search_document (what a mentor card reads) is an
+ * aggregate over that table, rebuilt on its own hourly cadence; this is what forces it to catch up.
+ */
+export function useRunMentorProjectionSweep() {
+  return useMutation({
+    mutationFn: runMentorProjectionSweep,
+    onSuccess: (report) => {
+      showSuccessToast(
+        `Mentor directory sweep complete — ${report.upserted} row(s) rebuilt, `
+          + `${report.missingFound} missing row(s) found, ${report.deleted} removed.`,
+      )
     },
     onError: (error) => showErrorToast(error),
   })

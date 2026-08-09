@@ -80,6 +80,9 @@ export const PATH_CONSTANTS = {
   ADMIN_COMPANIES: "/companies",
   ADMIN_SCHOOLS: "/schools",
   ADMIN_SKILLS: "/skills",
+
+  /** Site-wide announcement bar (docs/ANNOUNCEMENTS_MASTER_PLAN.md). */
+  ADMIN_ANNOUNCEMENTS: "/announcements",
   ADMIN_ASSETS: "/assets",
 
   /**

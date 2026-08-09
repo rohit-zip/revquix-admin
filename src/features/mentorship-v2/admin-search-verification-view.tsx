@@ -54,6 +54,7 @@ import {
   useQueryTest,
   useRefreshSearchDocument,
   useReindexProjection,
+  useRunMentorProjectionSweep,
   useRunProjectionSweep,
   useSaveSearchSynonym,
   useSearchDocument,
@@ -82,6 +83,7 @@ export default function AdminSearchVerificationView() {
   const snapshotQuery = useSearchSnapshot()
   const snapshot = snapshotQuery.data
   const sweep = useRunProjectionSweep()
+  const mentorSweep = useRunMentorProjectionSweep()
   const reindex = useReindexProjection()
 
   const invariantsBroken = (snapshot?.invariantViolations.length ?? 0) > 0
@@ -296,6 +298,34 @@ export default function AdminSearchVerificationView() {
                 re-derives every row from the catalogue; the “+ availability” variant additionally asks
                 the availability engine about every service, which is the one operation here that can take
                 minutes.
+              </p>
+
+              <Separator />
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => mentorSweep.mutate()}
+                  disabled={mentorSweep.isPending}
+                >
+                  {mentorSweep.isPending ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="size-4" />
+                  )}
+                  Run mentor directory sweep
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                A SEPARATE table from everything above. <code>mentor_search_document</code> — what a
+                mentor card on /mentors actually reads — is an aggregate over{" "}
+                <code>service_search_document</code>, rebuilt on its own hourly cadence. The sweep and
+                rebuild buttons above only touch the service-level table, so a mentor card can still show
+                a stale availability snapshot (e.g. a green “available” rail next to “No open slots right
+                now”) for up to an hour after they have already fixed the underlying service row. Use this
+                button to force the mentor-level aggregate to catch up immediately.
               </p>
             </CardContent>
           </Card>

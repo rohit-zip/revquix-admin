@@ -13,6 +13,7 @@ import { apiClient } from "@/lib/axios"
 import type {
   AdminQueryTestResponse,
   AdminSearchSnapshot,
+  MentorProjectionSweepReport,
   ProjectionRebuildReport,
   ProjectionSweepReport,
   SaveSearchSynonymRequest,
@@ -49,6 +50,13 @@ export const testSearchQuery = (params: {
 
 export const runProjectionSweep = (): Promise<ProjectionSweepReport> =>
   apiClient.post<ProjectionSweepReport>(`${BASE}/sweeps/projection`).then((r) => r.data)
+
+/**
+ * Runs the /mentors directory's own sweep. A separate table from the one above — see
+ * {@link MentorProjectionSweepReport}.
+ */
+export const runMentorProjectionSweep = (): Promise<MentorProjectionSweepReport> =>
+  apiClient.post<MentorProjectionSweepReport>(`${BASE}/sweeps/mentor-projection`).then((r) => r.data)
 
 /**
  * Full rebuild. `includeAvailability` also recomputes every availability snapshot, which is the one

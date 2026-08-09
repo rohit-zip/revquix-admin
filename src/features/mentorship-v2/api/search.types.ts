@@ -186,6 +186,19 @@ export interface ProjectionRebuildReport {
   orphansRemoved: number
 }
 
+/**
+ * mentorship.mentor_search_document — what a mentor card on `/mentors` actually reads — is an aggregate
+ * OVER service_search_document, rebuilt on its own hourly cadence. `ProjectionSweepReport` above does
+ * NOT refresh it; this is the separate sweep that does.
+ */
+export interface MentorProjectionSweepReport {
+  missingFound: number
+  upserted: number
+  deleted: number
+  listable: number
+  listableWithoutSkills: number
+}
+
 // ── The live query tester's response (a subset of the public search response) ──
 
 export interface AdminMarketplaceResultCard {
