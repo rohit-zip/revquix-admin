@@ -26,6 +26,13 @@ export interface ToastOptions {
    * rather than stacking a new one. Useful for network errors & rapid retries.
    */
   id?: string
+  /**
+   * Suppress the field-error toast because the caller is putting those messages
+   * on the form itself. Only set this where that is actually true — the default
+   * is to render them, because dropping them silently is how a rejected save
+   * becomes indistinguishable from a dead button.
+   */
+  skipFieldErrors?: boolean
 }
 
 // ─── Error throttle ───────────────────────────────────────────────────────────
@@ -156,7 +163,8 @@ export function showPromiseToast<T>(
  *  - NetworkError          → "Connection Issue" title + message (deduped, throttled)
  *  - ApiError (string)     → single-line toast (deduped by message, auto copy-ID on 5xx)
  *  - ApiError (string[])   → "Please fix the following" + bullet-list description
- *  - ApiError (field map)  → NOT handled here; use setError() on the form instead
+ *  - ApiError (field map)  → same bullet list, unless the caller passes
+ *                            `skipFieldErrors` because it is calling setError()
  *  - Plain Error           → error.message as title (deduped by message)
  *  - Unknown               → generic fallback toast
  */
@@ -182,7 +190,39 @@ export function showErrorToast(
   if (error.name === "ApiError") {
     const apiErr = error as ApiError
 
-    // Field-level errors belong on the form — this helper must not be called for them
+    // ── Field-level errors ────────────────────────────────────────────────
+    //
+    // These belong on the form, and a caller that can put them there should:
+    // resolve them with `setError()` and return before reaching this helper,
+    // the way `auth.hooks.ts` does. Pass `skipFieldErrors` to say so explicitly.
+    //
+    // ⚠ What this used to do was `return` unconditionally, and that is a
+    // silent-failure generator. Every admin screen except auth reaches this
+    // line without handling the error first, so a 422 carrying a field map
+    // produced NOTHING: no toast, no inline message, no console output. On the
+    // announcements editor that meant a 91-character message left the Save
+    // button enabled, posted, was rejected by the server, and looked exactly
+    // like a click that had missed the button — made worse by the fact that a
+    // *successful* save does toast, so an admin learns to read "no toast" as
+    // "nothing happened". Rendering them is strictly better than dropping them.
+    if (apiErr.isFieldError && !options?.skipFieldErrors) {
+      const entries = Object.entries(apiErr.fieldErrors)
+      if (entries.length > 0) {
+        toast.error("Please fix the following", {
+          id: options?.id ?? `api-field-${entries[0][0]}`,
+          description: (
+            <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[12.5px]">
+              {entries.map(([field, msg]) => (
+                <li key={field}>{msg}</li>
+              ))}
+            </ul>
+          ),
+          duration: options?.duration ?? 8000,
+          action: options?.action,
+        })
+        return
+      }
+    }
     if (apiErr.isFieldError) return
 
     // Copy-ID is only useful for 5xx server errors

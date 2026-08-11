@@ -5,6 +5,7 @@ import Link from "next/link"
 import { ArrowLeft, BarChart3, Loader2, Plus, Radio } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { toEditorErrors } from "@/lib/api-error"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -109,6 +110,7 @@ export function AnnouncementsView() {
       <EditorShell title="New announcement" onBack={() => setMode({ kind: "list" })}>
         <AnnouncementEditor
           submitting={create.isPending}
+          serverErrors={toEditorErrors(create.error)}
           onCancel={() => setMode({ kind: "list" })}
           onSubmit={(request) =>
             create.mutate(request, { onSuccess: () => setMode({ kind: "list" }) })
@@ -131,6 +133,7 @@ export function AnnouncementsView() {
         <AnnouncementEditor
           existing={editing.data}
           submitting={update.isPending}
+          serverErrors={toEditorErrors(update.error)}
           onCancel={() => setMode({ kind: "list" })}
           onSubmit={(request) =>
             update.mutate(

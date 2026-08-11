@@ -109,6 +109,17 @@ export interface AnnouncementEditorProps {
   submitting: boolean
   onSubmit: (request: AnnouncementUpsertRequest) => void
   onCancel: () => void
+  /**
+   * Why the server refused the last save, if it did.
+   *
+   * `validate()` below is deliberately a subset of the server's rules, so a
+   * form that passes it can still be rejected — and when that happens this is
+   * the only thing an admin has to go on. It renders in the same block as the
+   * client-side problems, immediately above the Save button, because this form
+   * is several screens tall and a toast in the opposite corner is easy to miss
+   * on the way back up to fix the field.
+   */
+  serverErrors?: string[]
 }
 
 export function AnnouncementEditor({
@@ -116,6 +127,7 @@ export function AnnouncementEditor({
   submitting,
   onSubmit,
   onCancel,
+  serverErrors,
 }: AnnouncementEditorProps) {
   const [rawForm, setForm] = useState(() => initialForm(existing))
 
@@ -584,10 +596,19 @@ export function AnnouncementEditor({
           </Field>
         </fieldset>
 
-        {errors.length > 0 ? (
+        {/* Client-side problems and the server's last refusal share one block.
+            They are the same thing to the person reading them — a reason the
+            save will not go through — and splitting them into two panels only
+            raises the question of which one to read first. `errors` gates the
+            Save button; `serverErrors` cannot, because the input that produced
+            them is still on screen and editing it is the way out. */}
+        {errors.length > 0 || (serverErrors?.length ?? 0) > 0 ? (
           <ul className="space-y-1 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
             {errors.map((error) => (
               <li key={error}>{error}</li>
+            ))}
+            {serverErrors?.map((error) => (
+              <li key={`server-${error}`}>{error}</li>
             ))}
           </ul>
         ) : null}

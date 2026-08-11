@@ -141,3 +141,30 @@ export function parseAxiosError(error: AxiosError): ApiError | NetworkError {
   })
 }
 
+
+// ─── Form-facing message extraction ───────────────────────────────────────────
+
+/**
+ * Flattens any error into the plain strings a form can show inline.
+ *
+ * The backend uses three different `message` shapes for a 4xx — a string, a
+ * list of strings, or a field-keyed map — and a form that wants to tell the
+ * user what went wrong should not have to branch on which one it got. A 422
+ * from bean validation arrives as the map form (`{"message": "Message must be
+ * at most 90 characters…"}`), which is the shape that used to be dropped on the
+ * floor everywhere except the auth screens.
+ *
+ * Field names are deliberately not prefixed onto the text. The server's
+ * messages are already written as full sentences aimed at a person, so
+ * `message: Message must be at most 90 characters` reads worse than the
+ * sentence on its own.
+ */
+export function toEditorErrors(error: unknown): string[] {
+  if (!error) return []
+  if (error instanceof ApiError) {
+    if (error.isFieldError) return Object.values(error.fieldErrors)
+    return error.messages
+  }
+  if (error instanceof Error && error.message) return [error.message]
+  return []
+}
