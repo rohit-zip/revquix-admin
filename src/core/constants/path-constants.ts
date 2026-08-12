@@ -128,6 +128,10 @@ export const PATH_CONSTANTS = {
 
   // ── Marketing / Lead Generation ────────────────────────────────────────────
   ADMIN_LEAD_MAIL: "/lead-mail",
+  // ── Interest graph (USER_INTEREST_GRAPH_MASTER_PLAN Phase 3) ──────────────
+  ADMIN_INTERESTS: "/interests",
+  ADMIN_INTERESTS_UNMAPPED: "/interests/unmapped",
+  ADMIN_INTERESTS_AUTO_MATCHES: "/interests/auto-matches",
   ADMIN_LEAD_MAIL_COMPOSE: "/lead-mail/compose",
   ADMIN_LEAD_MAIL_CAMPAIGN_DETAIL: "/lead-mail/campaigns",
 

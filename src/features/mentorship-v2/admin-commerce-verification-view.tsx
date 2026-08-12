@@ -284,7 +284,7 @@ export default function AdminCommerceVerificationView() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <Webhook className="size-4" /> Webhook deliveries
+                <Webhook className="size-4" /> Webhook deliveries (PayPal)
               </CardTitle>
               <CardDescription>
                 The idempotency proof: replay the same event and the second row shows{" "}
@@ -296,9 +296,9 @@ export default function AdminCommerceVerificationView() {
             <CardContent>
               {snapshot.recentWebhooks.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  No deliveries yet. Point a Razorpay webhook at{" "}
-                  <code className="text-xs">/api/v1/webhooks/payment/razorpay</code> and complete a
-                  test payment.
+                  No PayPal deliveries yet. This feed covers PayPal only — Razorpay is handled on the
+                  single platform route (<code className="text-xs">/api/v1/webhooks/razorpay</code>)
+                  and its deliveries are recorded in <code className="text-xs">payment_webhook_log</code>.
                 </p>
               ) : (
                 <div className="overflow-x-auto">

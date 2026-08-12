@@ -40,6 +40,28 @@ export const PAGE_ACCESS_CONFIG: Record<string, PageAccessRule> = {
     label: "Roles & Permissions",
   },
 
+  // ── Interest Graph ────────────────────────────────────────────────────────
+  //
+  // Note the matching strategy at the top of this file: a rule for "/interests" also
+  // covers "/interests/unmapped". Both child routes are listed anyway, because the
+  // taxonomy screens are the ones that WRITE into a registry two other subsystems
+  // read, and a reader of this file should not have to infer that from a prefix.
+
+  [PATH_CONSTANTS.ADMIN_INTERESTS]: {
+    anyOf: ["ROLE_ADMIN", "PERM_VIEW_USER_INTERESTS"],
+    label: "Interest Graph",
+  },
+
+  [PATH_CONSTANTS.ADMIN_INTERESTS_UNMAPPED]: {
+    anyOf: ["ROLE_ADMIN", "PERM_VIEW_USER_INTERESTS"],
+    label: "Unmapped Terms",
+  },
+
+  [PATH_CONSTANTS.ADMIN_INTERESTS_AUTO_MATCHES]: {
+    anyOf: ["ROLE_ADMIN", "PERM_VIEW_USER_INTERESTS"],
+    label: "Auto-matches",
+  },
+
   [PATH_CONSTANTS.ADMIN_USERS]: {
     anyOf: ["ROLE_ADMIN", "PERM_MANAGE_USERS", "PERM_MANAGE_ROLES", "PERM_MANAGE_USER_ROLES"],
     label: "Users",

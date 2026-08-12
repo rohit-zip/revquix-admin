@@ -39,6 +39,7 @@ import {
   UserCircle,
   Briefcase,
   Award,
+  Brain,
 } from "lucide-react"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -60,6 +61,7 @@ import UserLoginHistoryTab from "@/features/admin/components/user-login-history-
 import UserProfessionalMentorTab from "@/features/admin/components/user-professional-mentor-tab"
 import AccountActionsPanel from "@/features/admin/components/account-actions-panel"
 import UserBadgesTab from "@/features/admin/components/user-badges-tab"
+import UserInterestsTab from "@/features/interest/components/user-interests-tab"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -130,6 +132,10 @@ export default function AdminUserDetailView({ userId }: AdminUserDetailViewProps
   const canManageBadges = hasAnyAuthority(["PERM_MANAGE_USER_BADGES"])
   const canManageSeoPriority = hasAnyAuthority(["PERM_MANAGE_SEO_PRIORITY"])
   const canViewBadges = canManageBadges || canManageSeoPriority
+  // Interest graph. VIEW also grants suppress — see AdminInterestController: making
+  // support escalate to a taxonomy permission just to remove one wrong facet would
+  // mean the wrong facet stays.
+  const canViewInterests = hasAnyAuthority(["PERM_VIEW_USER_INTERESTS"])
   // Future tabs
   // const canViewBookings = hasAnyAuthority(["PERM_VIEW_ALL_BOOKINGS"])
 
@@ -348,6 +354,12 @@ export default function AdminUserDetailView({ userId }: AdminUserDetailViewProps
               <span className="hidden sm:inline">Badges</span>
             </TabsTrigger>
           )}
+          {canViewInterests && (
+            <TabsTrigger value="interests" className="gap-1.5">
+              <Brain className="size-4" />
+              <span className="hidden sm:inline">Interests</span>
+            </TabsTrigger>
+          )}
           {canViewProfessionalMentor && (
             <TabsTrigger value="professional-mentor" className="gap-1.5">
               <Briefcase className="size-4" />
@@ -405,6 +417,13 @@ export default function AdminUserDetailView({ userId }: AdminUserDetailViewProps
             <UserBadgesTab userId={userId} />
           </TabsContent>
         )}
+        {/* ── Interests Tab ─────────────────────────────────────────────── */}
+        {canViewInterests && (
+          <TabsContent value="interests" className="mt-6">
+            <UserInterestsTab userId={userId} canEdit={canViewInterests} />
+          </TabsContent>
+        )}
+
         {/* ── Mentor Tab ────────────────────────────────────────────────── */}
         {canViewProfessionalMentor && (
           <TabsContent value="professional-mentor" className="mt-6">

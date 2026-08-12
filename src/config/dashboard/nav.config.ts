@@ -33,6 +33,7 @@ import {
   Image as ImageIcon,
   Key,
   LayoutDashboard,
+  ListTodo,
   Megaphone,
   type LucideIcon,
   Newspaper,
@@ -110,6 +111,9 @@ export const PERMISSIONS = {
 
   // ── Marketing / Lead Generation ─────────────────────────────────────────────
   PERM_SEND_LEAD_MAIL: "PERM_SEND_LEAD_MAIL",
+  PERM_VIEW_USER_INTERESTS: "PERM_VIEW_USER_INTERESTS",
+  PERM_MANAGE_INTEREST_TAXONOMY: "PERM_MANAGE_INTEREST_TAXONOMY",
+  PERM_MANAGE_SEGMENTS: "PERM_MANAGE_SEGMENTS",
 
   // ── Content / Assets ───────────────────────────────────────────────────────
   PERM_MANAGE_ASSETS: "PERM_MANAGE_ASSETS",
@@ -686,6 +690,54 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         href: PATH_CONSTANTS.ADMIN_LEAD_MAIL_COMPOSE,
         access: {
           anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_SEND_LEAD_MAIL],
+        },
+      },
+    ],
+  },
+
+  // ── Interest Graph ────────────────────────────────────────────────────────
+  //
+  // Hidden entirely from an admin holding neither interest permission, so a reviewer
+  // who does not work on this sees no sidebar change. Hiding is a convenience, NOT the
+  // control — every endpoint behind these pages carries its own @PreAuthorize.
+  //
+  // The two items are deliberately different jobs. Overview is read-only diagnostics.
+  // Unmapped terms and auto-matches WRITE into a role registry that the profile editor
+  // and the tools skill matcher also read, which is why they need the taxonomy
+  // permission rather than the view one.
+  {
+    title: "Interest Graph",
+    access: {
+      anyOf: [
+        PERMISSIONS.ROLE_ADMIN,
+        PERMISSIONS.PERM_VIEW_USER_INTERESTS,
+        PERMISSIONS.PERM_MANAGE_INTEREST_TAXONOMY,
+      ],
+    },
+    items: [
+      {
+        Icon: Brain,
+        label: "Overview",
+        href: PATH_CONSTANTS.ADMIN_INTERESTS,
+        exact: true,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_USER_INTERESTS],
+        },
+      },
+      {
+        Icon: ListTodo,
+        label: "Unmapped Terms",
+        href: PATH_CONSTANTS.ADMIN_INTERESTS_UNMAPPED,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_USER_INTERESTS],
+        },
+      },
+      {
+        Icon: Sparkles,
+        label: "Auto-matches",
+        href: PATH_CONSTANTS.ADMIN_INTERESTS_AUTO_MATCHES,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_VIEW_USER_INTERESTS],
         },
       },
     ],
