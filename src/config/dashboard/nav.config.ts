@@ -34,6 +34,7 @@ import {
   Key,
   LayoutDashboard,
   ListTodo,
+  MailX,
   Megaphone,
   type LucideIcon,
   Newspaper,
@@ -111,6 +112,7 @@ export const PERMISSIONS = {
 
   // ── Marketing / Lead Generation ─────────────────────────────────────────────
   PERM_SEND_LEAD_MAIL: "PERM_SEND_LEAD_MAIL",
+  PERM_MANAGE_EMAIL_SUPPRESSION: "PERM_MANAGE_EMAIL_SUPPRESSION",
   PERM_VIEW_USER_INTERESTS: "PERM_VIEW_USER_INTERESTS",
   PERM_MANAGE_INTEREST_TAXONOMY: "PERM_MANAGE_INTEREST_TAXONOMY",
   PERM_MANAGE_SEGMENTS: "PERM_MANAGE_SEGMENTS",
@@ -667,10 +669,18 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
   },
 
   // ── Marketing ─────────────────────────────────────────────────────────────
+  //
+  // The group is visible to anyone holding EITHER the send permission or the suppression one, and
+  // each item then gates itself. That matters: a support agent who can only manage opt-outs should
+  // see this group with one item in it, not be shown a Campaigns link they cannot open.
   {
     title: "Marketing",
     access: {
-      anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_SEND_LEAD_MAIL],
+      anyOf: [
+        PERMISSIONS.ROLE_ADMIN,
+        PERMISSIONS.PERM_SEND_LEAD_MAIL,
+        PERMISSIONS.PERM_MANAGE_EMAIL_SUPPRESSION,
+      ],
     },
     items: [
       {
@@ -690,6 +700,14 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         href: PATH_CONSTANTS.ADMIN_LEAD_MAIL_COMPOSE,
         access: {
           anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_SEND_LEAD_MAIL],
+        },
+      },
+      {
+        Icon: MailX,
+        label: "Email Suppression",
+        href: PATH_CONSTANTS.ADMIN_EMAIL_SUPPRESSION,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_EMAIL_SUPPRESSION],
         },
       },
     ],

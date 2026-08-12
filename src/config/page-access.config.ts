@@ -214,6 +214,18 @@ export const PAGE_ACCESS_CONFIG: Record<string, PageAccessRule> = {
     label: "New Campaign",
   },
 
+  // ⚠ A DIFFERENT permission from the two above, and that is the whole point. Somebody who can run
+  // a campaign must not automatically be able to lift the opt-outs that constrain it — that is the
+  // one grant where "the person doing the work can also remove the guardrail" is exactly wrong. A
+  // support agent typically needs this and not the send permission; a marketer needs the reverse.
+  //
+  // It also lives at a top-level path rather than under /lead-mail, because the matcher here is a
+  // prefix match: nesting it would silently place it under the PERM_SEND_LEAD_MAIL rule.
+  [PATH_CONSTANTS.ADMIN_EMAIL_SUPPRESSION]: {
+    anyOf: ["ROLE_ADMIN", "PERM_MANAGE_EMAIL_SUPPRESSION"],
+    label: "Email Suppression",
+  },
+
   // ── Tools platform admin control plane (Phase 8) ───────────────────────────
   //
   // Matching is `pathname === key || pathname.startsWith(key + "/")`, so the ADMIN_TOOL_CREDITS entry

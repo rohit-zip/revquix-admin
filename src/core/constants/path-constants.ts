@@ -134,6 +134,15 @@ export const PATH_CONSTANTS = {
   ADMIN_INTERESTS_AUTO_MATCHES: "/interests/auto-matches",
   ADMIN_LEAD_MAIL_COMPOSE: "/lead-mail/compose",
   ADMIN_LEAD_MAIL_CAMPAIGN_DETAIL: "/lead-mail/campaigns",
+  /**
+   * The marketing do-not-mail list (Lead Mailer Phase 4).
+   *
+   * Deliberately NOT under /lead-mail: it is gated on a different permission
+   * (PERM_MANAGE_EMAIL_SUPPRESSION, not PERM_SEND_LEAD_MAIL) and the page-access matcher works on
+   * path prefixes, so nesting it would make the campaign rule cover it too — handing every
+   * marketer the power to lift the opt-outs that constrain them.
+   */
+  ADMIN_EMAIL_SUPPRESSION: "/email-suppression",
 
   // ── Tools platform admin control plane (Phase 8) ───────────────────────────
   /** §8.1 — credit ledger browser. Read-only: the ledger is append-only at the database. */
