@@ -143,6 +143,14 @@ export const PATH_CONSTANTS = {
    * marketer the power to lift the opt-outs that constrain them.
    */
   ADMIN_EMAIL_SUPPRESSION: "/email-suppression",
+  /**
+   * Interest-graph audience predicates (interest Phase 7).
+   *
+   * Top-level for the same reason as email-suppression: the page-access matcher is a prefix match
+   * and this is gated on PERM_MANAGE_SEGMENTS, not PERM_SEND_LEAD_MAIL. Nesting it under
+   * /lead-mail would hand every marketer the ability to define who gets targeted.
+   */
+  ADMIN_SEGMENTS: "/segments",
 
   // ── Tools platform admin control plane (Phase 8) ───────────────────────────
   /** §8.1 — credit ledger browser. Read-only: the ledger is append-only at the database. */

@@ -226,6 +226,14 @@ export const PAGE_ACCESS_CONFIG: Record<string, PageAccessRule> = {
     label: "Email Suppression",
   },
 
+  // A third distinct marketing grant. Defining WHO gets targeted is a different power from
+  // sending to a list somebody else built, and from managing opt-outs — three jobs, three
+  // permissions, all seeded already (PERM_MANAGE_SEGMENTS came with V290).
+  [PATH_CONSTANTS.ADMIN_SEGMENTS]: {
+    anyOf: ["ROLE_ADMIN", "PERM_MANAGE_SEGMENTS"],
+    label: "Segments",
+  },
+
   // ── Tools platform admin control plane (Phase 8) ───────────────────────────
   //
   // Matching is `pathname === key || pathname.startsWith(key + "/")`, so the ADMIN_TOOL_CREDITS entry

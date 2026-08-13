@@ -77,6 +77,7 @@ import {
   type SmtpCredentialsInput,
 } from "./api/lead-mail.types"
 import { AllUsersAudiencePanel, useAllUsersSendReady } from "./components/all-users-audience-panel"
+import { SegmentAudiencePanel } from "@/features/segments/components/segment-audience-panel"
 import { AudienceUserSearchPicker } from "./components/audience-user-search-picker"
 import { ManualRecipientAddRow } from "./components/manual-recipient-add-row"
 import { RecipientReviewTable } from "./components/recipient-review-table"
@@ -86,7 +87,7 @@ import { applyAnnotations, RECIPIENT_SOURCE, toRecipientInputs, type RecipientRo
 const NAME_TOKEN = /\{\{\s*name\s*\}\}/i
 
 /** Four audience-building modes (Phase 3, requirements 2/3/4/5). */
-type RecipientTab = "excel" | "manual" | "search" | "all-users"
+type RecipientTab = "excel" | "manual" | "search" | "all-users" | "segment"
 
 /** Chunk size for /recipients/annotate calls — a 2000-row upload becomes 4 requests, not 2000. */
 const ANNOTATE_BATCH_SIZE = 500
@@ -99,7 +100,18 @@ const AUDIENCE_TYPE_BY_TAB: Record<RecipientTab, LeadMailAudienceType> = {
   manual: LEAD_MAIL_AUDIENCE_TYPE.MANUAL,
   search: LEAD_MAIL_AUDIENCE_TYPE.USER_SEARCH,
   "all-users": LEAD_MAIL_AUDIENCE_TYPE.ALL_USERS,
+  segment: LEAD_MAIL_AUDIENCE_TYPE.SEGMENT,
 }
+
+/**
+ * The two audience modes whose recipient list is resolved server-side from the live database.
+ *
+ * Both send `recipients: []` and neither shows the review table — there is nothing to review,
+ * because the browser never enumerates the audience. Named rather than repeated as two literal
+ * comparisons at six call sites, which is how one of them gets missed and a SEGMENT campaign starts
+ * posting an empty client list the server would ignore anyway while the UI insists it is invalid.
+ */
+const SERVER_RESOLVED_TABS: ReadonlySet<RecipientTab> = new Set(["all-users", "segment"])
 
 /**
  * Generates an idempotency key for one composition.
@@ -210,21 +222,31 @@ export function LeadMailComposeView() {
 
   const usesNameToken = NAME_TOKEN.test(subject) || NAME_TOKEN.test(body)
   const recipientsMissingName = sendableRecipients.filter((r) => !r.name || !r.name.trim())
+  // A server-resolved audience carries no client-side rows, so there is nothing here to check for
+  // missing names. The backend applies missingNamePolicy against the real recipients instead.
   const nameTokenBlocked =
-    recipientTab !== "all-users" && usesNameToken && recipientsMissingName.length > 0
+    !SERVER_RESOLVED_TABS.has(recipientTab) && usesNameToken && recipientsMissingName.length > 0
 
   const isSmtp = sendMethod === LEAD_MAIL_SEND_METHOD.SMTP
   /** SMTP mode must have passed a connection test THIS session; ZeptoMail needs a from-prefix. */
   const senderReady = isSmtp ? smtpTestPassed : fromPrefix.trim().length > 0
 
   const allUsersReady = useAllUsersSendReady(recipientTab === "all-users", allUsersConfirmationInput)
+  const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null)
 
   const canSubmit =
     campaignName.trim().length > 0 &&
     subject.trim().length > 0 &&
     body.trim().length > 0 &&
     replyToAddress.trim().length > 0 &&
-    (recipientTab === "all-users" ? allUsersReady : sendableRecipients.length > 0) &&
+    (recipientTab === "all-users"
+      ? allUsersReady
+      // A segment needs only a selection: no typed-phrase confirmation, because a segment narrows
+      // by construction and the backend refuses a definition that does not. Friction on a routine
+      // send is what trains people to type through the confirmation on the one send where it counts.
+      : recipientTab === "segment"
+        ? !!selectedSegmentId
+        : sendableRecipients.length > 0) &&
     !nameTokenBlocked &&
     senderReady
 
@@ -362,9 +384,10 @@ export function LeadMailComposeView() {
         replyToName: replyToName || undefined,
         // Ignored server-side when audienceType is ALL_USERS — the audience is resolved from the
         // live user table instead. See LeadMailSendRequest#getAudienceType().
-        recipients: recipientTab === "all-users" ? [] : sendableRecipients,
+        recipients: SERVER_RESOLVED_TABS.has(recipientTab) ? [] : sendableRecipients,
         audienceType,
         allUsersConfirmationPhrase: recipientTab === "all-users" ? allUsersConfirmationInput.trim() : undefined,
+        segmentId: recipientTab === "segment" ? (selectedSegmentId ?? undefined) : undefined,
         clientRequestId: clientRequestIdRef.current,
       },
       {
@@ -716,6 +739,7 @@ export function LeadMailComposeView() {
               <TabsTrigger value="manual">Manual Entry</TabsTrigger>
               <TabsTrigger value="search">Search Users</TabsTrigger>
               <TabsTrigger value="all-users">All Users</TabsTrigger>
+              <TabsTrigger value="segment">Segment</TabsTrigger>
             </TabsList>
 
             <TabsContent value="excel" className="mt-3 space-y-3">
@@ -809,9 +833,17 @@ export function LeadMailComposeView() {
                 onConfirmationInputChange={setAllUsersConfirmationInput}
               />
             </TabsContent>
+
+            <TabsContent value="segment" className="mt-3">
+              <SegmentAudiencePanel
+                active={recipientTab === "segment"}
+                selectedSegmentId={selectedSegmentId}
+                onSelect={setSelectedSegmentId}
+              />
+            </TabsContent>
           </Tabs>
 
-          {recipientTab !== "all-users" && (
+          {!SERVER_RESOLVED_TABS.has(recipientTab) && (
             <RecipientReviewTable rows={rows} onChange={setRows} isAnnotating={annotateMutation.isPending} />
           )}
 

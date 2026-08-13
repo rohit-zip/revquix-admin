@@ -680,6 +680,7 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         PERMISSIONS.ROLE_ADMIN,
         PERMISSIONS.PERM_SEND_LEAD_MAIL,
         PERMISSIONS.PERM_MANAGE_EMAIL_SUPPRESSION,
+        PERMISSIONS.PERM_MANAGE_SEGMENTS,
       ],
     },
     items: [
@@ -700,6 +701,14 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         href: PATH_CONSTANTS.ADMIN_LEAD_MAIL_COMPOSE,
         access: {
           anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_SEND_LEAD_MAIL],
+        },
+      },
+      {
+        Icon: Users,
+        label: "Segments",
+        href: PATH_CONSTANTS.ADMIN_SEGMENTS,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_SEGMENTS],
         },
       },
       {

@@ -99,6 +99,14 @@ export const LEAD_MAIL_AUDIENCE_TYPE = {
   EXCEL: "EXCEL",
   USER_SEARCH: "USER_SEARCH",
   ALL_USERS: "ALL_USERS",
+  /**
+   * Everyone matching a saved interest-graph predicate (interest Phase 7).
+   *
+   * Server-resolved like ALL_USERS — the live predicate is re-run at send time and whatever the
+   * browser previewed is never trusted. Unlike ALL_USERS it needs no typed-phrase confirmation: a
+   * segment narrows by construction, and the backend refuses one that does not.
+   */
+  SEGMENT: "SEGMENT",
 } as const
 
 export type LeadMailAudienceType =
@@ -247,6 +255,14 @@ export interface LeadMailSendRequest {
    * {@link LeadMailAllUsersCountResponse.confirmationPhrase} carries — never a hard-coded copy.
    */
   allUsersConfirmationPhrase?: string
+  /**
+   * Required when audienceType is SEGMENT. Ignored otherwise.
+   *
+   * No confirmation phrase counterpart, unlike ALL_USERS: a segment narrows by construction and the
+   * backend refuses a definition that does not. The recipient list is resolved from the live
+   * predicate at send time — whatever the browser previewed is never trusted.
+   */
+  segmentId?: string
   /**
    * Idempotency key. Generated once per composition and reused across retries — a fresh key per
    * click would defeat the guard. A second submission with the same key is rejected (RQ-VE-415),
