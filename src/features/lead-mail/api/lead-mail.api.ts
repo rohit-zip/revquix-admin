@@ -3,10 +3,12 @@ import type {
   LeadMailAllUsersCountResponse,
   LeadMailAnnotatedEmail,
   LeadMailAudienceUserResponse,
+  LeadMailBlogKind,
   LeadMailCampaignActionRequest,
   LeadMailCampaignListFilters,
   LeadMailCampaignListItemResponse,
   LeadMailCampaignSummaryResponse,
+  LeadMailContentCandidate,
   LeadMailDeliveryStatus,
   LeadMailDraftRequest,
   LeadMailDraftSendRequest,
@@ -120,6 +122,26 @@ export const countLeadMailAllUsersEligible = (): Promise<LeadMailAllUsersCountRe
 export const searchLeadMailRecipients = (query: string): Promise<LeadMailRecipientSuggestion[]> =>
   apiClient
     .get<LeadMailRecipientSuggestion[]>(`${BASE}/search-recipients`, { params: { q: query } })
+    .then((r) => r.data)
+
+/**
+ * Posts an admin can attach to a campaign (Phase 6).
+ *
+ * The server hard-filters to PUBLISHED + PUBLIC whatever this asks for, so there is deliberately no
+ * status parameter to pass: emailing a link to a draft or an authenticated-only post is a content
+ * leak that reaches thousands of inboxes at once, and that rule belongs to the endpoint rather than
+ * to whichever caller remembers it.
+ */
+export const listLeadMailContentPosts = (
+  page: number,
+  size: number,
+  kind?: LeadMailBlogKind,
+  q?: string,
+): Promise<LeadMailPage<LeadMailContentCandidate>> =>
+  apiClient
+    .get<LeadMailPage<LeadMailContentCandidate>>(`${BASE}/content/posts`, {
+      params: { page, size, kind: kind || undefined, q: q || undefined },
+    })
     .then((r) => r.data)
 
 export const previewLeadMail = (request: LeadMailPreviewRequest): Promise<LeadMailPreviewResponse> =>

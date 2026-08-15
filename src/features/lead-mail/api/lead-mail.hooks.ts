@@ -16,6 +16,7 @@ import {
   getLeadMailCampaign,
   listLeadMailCampaignRecipients,
   listLeadMailCampaigns,
+  listLeadMailContentPosts,
   parseLeadMailExcel,
   parseLeadMailRecipients,
   pauseLeadMailCampaign,
@@ -31,12 +32,15 @@ import {
   updateLeadMailDraft,
 } from "./lead-mail.api"
 import type {
+  LeadMailBlogKind,
   LeadMailCampaignActionRequest,
   LeadMailCampaignListFilters,
   LeadMailCampaignSummaryResponse,
+  LeadMailContentCandidate,
   LeadMailDeliveryStatus,
   LeadMailDraftRequest,
   LeadMailDraftSendRequest,
+  LeadMailPage,
   LeadMailPreviewRequest,
   LeadMailSendRequest,
   LeadMailTestSendRequest,
@@ -79,6 +83,9 @@ export const leadMailKeys = {
       joinedTo ?? null,
     ] as const,
   allUsersCount: () => ["lead-mail", "audience", "all-users-count"] as const,
+  // Content picker (Phase 6)
+  contentPosts: (page: number, size: number, kind?: string, q?: string) =>
+    ["lead-mail", "content", "posts", page, size, kind ?? null, q ?? null] as const,
 }
 
 /** Manual recipient-entry autocomplete — debounced by the caller before enabling. */
@@ -165,6 +172,30 @@ export function useLeadMailAllUsersCount(options?: { enabled?: boolean }) {
     queryKey: leadMailKeys.allUsersCount(),
     queryFn: () => countLeadMailAllUsersEligible(),
     enabled: options?.enabled ?? false,
+  })
+}
+
+/**
+ * Posts attachable to a campaign (Phase 6).
+ *
+ * `enabled` is caller-controlled so the picker only queries while its dialog is open — a list of
+ * published posts is not something the compose screen needs to fetch on mount for the majority of
+ * campaigns that attach nothing.
+ */
+export function useLeadMailContentPosts(
+  page: number,
+  size: number,
+  kind?: LeadMailBlogKind,
+  q?: string,
+  options?: { enabled?: boolean },
+) {
+  return useQuery<LeadMailPage<LeadMailContentCandidate>, ApiError | NetworkError>({
+    queryKey: leadMailKeys.contentPosts(page, size, kind, q),
+    queryFn: () => listLeadMailContentPosts(page, size, kind, q),
+    enabled: options?.enabled ?? true,
+    // The picker is re-opened repeatedly while composing one campaign, and the set of published
+    // posts does not change between those opens.
+    staleTime: 60_000,
   })
 }
 

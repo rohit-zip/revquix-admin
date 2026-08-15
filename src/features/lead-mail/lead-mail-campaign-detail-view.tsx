@@ -341,6 +341,51 @@ export function LeadMailCampaignDetailView({ campaignId }: { campaignId: string 
         </CardContent>
       </Card>
 
+      {/* ── Attached articles (Phase 6) ────────────────────────────────────── */}
+      {/* Every field here is the snapshot taken when the campaign left DRAFT, never a live read of
+          the post. That is what makes this an audit record: a post retitled, re-slugged or deleted
+          six months from now must not change what this campaign says it sent. The "open" link can
+          therefore 404 — which is information, not a bug. */}
+      {(data.attachedContent?.length ?? 0) > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">
+              Attached articles ({data.attachedContent!.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ol className="space-y-2">
+              {data.attachedContent!.map((article, index) => (
+                <li
+                  key={article.leadMailCampaignContentId}
+                  className="flex items-start gap-3 rounded-md border p-2.5 text-sm"
+                >
+                  <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-semibold">
+                    {index + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">{article.title}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {article.blogKind === "EDITORIAL" ? "Editorial" : "Community"}
+                      {article.authorName ? ` · ${article.authorName}` : ""}
+                      {article.readingTimeMinutes ? ` · ${article.readingTimeMinutes} min read` : ""}
+                    </p>
+                    <a
+                      href={article.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 inline-flex items-center gap-1 break-all text-xs text-primary hover:underline"
+                    >
+                      {article.url}
+                    </a>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </CardContent>
+        </Card>
+      )}
+
       {/* ── Send report ────────────────────────────────────────────────────── */}
       {!isDraft && (
         <Card>

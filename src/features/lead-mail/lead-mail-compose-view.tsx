@@ -5,17 +5,24 @@
  *
  * A single-page form (no wizard) covering:
  *  1. Sending method (ZeptoMail vs ad-hoc SMTP — Phase 2, Option A) + sender fields
- *  2. Subject + Text/HTML content toggle
- *  3. Recipients — four audience-building modes (Phase 3, requirements 2/3/4/5): Excel/CSV
+ *  2. Template (Phase 5, requirement 9) + its fields, and attached articles (Phase 6,
+ *     requirement 8) — the branded fields only appear once a branded template is chosen, but they
+ *     are kept in state regardless so switching templates and back does not discard them
+ *  3. Subject + Text/HTML content toggle
+ *  4. Recipients — four audience-building modes (Phase 3, requirements 2/3/4/5): Excel/CSV
  *     upload, manual entry, Revquix-user search, or every eligible Revquix user. The first three
  *     feed a shared, reviewable <RecipientReviewTable>; the fourth resolves its own audience
  *     server-side and shows a dry-run count + typed confirmation instead.
- *  4. Preview dialog (resolves {{name}} against an editable sample name)
- *  5. Test send (throwaway, not persisted as a campaign)
- *  6. Send — creates the campaign and redirects to the live send-report view
+ *  5. Preview dialog — since Phase 5 this renders the complete email server-side, through the same
+ *     template the send uses, plus the plain-text part
+ *  6. Test send (throwaway, not persisted as a campaign) — also branded, so a test of a branded
+ *     campaign is the branded email rather than the bare body
+ *  7. Send — creates the campaign and redirects to the live send-report view
  *
  * See docs/ADMIN_LEAD_MAILER_V2_ENHANCEMENT_PLAN.md §9.2, which replaces this single-page form
- * with a four-step wizard backed by a persisted DRAFT.
+ * with a four-step wizard backed by a persisted DRAFT. That rewrite is still outstanding; Phases 5
+ * and 6 added their fields to this form rather than waiting for it, because a template nobody can
+ * select is a template that does not exist.
  *
  * Phase 2 SMTP fields (host/port/username/password/encryption/from) are
  * component-local state only — never persisted, cleared on unmount, and only
@@ -31,6 +38,7 @@ import {
   Download,
   FileSpreadsheet,
   Loader2,
+  Newspaper,
   Send,
   Users,
   X,
@@ -70,15 +78,19 @@ import {
   LEAD_MAIL_SENDER_DOMAIN,
   LEAD_MAIL_SEND_METHOD,
   LEAD_MAIL_SMTP_ENCRYPTION_MODE,
+  LEAD_MAIL_TEMPLATE_KEY,
   type LeadMailAudienceType,
+  type LeadMailContentCandidate,
   type LeadMailContentType,
   type LeadMailSendMethod,
   type LeadMailSmtpEncryptionMode,
+  type LeadMailTemplateKey,
   type SmtpCredentialsInput,
 } from "./api/lead-mail.types"
 import { AllUsersAudiencePanel, useAllUsersSendReady } from "./components/all-users-audience-panel"
 import { SegmentAudiencePanel } from "@/features/segments/components/segment-audience-panel"
 import { AudienceUserSearchPicker } from "./components/audience-user-search-picker"
+import { ContentPickerDialog } from "./components/content-picker-dialog"
 import { ManualRecipientAddRow } from "./components/manual-recipient-add-row"
 import { RecipientReviewTable } from "./components/recipient-review-table"
 import { applyAnnotations, RECIPIENT_SOURCE, toRecipientInputs, type RecipientRow } from "./components/recipient-row"
@@ -129,6 +141,43 @@ function newClientRequestId(): string {
   }
   return `lm-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 }
+
+/**
+ * The template choices, in the order an operator should consider them.
+ *
+ * RAW is first because it is the default and remains the right answer for hand-written outreach —
+ * a forty-lead prospecting email wrapped in newsletter chrome reads as a newsletter, which is
+ * exactly the wrong signal. The branded keys are for the sends that genuinely are from Revquix
+ * rather than from a person.
+ */
+const TEMPLATE_OPTIONS: { value: LeadMailTemplateKey; label: string; description: string }[] = [
+  {
+    value: LEAD_MAIL_TEMPLATE_KEY.RAW,
+    label: "No template — send my content as-is",
+    description:
+      "Your body is sent exactly as written, with an unsubscribe footer appended. Best for personal outreach that should not look like a broadcast.",
+  },
+  {
+    value: LEAD_MAIL_TEMPLATE_KEY.BRANDED_BASIC,
+    label: "Plain branded",
+    description: "Revquix header and footer around your copy. Nothing else.",
+  },
+  {
+    value: LEAD_MAIL_TEMPLATE_KEY.BRANDED_CTA,
+    label: "Single call to action",
+    description: "Plain branded, plus one primary button. Needs a button label and link.",
+  },
+  {
+    value: LEAD_MAIL_TEMPLATE_KEY.BRANDED_ARTICLES,
+    label: "Content roundup",
+    description: "Plain branded, plus cards for the articles you attach below.",
+  },
+  {
+    value: LEAD_MAIL_TEMPLATE_KEY.BRANDED_ANNOUNCEMENT,
+    label: "Announcement",
+    description: "Eyebrow label and a large headline above your copy. Needs a headline.",
+  },
+]
 
 const SMTP_ENCRYPTION_OPTIONS: { label: string; value: LeadMailSmtpEncryptionMode }[] = [
   { label: "SSL", value: LEAD_MAIL_SMTP_ENCRYPTION_MODE.SSL },
@@ -194,6 +243,22 @@ export function LeadMailComposeView() {
   const [htmlMode, setHtmlMode] = useState<"rich" | "source" | "preview">("rich")
   const body = contentType === LEAD_MAIL_CONTENT_TYPE.HTML ? htmlBody : textBody
 
+  // ── Template + branded fields (Phase 5) ──────────────────────────────────
+  // RAW is the default so the screen behaves exactly as it did before this existed. Every field
+  // below is kept in state even when the current template does not render it: switching from
+  // "Single call to action" to "Plain branded" and back must not silently discard the button the
+  // operator already wrote.
+  const [templateKey, setTemplateKey] = useState<LeadMailTemplateKey>(LEAD_MAIL_TEMPLATE_KEY.RAW)
+  const [preheader, setPreheader] = useState("")
+  const [eyebrow, setEyebrow] = useState("")
+  const [headline, setHeadline] = useState("")
+  const [ctaLabel, setCtaLabel] = useState("")
+  const [ctaUrl, setCtaUrl] = useState("")
+
+  // ── Attached articles (Phase 6) ──────────────────────────────────────────
+  const [attachedArticles, setAttachedArticles] = useState<LeadMailContentCandidate[]>([])
+  const [contentPickerOpen, setContentPickerOpen] = useState(false)
+
   // ── Recipients (Phase 3 audience builder) ────────────────────────────────
   const [recipientTab, setRecipientTab] = useState<RecipientTab>("excel")
   const [rows, setRows] = useState<RecipientRow[]>([])
@@ -207,6 +272,8 @@ export function LeadMailComposeView() {
   // ── Preview dialog ──────────────────────────────────────────────────────
   const [previewOpen, setPreviewOpen] = useState(false)
   const [sampleName, setSampleName] = useState("Alex")
+  /** Which half of the message the preview shows. Both are what the recipient's client receives. */
+  const [previewPane, setPreviewPane] = useState<"email" | "text">("email")
 
   // ── Test send dialog ────────────────────────────────────────────────────
   const [testDialogOpen, setTestDialogOpen] = useState(false)
@@ -220,7 +287,38 @@ export function LeadMailComposeView() {
   const sendMutation = useSendLeadMail()
   const testSmtpMutation = useTestSmtpConnection()
 
-  const usesNameToken = NAME_TOKEN.test(subject) || NAME_TOKEN.test(body)
+  const isBranded = templateKey !== LEAD_MAIL_TEMPLATE_KEY.RAW
+  const hasCta = ctaLabel.trim().length > 0 && ctaUrl.trim().length > 0
+  /** Exactly one half of the button filled in. Both or neither — matches ck_lmc_cta_pair. */
+  const halfCta = ctaLabel.trim().length > 0 !== ctaUrl.trim().length > 0
+  const needsCta = templateKey === LEAD_MAIL_TEMPLATE_KEY.BRANDED_CTA && !hasCta
+  const needsHeadline =
+    templateKey === LEAD_MAIL_TEMPLATE_KEY.BRANDED_ANNOUNCEMENT && headline.trim().length === 0
+  /** What the server would reject with RQ-VE-448, checked here so Send is disabled rather than failing. */
+  const brandedFieldsIncomplete = needsCta || needsHeadline || halfCta
+
+  /**
+   * The layout half of every request this screen makes.
+   *
+   * One object shared by preview, test send and send, because those three have to describe the same
+   * email. Assembling them separately is how a preview stops matching the send after somebody adds
+   * a field to two of the three.
+   */
+  const brandedFields = {
+    templateKey,
+    preheader: preheader.trim() || undefined,
+    eyebrow: eyebrow.trim() || undefined,
+    headline: headline.trim() || undefined,
+    ctaLabel: hasCta ? ctaLabel.trim() : undefined,
+    ctaUrl: hasCta ? ctaUrl.trim() : undefined,
+    contentBlogIds: attachedArticles.map((article) => article.blogId),
+  }
+
+  const usesNameToken =
+    NAME_TOKEN.test(subject) ||
+    NAME_TOKEN.test(body) ||
+    NAME_TOKEN.test(headline) ||
+    NAME_TOKEN.test(ctaLabel)
   const recipientsMissingName = sendableRecipients.filter((r) => !r.name || !r.name.trim())
   // A server-resolved audience carries no client-side rows, so there is nothing here to check for
   // missing names. The backend applies missingNamePolicy against the real recipients instead.
@@ -248,6 +346,7 @@ export function LeadMailComposeView() {
         ? !!selectedSegmentId
         : sendableRecipients.length > 0) &&
     !nameTokenBlocked &&
+    !brandedFieldsIncomplete &&
     senderReady
 
   // ── Annotate rows lacking a suppression/Revquix-user check yet ─────────
@@ -322,12 +421,12 @@ export function LeadMailComposeView() {
   // ── Preview ─────────────────────────────────────────────────────────────
   const openPreview = () => {
     setPreviewOpen(true)
-    previewMutation.mutate({ subject, body, contentType, sampleName: sampleName || undefined })
+    previewMutation.mutate({ subject, body, contentType, sampleName: sampleName || undefined, ...brandedFields })
   }
 
   const refreshPreview = (name: string) => {
     setSampleName(name)
-    previewMutation.mutate({ subject, body, contentType, sampleName: name || undefined })
+    previewMutation.mutate({ subject, body, contentType, sampleName: name || undefined, ...brandedFields })
   }
 
   // ── Test send ───────────────────────────────────────────────────────────
@@ -345,6 +444,7 @@ export function LeadMailComposeView() {
         replyToName: replyToName || undefined,
         testEmail: testEmail.trim(),
         sampleName: sampleName || undefined,
+        ...brandedFields,
       },
       { onSuccess: () => setTestDialogOpen(false) },
     )
@@ -389,6 +489,7 @@ export function LeadMailComposeView() {
         allUsersConfirmationPhrase: recipientTab === "all-users" ? allUsersConfirmationInput.trim() : undefined,
         segmentId: recipientTab === "segment" ? (selectedSegmentId ?? undefined) : undefined,
         clientRequestId: clientRequestIdRef.current,
+        ...brandedFields,
       },
       {
         onSuccess: (data) => {
@@ -610,6 +711,173 @@ export function LeadMailComposeView() {
           <CardTitle>Content</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* ── Template (Phase 5, requirement 9) ─────────────────────────────
+              RAW is first and is the default. It is not a legacy option to be embarrassed about:
+              a hand-written HTML email is the right answer for a forty-lead outreach list, and
+              wrapping it in brand chrome would make it look like a newsletter. */}
+          <div className="space-y-1.5">
+            <Label htmlFor="lm-template-key">Email template</Label>
+            <Select value={templateKey} onValueChange={(v) => setTemplateKey(v as LeadMailTemplateKey)}>
+              <SelectTrigger id="lm-template-key">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TEMPLATE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {TEMPLATE_OPTIONS.find((o) => o.value === templateKey)?.description}
+            </p>
+          </div>
+
+          {isBranded && (
+            <div className="space-y-4 rounded-md border border-dashed p-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="lm-preheader">Inbox preview line</Label>
+                <Input
+                  id="lm-preheader"
+                  placeholder="One line shown beside the subject in the inbox"
+                  value={preheader}
+                  maxLength={200}
+                  onChange={(e) => setPreheader(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Optional. Left empty, most clients pull the first words of your body in instead.
+                </p>
+              </div>
+
+              {templateKey === LEAD_MAIL_TEMPLATE_KEY.BRANDED_ANNOUNCEMENT && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="lm-eyebrow">Eyebrow</Label>
+                    <Input
+                      id="lm-eyebrow"
+                      placeholder="Product update"
+                      value={eyebrow}
+                      maxLength={60}
+                      onChange={(e) => setEyebrow(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Optional. The small label above the headline.
+                    </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="lm-headline">
+                      Headline <span className="text-rose-500">*</span>
+                    </Label>
+                    <Input
+                      id="lm-headline"
+                      placeholder="What is new on Revquix"
+                      value={headline}
+                      maxLength={200}
+                      onChange={(e) => setHeadline(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Separate from the subject on purpose: the subject competes for the open, the
+                      headline is what the reader sees once they have opened.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {(templateKey === LEAD_MAIL_TEMPLATE_KEY.BRANDED_CTA ||
+                templateKey === LEAD_MAIL_TEMPLATE_KEY.BRANDED_ANNOUNCEMENT) && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="lm-cta-label">
+                      Button label
+                      {templateKey === LEAD_MAIL_TEMPLATE_KEY.BRANDED_CTA && (
+                        <span className="text-rose-500"> *</span>
+                      )}
+                    </Label>
+                    <Input
+                      id="lm-cta-label"
+                      placeholder="Book a call"
+                      value={ctaLabel}
+                      maxLength={80}
+                      onChange={(e) => setCtaLabel(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="lm-cta-url">
+                      Button link
+                      {templateKey === LEAD_MAIL_TEMPLATE_KEY.BRANDED_CTA && (
+                        <span className="text-rose-500"> *</span>
+                      )}
+                    </Label>
+                    <Input
+                      id="lm-cta-url"
+                      type="url"
+                      placeholder="https://www.revquix.com/mentors"
+                      value={ctaUrl}
+                      maxLength={1000}
+                      onChange={(e) => setCtaUrl(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {halfCta && (
+                <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>
+                    A button needs both a label and a link. Fill in the other half, or clear both —
+                    a link with no label renders nothing at all and silently drops the action.
+                  </span>
+                </div>
+              )}
+
+              {/* ── Attached articles (Phase 6, requirement 8) ─────────────── */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Attached articles</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setContentPickerOpen(true)}>
+                    <Newspaper className="h-3.5 w-3.5" />
+                    {attachedArticles.length > 0 ? "Edit selection" : "Attach articles"}
+                  </Button>
+                </div>
+                {attachedArticles.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    Optional. Published, public editorials and community blogs render as cards under
+                    your copy, with UTM tags so their traffic is attributable to this campaign.
+                  </p>
+                ) : (
+                  <ol className="space-y-1.5">
+                    {attachedArticles.map((article, index) => (
+                      <li
+                        key={article.blogId}
+                        className="flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs"
+                      >
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-semibold">
+                          {index + 1}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate font-medium">{article.title}</span>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6 shrink-0"
+                          aria-label={`Remove ${article.title}`}
+                          onClick={() =>
+                            setAttachedArticles((current) =>
+                              current.filter((item) => item.blogId !== article.blogId),
+                            )
+                          }
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Requirement 7. Distinct from the subject on purpose: the subject is what the recipient
               reads, the name is what the operator recognises in campaign history six months later —
               and those are rarely the same sentence. */}
@@ -890,11 +1158,18 @@ export function LeadMailComposeView() {
       </div>
 
       {/* ── Preview dialog ────────────────────────────────────────────────── */}
+      {/* Phase 5: the email pane renders `fullHtml`, produced server-side by the same template the
+          send uses. It replaced a client-side approximation, which was the wrong thing to approve:
+          this is the artefact an operator signs off before mailing thousands of people, and an
+          approximation only accidentally matches what goes out. */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+        <DialogContent className="max-h-[88vh] max-w-3xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Preview</DialogTitle>
-            <DialogDescription>{"{{name}}"} is resolved against the sample name below.</DialogDescription>
+            <DialogDescription>
+              Rendered by the same template the send will use. {"{{name}}"} is resolved against the
+              sample name below.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-1.5">
@@ -912,18 +1187,40 @@ export function LeadMailComposeView() {
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : previewMutation.data ? (
-            <div className="space-y-3 rounded-md border p-4">
-              <div>
+            <div className="space-y-3">
+              <div className="rounded-md border p-3">
                 <p className="text-xs font-medium text-muted-foreground">Subject</p>
                 <p className="text-sm font-medium">{previewMutation.data.resolvedSubject}</p>
               </div>
-              <div>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">Body</p>
-                <div
-                  className="prose prose-sm max-w-none rounded-md bg-muted/30 p-3"
-                  dangerouslySetInnerHTML={{ __html: previewMutation.data.resolvedBody }}
-                />
-              </div>
+
+              <Tabs value={previewPane} onValueChange={(v) => setPreviewPane(v as "email" | "text")}>
+                <TabsList>
+                  <TabsTrigger value="email">Email</TabsTrigger>
+                  <TabsTrigger value="text">Plain text</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="email" className="mt-3">
+                  {/* sandbox="" keeps scripts and same-origin access off. The preview's unsubscribe
+                      link is signed for a throwaway address, not for anyone real, so a link scanner
+                      or a curious click cannot suppress a live inbox. */}
+                  <iframe
+                    title="Full email preview"
+                    sandbox=""
+                    className="h-[520px] w-full rounded-md border bg-white"
+                    srcDoc={previewMutation.data.fullHtml || previewMutation.data.resolvedBody}
+                  />
+                </TabsContent>
+
+                <TabsContent value="text" className="mt-3">
+                  <pre className="max-h-[520px] overflow-auto whitespace-pre-wrap rounded-md border bg-muted/30 p-3 font-mono text-xs">
+                    {previewMutation.data.plainText || "No plain-text part was produced."}
+                  </pre>
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    The alternative part. Spam filters score its presence, and it is what anyone
+                    reading mail as text actually sees.
+                  </p>
+                </TabsContent>
+              </Tabs>
             </div>
           ) : null}
 
@@ -934,6 +1231,14 @@ export function LeadMailComposeView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Content picker (Phase 6) ──────────────────────────────────────── */}
+      <ContentPickerDialog
+        open={contentPickerOpen}
+        onOpenChange={setContentPickerOpen}
+        selected={attachedArticles}
+        onConfirm={setAttachedArticles}
+      />
 
       {/* ── Test send dialog ──────────────────────────────────────────────── */}
       <Dialog open={testDialogOpen} onOpenChange={setTestDialogOpen}>

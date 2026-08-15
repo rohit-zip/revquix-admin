@@ -202,7 +202,82 @@ export interface LeadMailRecipientSuggestion {
   avatarUrl: string | null
 }
 
-export interface LeadMailPreviewRequest {
+/**
+ * Which kind of post an attachment came from. Mirrors the backend `BlogKind`.
+ * Decides the public URL shape (`/blog/{slug}` vs `/u/{username}/blog/{slug}`) and the card label.
+ */
+export const LEAD_MAIL_BLOG_KIND = {
+  EDITORIAL: "EDITORIAL",
+  COMMUNITY: "COMMUNITY",
+} as const
+
+export type LeadMailBlogKind = (typeof LEAD_MAIL_BLOG_KIND)[keyof typeof LEAD_MAIL_BLOG_KIND]
+
+/**
+ * One row of `GET /content/posts` — a post the admin may attach (Phase 6).
+ *
+ * The endpoint only ever returns PUBLISHED + PUBLIC posts, which is why there is no status field
+ * here to filter on: that decision has already been made server-side, and offering the client a
+ * status would invite it to re-implement a rule it cannot enforce.
+ */
+export interface LeadMailContentCandidate {
+  blogId: string
+  title: string
+  slug: string
+  excerpt?: string | null
+  coverUrl?: string | null
+  authorName?: string | null
+  blogKind: LeadMailBlogKind
+  readingTimeMinutes?: number | null
+  publishedAt?: string | null
+  /** Live post URL WITHOUT UTM parameters — this is the link the admin clicks while choosing. */
+  publicUrl: string
+}
+
+/**
+ * An article attached to a campaign, frozen as it was when the campaign left DRAFT.
+ *
+ * Never re-read from the live post: these fields are what the email actually carried, so a post
+ * retitled or deleted six months later must not change what an archived campaign says it sent.
+ */
+export interface LeadMailCampaignContent {
+  leadMailCampaignContentId: string
+  blogId: string
+  blogKind: LeadMailBlogKind
+  position: number
+  title: string
+  excerpt?: string | null
+  coverUrl?: string | null
+  authorName?: string | null
+  /** The absolute, UTM-tagged URL exactly as it appeared in the sent email. */
+  url: string
+  readingTimeMinutes?: number | null
+}
+
+/**
+ * The layout fields shared by preview, test-send, send and draft (Phases 5 and 6).
+ *
+ * Extracted rather than repeated four times: these four requests have to agree about what an email
+ * looks like, and four independent copies of the same six fields is how the preview stops matching
+ * the send after somebody adds a seventh.
+ */
+export interface LeadMailBrandedFields {
+  /** Defaults to RAW server-side when omitted — the pre-V2 verbatim-body behaviour. */
+  templateKey?: LeadMailTemplateKey
+  /** Inbox preview line. Rendered by the branded templates only. */
+  preheader?: string
+  /** Small uppercase label above a BRANDED_ANNOUNCEMENT headline. */
+  eyebrow?: string
+  /** Required for BRANDED_ANNOUNCEMENT at send time (RQ-VE-448). */
+  headline?: string
+  /** Required for BRANDED_CTA at send time. Stored only together with ctaUrl. */
+  ctaLabel?: string
+  ctaUrl?: string
+  /** Blog post ids to attach, in render order. PUBLISHED + PUBLIC only (RQ-VE-447). */
+  contentBlogIds?: string[]
+}
+
+export interface LeadMailPreviewRequest extends LeadMailBrandedFields {
   subject: string
   body: string
   contentType: LeadMailContentType
@@ -212,9 +287,19 @@ export interface LeadMailPreviewRequest {
 export interface LeadMailPreviewResponse {
   resolvedSubject: string
   resolvedBody: string
+  /**
+   * The complete email document, rendered server-side by the template the send will use.
+   *
+   * This is what belongs in the sandboxed iframe. A client-side approximation is worse than no
+   * preview: it is the artefact an operator approves before mailing thousands of people, and an
+   * approximation is only accidentally the same as what goes out.
+   */
+  fullHtml?: string
+  /** The text/plain alternative part, as a client reading mail as text would receive it. */
+  plainText?: string
 }
 
-export interface LeadMailTestSendRequest {
+export interface LeadMailTestSendRequest extends LeadMailBrandedFields {
   subject: string
   body: string
   contentType: LeadMailContentType
@@ -229,7 +314,7 @@ export interface LeadMailTestSendRequest {
   sampleName?: string
 }
 
-export interface LeadMailSendRequest {
+export interface LeadMailSendRequest extends LeadMailBrandedFields {
   /** Label shown in campaign history (requirement 7). Defaults to the subject server-side when omitted. */
   campaignName?: string
   subject: string
@@ -361,7 +446,7 @@ export interface LeadMailAllUsersCountResponse {
 }
 
 /** Create or replace a draft campaign. Only campaignName is required — a draft may be incomplete. */
-export interface LeadMailDraftRequest {
+export interface LeadMailDraftRequest extends LeadMailBrandedFields {
   campaignName: string
   subject?: string
   body?: string
@@ -487,6 +572,18 @@ export interface LeadMailCampaignSummaryResponse {
   failureReason?: string | null
   /** True when `recipients` holds only the first page — use the recipients endpoint for the rest. */
   recipientsTruncated?: boolean
+
+  // ─── Branded template fields (Phase 5) ───────────────────────────────────
+  // Returned even when the current templateKey does not use them, so switching a draft from
+  // BRANDED_CTA to BRANDED_BASIC and back does not lose the button the operator already wrote.
+
+  eyebrow?: string | null
+  headline?: string | null
+  ctaLabel?: string | null
+  ctaUrl?: string | null
+
+  /** Attached articles in render order, frozen as snapshots. Empty when nothing is attached. */
+  attachedContent?: LeadMailCampaignContent[]
 }
 
 export interface LeadMailCampaignListItemResponse {
