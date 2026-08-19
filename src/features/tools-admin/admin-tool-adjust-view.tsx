@@ -53,6 +53,11 @@ import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import {
+  UserSearchCombobox,
+  UserSearchMultiPicker,
+  type UserSearchOption,
+} from "@/components/user-search-picker"
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -61,6 +66,7 @@ import {
 } from "@/components/ui/select"
 import { PATH_CONSTANTS } from "@/core/constants/path-constants"
 import { useAuthorization } from "@/hooks/useAuthorization"
+import { lookupCreditUsers } from "./api/tools-admin.api"
 import {
   useAdjustCredits,
   useBulkGrantCredits,
@@ -357,7 +363,7 @@ function PendingApprovalRow({
 function SingleAdjustmentForm({ disabled }: { disabled: boolean }) {
   const adjust = useAdjustCredits()
   const [action, setAction] = React.useState<keyof typeof ACTION_META>("ADD_CREDITS")
-  const [userId, setUserId] = React.useState("")
+  const [user, setUser] = React.useState<UserSearchOption | null>(null)
   const [amount, setAmount] = React.useState("")
   const [reason, setReason] = React.useState<ReasonState>({ code: "", text: "" })
   const [statementNote, setStatementNote] = React.useState("")
@@ -372,12 +378,12 @@ function SingleAdjustmentForm({ disabled }: { disabled: boolean }) {
   const parsedAmount = Number.parseInt(amount, 10)
   const amountValid = Number.isFinite(parsedAmount) && parsedAmount > 0
 
-  const canSubmit = !disabled && userId.trim().length > 0 && amountValid && isReasonValid(reason)
+  const canSubmit = !disabled && user !== null && amountValid && isReasonValid(reason)
 
   const submit = () => {
     adjust.mutate(
       {
-        userId: userId.trim(),
+        userId: user!.userId,
         action,
         amount: parsedAmount,
         reasonCode: reason.code as Exclude<ReasonState["code"], "">,
@@ -388,6 +394,7 @@ function SingleAdjustmentForm({ disabled }: { disabled: boolean }) {
       {
         onSuccess: () => {
           setConfirming(false)
+          setUser(null)
           setAmount("")
           setReason({ code: "", text: "" })
           setStatementNote("")
@@ -447,16 +454,22 @@ function SingleAdjustmentForm({ disabled }: { disabled: boolean }) {
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="adjust-user-id">
-              User ID <span aria-hidden="true">*</span>
+              User <span aria-hidden="true">*</span>
               <span className="sr-only">required</span>
             </Label>
-            <Input
+            {/*
+              Search, not a raw id. The id is the one value on this form an operator cannot know
+              from the conversation that prompted the adjustment — a support thread names a person
+              and an email, never a USR number — so the old field sent them to another screen to
+              look it up and back with something pasted. Pasting still works: the lookup
+              short-circuits on an exact id.
+            */}
+            <UserSearchCombobox
               id="adjust-user-id"
-              value={userId}
-              onChange={(event) => setUserId(event.target.value)}
+              search={lookupCreditUsers}
+              selectedUser={user}
+              onSelect={setUser}
               disabled={disabled}
-              placeholder="USR0000000123"
-              className="font-mono"
             />
           </div>
           <div className="space-y-1.5">
@@ -552,7 +565,14 @@ function SingleAdjustmentForm({ disabled }: { disabled: boolean }) {
                     {meta.destructive ? "−" : "+"}
                     {amountValid ? parsedAmount : 0}
                   </strong>{" "}
-                  against <span className="font-mono">{userId.trim() || "—"}</span>.
+                  against{" "}
+                  {/*
+                    Both, in the confirmation. The name is what the operator recognises; the id is
+                    what the endpoint receives, and this dialog is the last point at which a
+                    mis-picked account can be caught.
+                  */}
+                  <strong>{user ? (user.name ?? user.username ?? user.userId) : "—"}</strong>{" "}
+                  <span className="font-mono text-xs">({user?.userId ?? "—"})</span>.
                 </p>
                 {meta.destructive && (
                   <p className="text-amber-600 dark:text-amber-400">
@@ -643,17 +663,33 @@ function AdjustmentOutcome({
 function BulkGrantForm({ disabled, maxUsers }: { disabled: boolean; maxUsers: number }) {
   const bulkGrant = useBulkGrantCredits()
   const [batchId, setBatchId] = React.useState("")
+  const [picked, setPicked] = React.useState<UserSearchOption[]>([])
   const [raw, setRaw] = React.useState("")
+  const [pasteOpen, setPasteOpen] = React.useState(false)
   const [amount, setAmount] = React.useState("")
   const [reason, setReason] = React.useState<ReasonState>({ code: "", text: "" })
   const [statementNote, setStatementNote] = React.useState("")
   const [confirming, setConfirming] = React.useState(false)
 
-  // Split on anything that is not part of an id, so a pasted CSV column, a newline-separated list and a
-  // comma-separated one all work without the operator having to reformat.
+  /*
+    The two entry paths are unioned, not exclusive. Searching suits "add the three people from the
+    thread"; pasting suits "here is the list finance sent". A cohort is regularly assembled from
+    both, and forcing a choice would mean retyping one of them. The Set collapses the overlap, so
+    picking somebody who is also in the pasted list grants once — which the batch key would enforce
+    server-side anyway, but the count on screen should already say so.
+
+    Split on anything that is not part of an id, so a pasted CSV column, a newline-separated list and
+    a comma-separated one all work without the operator having to reformat.
+  */
   const userIds = React.useMemo(
-    () => Array.from(new Set(raw.split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean))),
-    [raw],
+    () =>
+      Array.from(
+        new Set([
+          ...picked.map((user) => user.userId),
+          ...raw.split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean),
+        ]),
+      ),
+    [picked, raw],
   )
 
   const parsedAmount = Number.parseInt(amount, 10)
@@ -714,24 +750,55 @@ function BulkGrantForm({ disabled, maxUsers }: { disabled: boolean; maxUsers: nu
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="bulk-user-ids">
-            User IDs <span aria-hidden="true">*</span>
+        <div className="space-y-2">
+          <Label htmlFor="bulk-user-search">
+            Recipients <span aria-hidden="true">*</span>
             <span className="sr-only">required</span>
           </Label>
-          <Textarea
-            id="bulk-user-ids"
-            value={raw}
-            onChange={(event) => setRaw(event.target.value)}
+          <UserSearchMultiPicker
+            id="bulk-user-search"
+            search={lookupCreditUsers}
+            selected={picked}
+            onChange={setPicked}
+            max={maxUsers}
             disabled={disabled}
-            rows={6}
-            className="font-mono text-xs"
-            placeholder={"USR0000000123\nUSR0000000124\nUSR0000000125"}
-            aria-describedby="bulk-user-ids-help"
+            placeholder="Search by name, username or email to add…"
           />
+
+          {/*
+            The paste box stays, folded away. Search is right for a handful of named people; a
+            campus batch arrives as a column of ids in a spreadsheet and nobody is going to search
+            for two hundred of them one at a time. It springs open on its own when it holds
+            anything, so a pasted list can never end up hidden behind a closed disclosure while its
+            ids are still counted in the total below.
+          */}
+          <details
+            open={pasteOpen || raw.trim().length > 0}
+            onToggle={(event) => setPasteOpen(event.currentTarget.open)}
+            className="rounded-lg border border-border/70 px-3 py-2"
+          >
+            <summary className="cursor-pointer text-xs font-medium text-muted-foreground select-none">
+              or paste a list of user IDs
+            </summary>
+            <Textarea
+              id="bulk-user-ids"
+              value={raw}
+              onChange={(event) => setRaw(event.target.value)}
+              disabled={disabled}
+              rows={5}
+              className="mt-2 font-mono text-xs"
+              placeholder={"USR0000000123\nUSR0000000124\nUSR0000000125"}
+              aria-label="Paste user IDs"
+              aria-describedby="bulk-user-ids-help"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Newlines, commas or spaces all work.
+            </p>
+          </details>
+
           <p id="bulk-user-ids-help" aria-live="polite" className="text-xs text-muted-foreground">
             {userIds.length} distinct user(s) · {amountValid ? userIds.length * parsedAmount : 0} credit(s)
-            total. Newlines, commas or spaces all work. Duplicates are collapsed.
+            total. Duplicates across search and paste are collapsed.
             {userIds.length > maxUsers && (
               <span className="text-destructive">
                 {" "}
@@ -848,16 +915,27 @@ function BulkGrantForm({ disabled, maxUsers }: { disabled: boolean; maxUsers: nu
 function FreeQuotaForm({ disabled }: { disabled: boolean }) {
   const setQuota = useSetFreeQuotaOverride()
   const [subjectType, setSubjectType] = React.useState<ToolSubjectType>("USER")
+  const [subjectUser, setSubjectUser] = React.useState<UserSearchOption | null>(null)
   const [subjectKey, setSubjectKey] = React.useState("")
   const [mode, setMode] = React.useState<"default" | "unlimited" | "explicit">("explicit")
   const [explicit, setExplicit] = React.useState("")
   const [reason, setReason] = React.useState<ReasonState>({ code: "", text: "" })
 
+  /*
+    Only a USER subject is a person to search for. An anonymous cookie value and a salted IP hash are
+    opaque strings copied from a run row — there is nothing to search and nothing to recognise — so
+    those keep the raw input. Two states rather than one shared string, because a stale id left over
+    from a subject-type switch is exactly the kind of thing that writes an override against the wrong
+    subject without anyone noticing.
+  */
+  const effectiveSubjectKey =
+    subjectType === "USER" ? (subjectUser?.userId ?? "") : subjectKey.trim()
+
   const parsedExplicit = Number.parseInt(explicit, 10)
   const explicitValid = Number.isFinite(parsedExplicit) && parsedExplicit > 0
   const canSubmit =
     !disabled &&
-    subjectKey.trim().length > 0 &&
+    effectiveSubjectKey.length > 0 &&
     isReasonValid(reason) &&
     (mode !== "explicit" || explicitValid)
 
@@ -892,21 +970,31 @@ function FreeQuotaForm({ disabled }: { disabled: boolean }) {
           <div className="space-y-1.5">
             <Label htmlFor="quota-subject-key">
               {subjectType === "USER"
-                ? "User ID"
+                ? "User"
                 : subjectType === "ANON"
                   ? "Anonymous cookie value"
                   : "IP hash"}{" "}
               <span aria-hidden="true">*</span>
               <span className="sr-only">required</span>
             </Label>
-            <Input
-              id="quota-subject-key"
-              value={subjectKey}
-              onChange={(event) => setSubjectKey(event.target.value)}
-              disabled={disabled}
-              className="font-mono"
-              placeholder={subjectType === "USER" ? "USR0000000123" : "…"}
-            />
+            {subjectType === "USER" ? (
+              <UserSearchCombobox
+                id="quota-subject-key"
+                search={lookupCreditUsers}
+                selectedUser={subjectUser}
+                onSelect={setSubjectUser}
+                disabled={disabled}
+              />
+            ) : (
+              <Input
+                id="quota-subject-key"
+                value={subjectKey}
+                onChange={(event) => setSubjectKey(event.target.value)}
+                disabled={disabled}
+                className="font-mono"
+                placeholder="…"
+              />
+            )}
           </div>
         </div>
 
@@ -981,7 +1069,7 @@ function FreeQuotaForm({ disabled }: { disabled: boolean }) {
             onClick={() =>
               setQuota.mutate({
                 subjectType,
-                subjectKey: subjectKey.trim(),
+                subjectKey: effectiveSubjectKey,
                 customQuota,
                 reasonCode: reason.code as Exclude<ReasonState["code"], "">,
                 reason: reason.text.trim(),

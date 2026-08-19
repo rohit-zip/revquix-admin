@@ -77,6 +77,7 @@ export const PATH_CONSTANTS = {
   BUSINESS_MENTOR_ALL_BOOKINGS: "/business-mentor/all-bookings",
   BUSINESS_MENTOR_INTAKES: "/business-mentor/intakes",
   // ── Platform / Content Management ────────────────────────────────────────────
+  ADMIN_GOOGLE_MEET: "/platform/google-meet",
   ADMIN_COMPANIES: "/companies",
   ADMIN_SCHOOLS: "/schools",
   ADMIN_SKILLS: "/skills",

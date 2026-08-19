@@ -57,6 +57,8 @@ import type {
   ToolBrand,
 } from "./tools-admin.types";
 
+import type { UserSearchOption } from "@/components/user-search-picker";
+
 const CREDITS = "/admin/tools/credits";
 const RUNS = "/admin/tools/runs";
 const TOOLS = "/admin/tools";
@@ -133,6 +135,22 @@ export const resolveCreditUser = (
         params: { identifier },
       },
     )
+    .then((r) => r.data);
+
+/**
+ * Free-text user search for this console's pickers: name, username, email, or a pasted id.
+ *
+ * Deliberately NOT `POST /user/search`, which is the general user-admin search and requires
+ * `PERM_MANAGE_USER_ROLES`. Every screen calling this is reachable with `PERM_MANAGE_CREDITS` alone,
+ * so pointing the picker at that endpoint would 403 for exactly the least-privilege operator it is
+ * meant to help — and the obvious "fix" is granting them user-role management to make a text box
+ * work. The backend mirrors this reasoning in `AdminCreditQueryService#lookupUsers`.
+ */
+export const lookupCreditUsers = (
+  query: string,
+): Promise<UserSearchOption[]> =>
+  apiClient
+    .get<UserSearchOption[]>(`${CREDITS}/users/lookup`, { params: { query } })
     .then((r) => r.data);
 
 // ─── §8.2 Adjustments ────────────────────────────────────────────────────────

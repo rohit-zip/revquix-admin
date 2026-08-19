@@ -101,6 +101,37 @@ export interface BookingSessionDiagnostics {
   googleEventId: string | null
   googleCalendarId: string | null
 
+  // ── Revquix-hosted room (M4/M5) ───────────────────────────────────────────
+  /**
+   * `spaces/{id}` of the Revquix-owned Meet room, when this booking used one.
+   *
+   * The join URL is deliberately NOT sent. It is a bearer capability - anyone holding it walks in,
+   * signed in or not, because accessType is forced to OPEN - and a URL on an admin screen is a URL
+   * in a screenshot.
+   */
+  meetSpaceName: string | null
+  meetTornDownAt: string | null
+  /**
+   * PENDING | SYNCED | NO_RECORD | ERROR, or null when this booking used no Revquix room.
+   *
+   * NO_RECORD is EVIDENCE, not an error: the tracked join hop is the only door to a Revquix-hosted
+   * room, so Google having no conference means nobody entered. Do not render it as a failure.
+   */
+  meetAttendanceStatus: string | null
+  meetParticipants: BookingMeetParticipantRow[]
+  /** Distinct signed-in identities, NOT a row count - one person rejoining produces several rows. */
+  meetDistinctSignedInCount: number
+  /**
+   * Signed-in identities that were NEITHER party - a third account in a room only two people were
+   * given the link to.
+   *
+   * A flag for a human, never a verdict. An unexpected participant is very often the mentor on a
+   * second Google account or a colleague they brought, so nothing acts on this automatically.
+   */
+  meetUnexpectedParticipantCount: number
+  /** Why some participants could not be named, phrased for an operator. Null when all were. */
+  meetAttendanceCaveat: string | null
+
   mentorJoinedAt: string | null
   buyerJoinedAt: string | null
   sessionStartedAt: string | null
@@ -134,6 +165,32 @@ export interface BookingSessionDiagnostics {
   joinEvents: BookingJoinEventRow[]
   notifications: BookingNotificationLogRow[]
   review: BookingReviewRow | null
+}
+
+/**
+ * One participant Google recorded in a Revquix-hosted room.
+ *
+ * Two halves, and they must be rendered as two halves. `kind`, `displayName`, `joinedAt` and
+ * `leftAt` are what GOOGLE SAID. `resolvedRole` and `matchMethod` are what WE CONCLUDED, and
+ * `identified` says whether that conclusion is safe to act on.
+ *
+ * `displayName` is typed by the person joining when `kind` is ANONYMOUS. Never render it as proof
+ * of who somebody was - this is the screen a refund gets decided from.
+ */
+export interface BookingMeetParticipantRow {
+  meetParticipantId: string
+  /** Two distinct values on one booking means the session was re-entered. */
+  conferenceRecord: string
+  kind: "SIGNED_IN" | "ANONYMOUS" | "PHONE" | string
+  displayName: string | null
+  joinedAt: string
+  /** Null when the participant was still in the room when the records were read. */
+  leftAt: string | null
+  minutesPresent: number | null
+  resolvedRole: "MENTOR" | "BUYER" | "UNKNOWN" | string
+  matchMethod: "GOOGLE_SUB" | "NAME_HINT" | "UNMATCHED" | string
+  /** True only for GOOGLE_SUB. The one field a tick may be rendered from. */
+  identified: boolean
 }
 
 export interface AdminCallSnapshot {

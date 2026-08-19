@@ -459,6 +459,134 @@ export default function AdminCallVerificationView() {
 
                   <Separator />
 
+                  {/*
+                    Revquix-hosted room attendance.
+
+                    Rendered LEDGER FIRST, INFERENCE SECOND, and that ordering is the whole design.
+                    Google tells us who was in the room and for how long; it does NOT tell us who
+                    they are - it returns no email address for any participant, ever. So each row
+                    shows what Google said, and the attribution beside it carries a visible mark of
+                    how it was reached.
+
+                    A tick is rendered ONLY from `identified` (matchMethod GOOGLE_SUB - an id Google
+                    verified and the participant could not choose). A display name is typed into the
+                    Meet lobby by whoever is joining, so treating it as identity on the screen a
+                    refund is decided from would be indefensible.
+                  */}
+                  {booking.meetSpaceName ? (
+                    <div>
+                      <p className="mb-1.5 flex items-center gap-1.5 text-sm font-medium">
+                        <Video className="size-3.5" /> Revquix room attendance
+                        {booking.meetAttendanceStatus ? (
+                          <Badge
+                            variant={
+                              booking.meetAttendanceStatus === "ERROR" ? "destructive" : "secondary"
+                            }
+                          >
+                            {booking.meetAttendanceStatus}
+                          </Badge>
+                        ) : null}
+                      </p>
+
+                      <p className="mb-1.5 text-xs text-muted-foreground">
+                        {booking.meetSpaceName}
+                        {booking.meetTornDownAt
+                          ? ` · room shut ${formatDate(booking.meetTornDownAt)}`
+                          : " · room not shut yet"}
+                      </p>
+
+                      {/*
+                        NO_RECORD is not a failure and must not read like one. On this path the
+                        tracked join hop is the only door to the room, so Google having no
+                        conference is positive evidence that nobody entered - a far stronger claim
+                        than the click ledger's "nobody pressed our button", which was always weak
+                        because the calendar invite let people in around it.
+                      */}
+                      {booking.meetAttendanceStatus === "NO_RECORD" ? (
+                        <p className="text-sm text-muted-foreground">
+                          Google has no record of anyone entering this room. On a Revquix-hosted
+                          session the Join button is the only way in, so this is evidence that the
+                          session did not happen - not a missing reading.
+                        </p>
+                      ) : booking.meetParticipants.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                          {booking.meetAttendanceStatus === "ERROR"
+                            ? "Attendance could not be read from Google. Use the Join ledger below."
+                            : "Not read yet - this happens after the room is shut."}
+                        </p>
+                      ) : (
+                        <>
+                          <ul className="space-y-1 text-xs text-muted-foreground">
+                            {booking.meetParticipants.map((participant) => (
+                              <li key={participant.meetParticipantId}>
+                                {participant.identified ? (
+                                  <span className="font-medium text-foreground">
+                                    {participant.resolvedRole}
+                                  </span>
+                                ) : (
+                                  <span className="font-medium">unidentified</span>
+                                )}
+                                {" · "}
+                                {participant.displayName ?? "no name"}
+                                {participant.kind === "ANONYMOUS" ? " (not signed in)" : ""}
+                                {" · "}
+                                {formatDate(participant.joinedAt)}
+                                {participant.leftAt
+                                  ? ` → ${formatDate(participant.leftAt)}`
+                                  : " → still in the room when read"}
+                                {participant.minutesPresent !== null
+                                  ? ` · ${participant.minutesPresent} min`
+                                  : ""}
+                              </li>
+                            ))}
+                          </ul>
+
+                          {/*
+                            Distinct SIGNED-IN identities, never the row count. One person who drops
+                            and rejoins produces several rows, and anonymous rows cannot be
+                            deduplicated at all - so a row count would let one participant
+                            reconnecting twice read as a fully attended session.
+                          */}
+                          <p className="mt-1.5 text-xs text-muted-foreground">
+                            {booking.meetDistinctSignedInCount} distinct signed-in identit
+                            {booking.meetDistinctSignedInCount === 1 ? "y" : "ies"} across{" "}
+                            {booking.meetParticipants.length} record
+                            {booking.meetParticipants.length === 1 ? "" : "s"}.
+                          </p>
+                        </>
+                      )}
+
+                      {/*
+                        The blank space is the problem this solves. Revquix's default auth is
+                        email-OTP, so a buyer with no Google identity is an ORDINARY buyer - but an
+                        unlabelled row on a refund screen reads as an intruder unless something says
+                        otherwise. The server phrases it, because the server is what knows which
+                        party lacks a Google login.
+                      */}
+                      {/*
+                        A third signed-in account in a room only two people were given. One of the
+                        few direct signs a room URL left the tracked join hop - but very often just
+                        the mentor on a second Google account, so it is surfaced and NOT acted on.
+                      */}
+                      {booking.meetUnexpectedParticipantCount > 0 ? (
+                        <p className="mt-1.5 flex items-center gap-1.5 text-xs text-destructive">
+                          <ShieldAlert className="size-3.5 shrink-0" />
+                          {booking.meetUnexpectedParticipantCount} signed-in participant
+                          {booking.meetUnexpectedParticipantCount === 1 ? " was" : "s were"} neither
+                          the mentor nor the customer. Worth a look before completing this booking.
+                        </p>
+                      ) : null}
+
+                      {booking.meetAttendanceCaveat ? (
+                        <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-500">
+                          {booking.meetAttendanceCaveat}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {booking.meetSpaceName ? <Separator /> : null}
+
                   <div>
                     <p className="mb-1.5 flex items-center gap-1.5 text-sm font-medium">
                       <Users className="size-3.5" /> Join events ({booking.joinEvents.length})

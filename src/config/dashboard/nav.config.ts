@@ -137,6 +137,7 @@ export const PERMISSIONS = {
    * there is an editorial team that is not the same people as the operators.
    */
   PERM_MANAGE_ANNOUNCEMENTS: "PERM_MANAGE_ANNOUNCEMENTS",
+  PERM_MANAGE_MEET_INTEGRATION: "PERM_MANAGE_MEET_INTEGRATION",
 
   // ── Tools platform (seeded by V213 — docs/tools-platform §P3) ───────────────
   // PERM_USE_TOOLS is deliberately absent: it is a USER-facing permission granted to
@@ -483,6 +484,12 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
     title: "Platform",
     access: { allOf: [PERMISSIONS.ROLE_ADMIN] },
     items: [
+      {
+        Icon: Video,
+        label: "Google Meet",
+        href: PATH_CONSTANTS.ADMIN_GOOGLE_MEET,
+        access: { allOf: [PERMISSIONS.PERM_MANAGE_MEET_INTEGRATION] },
+      },
       {
         Icon: Building2,
         label: "Company Registry",

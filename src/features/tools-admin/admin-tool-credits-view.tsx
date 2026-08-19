@@ -15,9 +15,8 @@
 
 import React from "react"
 import { useRouter } from "nextjs-toploader/app"
-import { Download, ExternalLink, Search, ShieldCheck } from "lucide-react"
+import { Download, ExternalLink, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { TableCell, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -26,7 +25,13 @@ import { useGenericSearch } from "@/core/filters"
 import type { FilterConfig } from "@/core/filters/filter.types"
 import { PATH_CONSTANTS } from "@/core/constants/path-constants"
 import { searchCreditLedger } from "./api/tools-admin.api"
-import { useExportCreditLedger, useResolveCreditUser } from "./api/tools-admin.hooks"
+import {
+  UserSearchCombobox,
+  type UserSearchOption,
+} from "@/components/user-search-picker"
+
+import { lookupCreditUsers } from "./api/tools-admin.api"
+import { useExportCreditLedger } from "./api/tools-admin.hooks"
 import type { AdminLedgerEntry } from "./api/tools-admin.types"
 import {
   ConstraintNote,
@@ -145,29 +150,32 @@ export default function AdminToolCreditsView() {
   })
 
   const exportCsv = useExportCreditLedger()
-  const resolveUser = useResolveCreditUser()
-  const [identifier, setIdentifier] = React.useState("")
+  const [filterUser, setFilterUser] = React.useState<UserSearchOption | null>(null)
 
   /**
-   * Resolves an email or username to a user id, then applies it as a filter.
+   * Picking a user filters the grid to their id; clearing the chip removes the filter.
    *
-   * §8.1's filter offers "user (id / email / name)" while the ledger stores only an id. Resolving first
-   * avoids a cross-schema join on a financial table and — the part that matters operationally — shows
-   * the operator which account they landed on, which is exactly what they need to see when two people
-   * share a name.
+   * §8.1's filter offers "user (id / email / name)" while the ledger stores only an id, so the console
+   * resolves first and filters on the id — no cross-schema join on a financial table, and the operator
+   * can see which account they landed on, which is exactly what they need when two people share a
+   * name.
+   *
+   * This used to be a text box plus a "Resolve & filter" button, and the resolution behind it was
+   * *exact* match on id, email or username. That is fine when you already have the email in front of
+   * you and useless in the case the field was named for: typing a person's name matched nothing, with
+   * "No account matches" as the only feedback. The picker searches names, so the label is now true.
    */
-  const handleResolve = React.useCallback(() => {
-    const trimmed = identifier.trim()
-    if (!trimmed) return
-    resolveUser.mutate(trimmed, {
-      onSuccess: (result) => {
-        if (result.resolved) {
-          search.addFilter({ field: "userId", operator: "EQUALS", value: result.userId })
-          setIdentifier(result.userId)
-        }
-      },
-    })
-  }, [identifier, resolveUser, search])
+  const applyUserFilter = React.useCallback(
+    (user: UserSearchOption | null) => {
+      setFilterUser(user)
+      if (user) {
+        search.addFilter({ field: "userId", operator: "EQUALS", value: user.userId })
+      } else {
+        search.removeFilter("userId")
+      }
+    },
+    [search],
+  )
 
   const resolvedUserId = React.useMemo(() => {
     const filter = search.filters.find((f) => f.field === "userId" && f.operator === "EQUALS")
@@ -217,43 +225,21 @@ export default function AdminToolCreditsView() {
         }
       />
 
-      {/* User resolution, above the grid, because it changes what the grid shows. */}
+      {/* User filter, above the grid, because it changes what the grid shows. */}
       <div className="rounded-lg border bg-card p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div className="flex-1 space-y-1.5">
-            <Label htmlFor="ledger-user-identifier">Find a user by ID, email or username</Label>
-            <Input
-              id="ledger-user-identifier"
-              value={identifier}
-              onChange={(event) => setIdentifier(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault()
-                  handleResolve()
-                }
-              }}
-              placeholder="USR0000000123 or priya@example.com"
-              aria-describedby="ledger-user-identifier-help"
-            />
-            <p id="ledger-user-identifier-help" className="text-xs text-muted-foreground">
-              The ledger stores only user IDs, so an email is resolved to one first and then applied as
-              a filter — you will see which account it matched.
-            </p>
-          </div>
-          <Button
-            variant="secondary"
-            onClick={handleResolve}
-            disabled={resolveUser.isPending || !identifier.trim()}
-          >
-            <Search className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-            {resolveUser.isPending ? "Resolving…" : "Resolve & filter"}
-          </Button>
-        </div>
-        {resolveUser.data && !resolveUser.data.resolved && (
-          <p role="alert" className="mt-2 text-xs text-destructive">
-            No account matches &ldquo;{resolveUser.data.identifier}&rdquo;.
+        <div className="max-w-md space-y-1.5">
+          <Label htmlFor="ledger-user-identifier">Find a user by name, username or email</Label>
+          <UserSearchCombobox
+            id="ledger-user-identifier"
+            search={lookupCreditUsers}
+            selectedUser={filterUser}
+            onSelect={applyUserFilter}
+          />
+          <p className="text-xs text-muted-foreground">
+            The ledger stores only user IDs, so the account you pick is applied as an ID filter.
+            Pasting an ID works too.
           </p>
-        )}
+        </div>
       </div>
 
       <ConstraintNote>
