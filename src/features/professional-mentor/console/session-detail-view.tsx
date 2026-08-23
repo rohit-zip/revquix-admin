@@ -142,8 +142,9 @@ export default function SessionDetailView({ bookingId }: { bookingId: string }) 
             <CardHeader>
               <CardTitle className="text-base">Meeting link</CardTitle>
               <CardDescription>
-                Where the link came from matters more than whether one exists: a GOOGLE_MEET service
-                whose link says MANUAL fell back, and that is the booking a retry is for.
+                Where the link came from matters more than whether one exists: a REVQUIX_MEET
+                service whose link says MANUAL failed to mint a room, and that is the booking a
+                retry is for.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
@@ -162,15 +163,115 @@ export default function SessionDetailView({ bookingId }: { bookingId: string }) 
             </CardContent>
           </Card>
 
+          {/*
+            ── Room attendance ──────────────────────────────────────────────
+            The server has returned these records since M5; this page rendered only the click
+            ledger below, which is the WEAKER of the two sources and, on a session held in a room
+            Revquix minted, the one that misses joins. Every session is held that way now, so an
+            operator working a no-show here was reading half the evidence.
+
+            Rendered only when there IS a Revquix room. An empty table on a legacy booking would
+            read as "Google saw nobody", which is a completely different claim from "Google was
+            never in a position to see anyone".
+          */}
+          {booking.meetSpaceName ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  In the room ({booking.meetParticipants?.length ?? 0})
+                </CardTitle>
+                <CardDescription>
+                  Google&apos;s own record of who was in the Revquix-hosted room. Stronger than the
+                  Join ledger below, because that room can only be reached through the Join button —
+                  so an empty record here means nobody entered, not merely that nobody clicked.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Room">{booking.meetSpaceName}</Field>
+                  <Field label="Read of the room">
+                    {/*
+                      NO_RECORD is evidence, not an error, and must never be styled as one — it is
+                      the strongest finding this panel can produce.
+                    */}
+                    {booking.meetAttendanceStatus ?? "not read yet"}
+                  </Field>
+                  <Field label="Distinct signed-in identities">
+                    {booking.meetDistinctSignedInCount}
+                  </Field>
+                  <Field label="Torn down">{formatWhen(booking.meetTornDownAt)}</Field>
+                </div>
+
+                {booking.meetAttendanceCaveat ? (
+                  <p className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2.5 text-xs text-muted-foreground">
+                    {booking.meetAttendanceCaveat}
+                  </p>
+                ) : null}
+
+                {booking.meetUnexpectedParticipantCount > 0 ? (
+                  <p className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2.5 text-xs">
+                    <strong>{booking.meetUnexpectedParticipantCount}</strong> signed-in{" "}
+                    {booking.meetUnexpectedParticipantCount === 1 ? "identity was" : "identities were"}{" "}
+                    in this room and matched neither party. Usually the mentor on a second Google
+                    account or a colleague they brought — a flag for you, not a finding.
+                  </p>
+                ) : null}
+
+                {booking.meetParticipants && booking.meetParticipants.length > 0 ? (
+                  <ol className="space-y-1 border-l pl-3">
+                    {booking.meetParticipants.map((participant) => (
+                      <li key={participant.meetParticipantId} className="text-xs">
+                        <p className="flex flex-wrap items-center gap-1.5 font-medium">
+                          {/*
+                            `identified` and nothing else. A display name is typed by whoever joined
+                            the Meet lobby, so rendering an unmatched row as "MENTOR" would let a
+                            no-show claim — which is a refund — be defeated by typing.
+                          */}
+                          {participant.identified ? (
+                            <Badge variant="outline" className="h-4 px-1 text-[10px]">
+                              {participant.resolvedRole}
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                              unidentified
+                            </Badge>
+                          )}
+                          <span className={participant.identified ? "" : "text-muted-foreground"}>
+                            {participant.displayName ?? "no name"}
+                          </span>
+                        </p>
+                        <p className="text-muted-foreground">
+                          {formatWhen(participant.joinedAt)} →{" "}
+                          {participant.leftAt
+                            ? formatWhen(participant.leftAt)
+                            : "still in the room when read"}
+                          {participant.minutesPresent == null
+                            ? ""
+                            : ` · ${participant.minutesPresent} min`}
+                        </p>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    {booking.meetAttendanceStatus === "NO_RECORD"
+                      ? "Google has no conference for this room at all — nobody entered it."
+                      : "Google's records for this room have not been read yet."}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
+
           <Card>
             <CardHeader>
               <CardTitle className="text-base">
                 Join evidence ({booking.joinEvents?.length ?? 0})
               </CardTitle>
               <CardDescription>
-                Every click of our own Join button. This is the ledger a no-show dispute is settled
-                from — and the reason a dispute rule waits rather than firing instantly, since a
-                mentor who joined through some other link leaves no row here.
+                Every click of our own Join button. The weaker of the two sources: on a legacy
+                booking a mentor could reach the call through a calendar invite and leave no row
+                here at all, which is why a dispute rule waits rather than firing instantly.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">

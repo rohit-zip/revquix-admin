@@ -143,12 +143,17 @@ export function Modal({
               // Base layout
               "relative z-10 flex w-full flex-col",
               // Shape & surface
-              "rounded-2xl sm:rounded-3xl border border-border/60",
-              "bg-card text-card-foreground shadow-2xl",
+              // One edge, one elevation. This panel drew its edge four separate
+              // ways - `border-border/60`, an inset `ring-white/5`, a stock
+              // `shadow-2xl` and the gradient hairline below - and the first
+              // three fought each other. `shadow-overlay-lg` carries the edge as
+              // its own stop (and, in dark mode, the inset rim of light the
+              // `ring-white/5` was reaching for). The gradient line stays: it is
+              // a brand flourish, not an edge.
+              "rounded-2xl sm:rounded-3xl",
+              "bg-card text-card-foreground shadow-overlay-lg",
               // Max-height: leave breathing room on mobile (bottom-sheet style) and desktop
               "max-h-[92dvh] sm:max-h-[88dvh]",
-              // Ring highlight at top
-              "ring-1 ring-inset ring-white/5",
               SIZE_CLASSES[size],
               className
             )}

@@ -41,6 +41,90 @@
     --chart-3: var(--primary-400);
     --chart-4: var(--primary-500);
     --chart-5: var(--primary-600);
+    /**
+     * ─── --elevation-overlay - the floating-surface step ────────────────────
+     *
+     * A PORT OF HEROUI'S `shadow-small` / `shadow-medium`, geometry and colour
+     * unchanged. Values read out of `@heroui/theme@2.4.26`'s
+     * `defaultLayout.boxShadow` / `darkLayout.boxShadow`; their Popover's own
+     * defaults are `radius: "lg"` (14px, which is exactly what `rounded-xl`
+     * resolves to on this app's ramp) + `shadow: "md"`, so `shadow-overlay` IS
+     * their popover's shadow.
+     *
+     * Popovers, dropdowns and selects here used to draw their edge with
+     * `ring-1 ring-foreground/10` over a stock `shadow-md`. That is a flat,
+     * fully opaque 1px line, and this app is the worst possible ground for it:
+     * `--background` and `--popover` are BOTH `oklch(1 0 0)`, so the surface
+     * ladder separates a menu from the page by exactly nothing and the ring was
+     * the only edge the eye had. An opaque grey outline on a white panel reads
+     * as a bordered box rather than as something floating, and the corners read
+     * worst - a 1px opaque arc is the highest-contrast geometry on the panel,
+     * and every one of these opens through `zoom-in-95`, which resamples that
+     * hairline while it animates.
+     *
+     * A floating surface wants an omnidirectional HALO, not a drop shadow:
+     * `0 0 15px 0` is ambient, `0 2px 30px 0` is the pool (2px of offset is the
+     * only hint of direction, and zero spread means the shadow rect is exactly
+     * the border box, so every pixel that escapes is blur - that is what puts
+     * light around all four sides instead of under one of them), and
+     * `0 0 1px 0` at a much higher alpha is the edge: 1px of BLUR, zero spread,
+     * so it hugs the border box and fades to nothing within a pixel. It defines
+     * the edge without being a drawn line and leaves no hard transition for the
+     * open animation to resample.
+     *
+     * Neutral black rather than hue-tinted, which matches HeroUI exactly here:
+     * this app's ground is `oklch(1 0 0)`, zero chroma, so there is no hue to
+     * respect. (`revquix-web` tints its copy; its background carries a trace of
+     * the brand hue.)
+     *
+     * Dark inverts the edge stop and only the edge stop, to HeroUI's
+     * `inset 0 0 1px 0 white/0.15`. A black hairline is invisible on a dark
+     * ground and dark does not need one - the ladder is a real step there
+     * (0.205 on 0.145). What a raised surface wants in dark is a rim of LIGHT,
+     * and INSET is what makes it read as a bevel catching light rather than as
+     * an outline drawn around the box. An inset shadow is painted against the
+     * padding box, so it stays pinned to the panel edge and does not scroll
+     * with the content of a scrollable menu.
+     *
+     * `-sm` is HeroUI's `small`, for surfaces that hang off another surface
+     * rather than off the page: submenus.
+     *
+     * ⚠ Exposed as `shadow-overlay` / `shadow-overlay-sm`, and both names are
+     * registered in `lib/utils.ts` - see the note there. An unregistered
+     * `shadow-*` name is filed by tailwind-merge as a shadow COLOUR, does not
+     * conflict with `shadow-xl`, and loses to it on source order in silence.
+     */
+    --elevation-overlay:
+      0 0 15px 0 oklch(0 0 0 / 0.03),
+      0 2px 30px 0 oklch(0 0 0 / 0.08),
+      0 0 1px 0 oklch(0 0 0 / 0.30);
+    --elevation-overlay-sm:
+      0 0 5px 0 oklch(0 0 0 / 0.02),
+      0 2px 10px 0 oklch(0 0 0 / 0.06),
+      0 0 1px 0 oklch(0 0 0 / 0.30);
+    /**
+     * HeroUI's `large`, and the step MODAL surfaces take.
+     *
+     * HeroUI's own Modal defaults to `shadow: "sm"`, which looks wrong until
+     * you notice why: their backdrop is `bg-overlay/50`. A white panel on a
+     * half-black page is separated by sheer lightness contrast and needs almost
+     * no shadow. This app's scrim is `bg-black/10` with a `backdrop-blur-xs`,
+     * and `--background` here is pure white, so the ground behind a dialog is
+     * still near-white and the shadow has to do the work the scrim is not
+     * doing. A modal is also the top-most surface, so it should read one step
+     * above a menu, not below it.
+     *
+     * Modelled per stop (Gaussian coverage, sigma = blur/2), distance out from
+     * the panel edge: `small` is gone by 5px, `medium` is near-even at ~10% all
+     * round, `large` holds 8.6% top / 12.6% side / 16.8% bottom and carries
+     * much further out - a natural downward bias (a modal floats high, light
+     * comes from above) without going dark only underneath.
+     */
+    --elevation-overlay-lg:
+      0 0 30px 0 oklch(0 0 0 / 0.04),
+      0 30px 60px 0 oklch(0 0 0 / 0.12),
+      0 0 1px 0 oklch(0 0 0 / 0.30);
+
     --radius: 0.625rem;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
@@ -84,6 +168,22 @@
     --sidebar-accent-foreground: var(--primary-100);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: var(--primary-400);
+
+    /* HeroUI's `darkLayout.boxShadow`. The edge stop inverts to an INSET rim of
+       light; the diffuse stops keep the same halo geometry at a deeper alpha.
+       See the :root block for why only the edge stop flips, and why inset. */
+    --elevation-overlay:
+      0 0 15px 0 oklch(0 0 0 / 0.06),
+      0 2px 30px 0 oklch(0 0 0 / 0.22),
+      inset 0 0 1px 0 oklch(1 0 0 / 0.15);
+    --elevation-overlay-sm:
+      0 0 5px 0 oklch(0 0 0 / 0.05),
+      0 2px 10px 0 oklch(0 0 0 / 0.20),
+      inset 0 0 1px 0 oklch(1 0 0 / 0.15);
+    --elevation-overlay-lg:
+      0 0 30px 0 oklch(0 0 0 / 0.07),
+      0 30px 60px 0 oklch(0 0 0 / 0.26),
+      inset 0 0 1px 0 oklch(1 0 0 / 0.15);
 }
 
 @theme inline {
@@ -139,6 +239,12 @@
     --radius-2xl: calc(var(--radius) * 1.8);
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
+
+    /* The floating-surface step, exposed as `shadow-overlay` /
+       `shadow-overlay-sm`. Values and the reasoning are in the :root block. */
+    --shadow-overlay: var(--elevation-overlay);
+    --shadow-overlay-sm: var(--elevation-overlay-sm);
+    --shadow-overlay-lg: var(--elevation-overlay-lg);
     --animate-shiny-text:  shiny-text 8s infinite;
   @keyframes shiny-text {
   0%, 90%, 100% {

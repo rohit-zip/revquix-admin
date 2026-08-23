@@ -44,7 +44,7 @@ export function NotificationBell({ open, onOpenChange }: NotificationPanelProps)
         <PopoverContent
           align="end"
           sideOffset={8}
-          className="w-95 overflow-hidden p-0 shadow-xl"
+          className="w-95 overflow-hidden p-0"
         >
           <NotificationPanelContent onClose={() => onOpenChange(false)} />
         </PopoverContent>

@@ -95,6 +95,42 @@ export function formatHours(hours: number): string {
 // ─── Presentation ─────────────────────────────────────────────────────────────
 
 /** `FEEDBACK_NOT_SUBMITTED` → `Feedback not submitted`. For enums with no server-side label. */
+/**
+ * Operator-facing wording for the settlement decision and the evidence source.
+ *
+ * <p>`humanise` turns `DISPUTE_MENTOR_ABSENT` into "Dispute mentor absent", which is a screen-reader
+ * rendering of an enum rather than a sentence — and this is the panel a refund is decided on. Each
+ * label says what the platform concluded AND how strong the conclusion is, because an operator who
+ * reads only this line must not be able to reach a wrong answer.
+ */
+const SETTLEMENT_LABELS: Record<string, string> = {
+  COMPLETE_ON_EVIDENCE: "Closed on the records — both parties attended, nobody was asked",
+  ASK_BUYER_ONLY: "Asked the customer (retired rule — silence completed it)",
+  ASK_BUYER_MENTOR_PRESENT: "Asked the customer — mentor present, customer not; silence closes it against them",
+  ASK_BOTH: "Asked both — no usable record either way",
+  DISPUTE_MENTOR_ABSENT: "Opened by the platform — the customer joined and the mentor did not",
+  DISPUTE_NO_SESSION: "Opened by the platform — the records contradict a session having happened",
+}
+
+const EVIDENCE_LABELS: Record<string, string> = {
+  NONE: "None — this booking cannot produce attendance evidence",
+  CLICK_LEDGER: "Join-button clicks only",
+  MEET_IDENTIFIED: "Google named the participants by their signed-in account",
+  MEET_PRESENCE: "Google saw two signed-in people together, but named neither",
+  MEET_NO_RECORD: "Google has no conference for the room — nobody entered",
+  MEET_SOLO: "Google recorded ONE person in the room — two people did not meet",
+}
+
+export function settlementLabel(value?: string | null): string {
+  if (!value) return "not settled yet"
+  return SETTLEMENT_LABELS[value] ?? humanise(value)
+}
+
+export function evidenceLabel(value?: string | null): string {
+  if (!value) return "—"
+  return EVIDENCE_LABELS[value] ?? humanise(value)
+}
+
 export function humanise(value?: string | null): string {
   if (!value) return "—"
   const lower = value.replaceAll("_", " ").toLowerCase()

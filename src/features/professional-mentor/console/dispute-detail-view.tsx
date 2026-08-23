@@ -30,7 +30,10 @@ import {
   Lock,
   ServerCog,
   Sparkles,
+  HelpCircle,
   UserCheck,
+  UserX,
+  Video,
   XCircle,
 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -51,8 +54,17 @@ import {
   useResolveDispute,
   useTryAutoResolveDispute,
 } from "@/features/mentorship-v2/api/disputes.hooks"
-import type { DisputeRow } from "@/features/mentorship-v2/api/disputes.types"
-import { PersonCell, RefLink, StatusBadge, formatMinor, formatWhen } from "./console-format"
+import type { DisputeAttendance, DisputeRow } from "@/features/mentorship-v2/api/disputes.types"
+import {
+  PersonCell,
+  RefLink,
+  StatusBadge,
+  evidenceLabel,
+  formatMinor,
+  formatWhen,
+  humanise,
+  settlementLabel,
+} from "./console-format"
 
 export default function DisputeDetailView({ disputeId }: { disputeId: string }) {
   const router = useRouter()
@@ -205,6 +217,8 @@ export default function DisputeDetailView({ disputeId }: { disputeId: string }) 
               </CardContent>
             </Card>
           ) : null}
+
+          {dispute.attendance ? <AttendancePanel attendance={dispute.attendance} /> : null}
 
           {dispute.evidence && dispute.evidence.length > 0 ? (
             <Card>
@@ -608,4 +622,321 @@ function DisputeActionsPanel({ dispute }: { dispute: DisputeRow }) {
       </CardContent>
     </Card>
   )
+}
+
+/**
+ * ─── ATTENDANCE ───────────────────────────────────────────────────────────────
+ *
+ * The screen an attendance dispute is actually decided on.
+ *
+ * <h3>Why this sits above the evidence list rather than inside it</h3>
+ * The `SYSTEM_LOG` evidence row below is a **snapshot**, frozen when the complaint was filed —
+ * deliberately, because a case resolved six weeks later should be judged against what was true when
+ * it was made. But Google's participant records for the room are ingested once its conference has
+ * ended, which on a session a buyer disputes the moment it fails is *after* that. So the panel reads
+ * live, and both are on screen. When the two disagree, that disagreement is the finding.
+ *
+ * <h3>The verdict line is the panel, and the tables are its working</h3>
+ * Every branch of `verdict` is written to claim no more than its source supports, and the ordering
+ * here follows from that: an operator who reads only the first sentence must not be able to reach a
+ * wrong conclusion. The tables are for the operator who distrusts it, which is the right instinct on
+ * a screen that moves money.
+ *
+ * <h3>What is deliberately not rendered</h3>
+ * The room's join URL. It is a bearer capability — anyone holding it walks in, signed in or not —
+ * and a URL on an admin screen is a URL in a screenshot. The server does not send it; do not add it.
+ */
+function AttendancePanel({ attendance }: { attendance: DisputeAttendance }) {
+  const participants = attendance.meetParticipants ?? []
+  const joinEvents = attendance.joinEvents ?? []
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex flex-wrap items-center gap-2 text-base">
+          <Video className="size-4" aria-hidden="true" />
+          Attendance
+          {attendance.revquixHostedRoom ? (
+            <Badge variant="outline" className="font-normal">
+              Revquix-hosted room
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="font-normal">
+              Room not ours
+            </Badge>
+          )}
+        </CardTitle>
+        <CardDescription>
+          Read live, not from the snapshot below. Google&apos;s record of who was in the room usually
+          arrives after the complaint was filed.
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        {/* ── The one sentence ── */}
+        {attendance.verdict ? (
+          <Alert variant={attendance.evidenceUsable ? "default" : "destructive"}>
+            {attendance.absenceProven ? (
+              <UserX className="size-4" />
+            ) : attendance.evidenceUsable ? (
+              <UserCheck className="size-4" />
+            ) : (
+              <HelpCircle className="size-4" />
+            )}
+            <AlertTitle>
+              {attendance.absenceProven
+                ? "Nobody entered the room"
+                : !attendance.evidenceUsable
+                  ? "No attendance record exists for this session"
+                  : presenceHeadline(attendance)}
+            </AlertTitle>
+            <AlertDescription>{attendance.verdict}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {/*
+          The caveat, when there is one. It exists because the blank space is the problem: Revquix
+          signs users in by email, so an unlabelled participant is an ORDINARY participant — but on
+          the screen a refund is decided from it reads as an intruder unless something says so.
+        */}
+        {attendance.caveat ? (
+          <p className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm text-muted-foreground">
+            {attendance.caveat}
+          </p>
+        ) : null}
+
+        {attendance.meetUnexpectedParticipantCount > 0 ? (
+          <p className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+            <strong>{attendance.meetUnexpectedParticipantCount}</strong> signed-in{" "}
+            {attendance.meetUnexpectedParticipantCount === 1 ? "identity was" : "identities were"} in
+            this room and matched neither party. Very often that is the mentor on a second Google
+            account or a colleague they brought — it is a flag for you, not a finding.
+          </p>
+        ) : null}
+
+        {/* ── The facts behind it ── */}
+        <div className="grid gap-4 text-sm sm:grid-cols-2">
+          <Field label="Mentor">
+            <PresencePill present={attendance.mentorAttended} usable={attendance.evidenceUsable} />
+          </Field>
+          <Field label="Customer">
+            <PresencePill present={attendance.buyerAttended} usable={attendance.evidenceUsable} />
+          </Field>
+          <Field label="Evidence source">{evidenceLabel(attendance.evidenceSource)}</Field>
+          <Field label="Platform settled it as">
+            {settlementLabel(attendance.settlementDecision)}
+          </Field>
+          <Field label="Where it was held">{attendance.meetingProviderLabel ?? "—"}</Field>
+          <Field label="How the link was produced">
+            {humanise(attendance.meetingLinkSource) || "—"}
+            {attendance.hasMeetingLink ? "" : " · no link was ever set"}
+          </Field>
+          <Field label="Scheduled">
+            {formatWhen(attendance.startsAt)} → {formatWhen(attendance.endsAt)}
+          </Field>
+          <Field label="Join window">
+            {formatWhen(attendance.joinWindowOpensAt)} → {formatWhen(attendance.joinWindowClosesAt)}
+          </Field>
+          <Field label="Mentor first clicked Join">{formatWhen(attendance.mentorJoinedAt)}</Field>
+          <Field label="Customer first clicked Join">{formatWhen(attendance.buyerJoinedAt)}</Field>
+          <Field label="Mentor confirmed attendance">
+            {formatWhen(attendance.mentorConfirmedAttendedAt)}
+          </Field>
+          <Field label="Customer confirmed attendance">
+            {formatWhen(attendance.buyerConfirmedAttendedAt)}
+          </Field>
+          {attendance.revquixHostedRoom ? (
+            <>
+              <Field label="Google's read of the room">
+                {/*
+                  NO_RECORD is evidence, not an error — the tracked Join hop is the only door to a
+                  Revquix room, so no conference means nobody entered. Rendering it in red would
+                  teach an operator to discount the strongest finding this panel can produce.
+                */}
+                {humanise(attendance.meetAttendanceStatus) || "not read yet"}
+                {attendance.meetAttendanceSyncedAt
+                  ? ` · ${formatWhen(attendance.meetAttendanceSyncedAt)}`
+                  : ""}
+              </Field>
+              <Field label="Distinct signed-in identities">
+                {attendance.meetDistinctSignedInCount}
+              </Field>
+            </>
+          ) : null}
+          {attendance.meetingLinkError ? (
+            <Field label="Last link error">{attendance.meetingLinkError}</Field>
+          ) : null}
+        </div>
+
+        {/* ── Google's participant records ── */}
+        {attendance.revquixHostedRoom ? (
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+              In the room, in arrival order ({participants.length})
+            </p>
+            {participants.length === 0 ? (
+              <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+                {attendance.meetAttendanceStatus === "NO_RECORD"
+                  ? "Google has no conference for this room at all."
+                  : "Google's records for this room have not been read yet."}
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[560px] text-sm">
+                  <thead>
+                    <tr className="border-b text-left text-xs text-muted-foreground">
+                      <th className="py-1.5 pr-3 font-medium">Who</th>
+                      <th className="py-1.5 pr-3 font-medium">Joined</th>
+                      <th className="py-1.5 pr-3 font-medium">Left</th>
+                      <th className="py-1.5 pr-3 font-medium">Present</th>
+                      <th className="py-1.5 font-medium">Conference</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {participants.map((row) => (
+                      <tr key={row.meetParticipantId} className="border-b last:border-0">
+                        <td className="py-1.5 pr-3">
+                          <span className="flex flex-wrap items-center gap-1.5">
+                            {/*
+                              `identified` and nothing else. A display name is typed by whoever
+                              joined the lobby, so rendering an UNMATCHED row as "Mentor" would let a
+                              no-show claim — which is a refund — be defeated by typing.
+                            */}
+                            {row.identified ? (
+                              <Badge variant="outline" className="font-normal">
+                                {humanise(row.resolvedRole)}
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="font-normal">
+                                Unidentified
+                              </Badge>
+                            )}
+                            <span className={row.identified ? "" : "text-muted-foreground"}>
+                              {row.displayName ?? "no name"}
+                            </span>
+                            {row.kind === "ANONYMOUS" ? (
+                              <span className="text-xs text-muted-foreground">
+                                (not signed in — name typed by them)
+                              </span>
+                            ) : null}
+                          </span>
+                        </td>
+                        <td className="py-1.5 pr-3 tabular-nums">{formatWhen(row.joinedAt)}</td>
+                        <td className="py-1.5 pr-3 tabular-nums">
+                          {row.leftAt ? formatWhen(row.leftAt) : "still in the room when read"}
+                        </td>
+                        <td className="py-1.5 pr-3 tabular-nums">
+                          {row.minutesPresent == null ? "—" : `${row.minutesPresent} min`}
+                        </td>
+                        <td className="py-1.5 font-mono text-xs text-muted-foreground">
+                          {shortConference(row.conferenceRecord)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        ) : null}
+
+        {/* ── The click ledger ── */}
+        <div>
+          <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+            Join button clicks ({joinEvents.length})
+          </p>
+          {joinEvents.length === 0 ? (
+            <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+              Nobody pressed Join.
+              {attendance.revquixHostedRoom
+                ? " On a Revquix-hosted room that is the only way in, so this is meaningful."
+                : " This room could be reached without it, so this says little on its own."}
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[520px] text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs text-muted-foreground">
+                    <th className="py-1.5 pr-3 font-medium">Who</th>
+                    <th className="py-1.5 pr-3 font-medium">Clicked</th>
+                    <th className="py-1.5 pr-3 font-medium">Counted</th>
+                    <th className="py-1.5 font-medium">IP</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {joinEvents.map((row) => (
+                    <tr key={row.joinEventId} className="border-b last:border-0">
+                      <td className="py-1.5 pr-3">{humanise(row.role)}</td>
+                      <td className="py-1.5 pr-3 tabular-nums">{formatWhen(row.joinClickedAt)}</td>
+                      <td className="py-1.5 pr-3">
+                        {/*
+                          Two separate reasons a click does not count, and they mean different
+                          things: outside the window is "too early or too late", no link is "there
+                          was nothing to join". Both prove intent; neither proves attendance.
+                        */}
+                        {!row.withinWindow ? (
+                          <span className="text-muted-foreground">outside the window</span>
+                        ) : row.linkPresent === false ? (
+                          <span className="text-muted-foreground">no link to join</span>
+                        ) : (
+                          <span>yes</span>
+                        )}
+                      </td>
+                      <td className="py-1.5 font-mono text-xs text-muted-foreground">
+                        {row.ipAddress ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+/** The headline above the verdict, kept in step with the two booleans below it. */
+function presenceHeadline(attendance: DisputeAttendance): string {
+  if (attendance.mentorAttended && attendance.buyerAttended) return "Both parties attended"
+  if (attendance.mentorAttended) return "Mentor attended, customer did not"
+  if (attendance.buyerAttended) return "Customer attended, mentor did not"
+  return "No attendance recorded for either party"
+}
+
+/**
+ * Present / not recorded / cannot say — three states, not two.
+ *
+ * The third is the one that matters. "Not recorded" on a booking that can produce evidence is a
+ * finding; on one that cannot it is an absence of data, and collapsing them into a red "absent"
+ * chip is how an operator refunds against somebody who was there.
+ */
+function PresencePill({ present, usable }: { present: boolean; usable: boolean }) {
+  if (!usable) {
+    return <span className="text-muted-foreground">cannot say — no usable record</span>
+  }
+  return present ? (
+    <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+      <UserCheck className="size-3.5" aria-hidden="true" /> recorded as present
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-500">
+      <UserX className="size-3.5" aria-hidden="true" /> no record of attending
+    </span>
+  )
+}
+
+/**
+ * The tail of `conferenceRecords/{id}`, which is all that is worth showing.
+ *
+ * The full name is long and identical on every row of the same conference; the tail is what lets an
+ * operator see at a glance that two rows belong to DIFFERENT conferences — somebody dropped and
+ * rejoined, or a false start preceded the real call, which is exactly the shape a confused dispute
+ * takes.
+ */
+function shortConference(value: string | null): string {
+  if (!value) return "—"
+  const slash = value.lastIndexOf("/")
+  return slash >= 0 ? value.slice(slash + 1) : value
 }
