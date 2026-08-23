@@ -40,6 +40,7 @@ export const SESSIONS_FILTER_CONFIG: FilterConfig = {
         { label: "Disputed", value: "DISPUTED" },
         { label: "No-show (mentor)", value: "NO_SHOW_MENTOR" },
         { label: "No-show (user)", value: "NO_SHOW_USER" },
+        { label: "No-show (neither attended)", value: "NO_SHOW_BOTH" },
         { label: "Cancelled by user", value: "CANCELLED_BY_USER" },
         { label: "Cancelled by mentor", value: "CANCELLED_BY_MENTOR" },
         { label: "Cancelled by system", value: "CANCELLED_BY_SYSTEM" },

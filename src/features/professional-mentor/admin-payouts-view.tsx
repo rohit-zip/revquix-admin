@@ -174,6 +174,8 @@ function getStageBadge(stage: PayoutStage | null | undefined, daysLeft: number |
       return <Badge className="bg-blue-600 text-white">In session</Badge>
     case "REFUNDED":
       return <Badge variant="outline" className="border-rose-500 text-rose-600">Refunded</Badge>
+    case "VOIDED":
+      return <Badge variant="outline" className="border-rose-500 text-rose-600">Voided — no-show</Badge>
     case "ON_HOLD":
       return <Badge variant="outline" className="border-amber-500 text-amber-600">On hold</Badge>
     case "PAID":
@@ -199,6 +201,7 @@ const SESSION_STATUS_LABEL: Record<string, string> = {
   CANCELLED_BY_SYSTEM:  "Cancelled (System)",
   NO_SHOW_USER:         "No-Show (User)",
   NO_SHOW_MENTOR:       "No-Show (Mentor)",
+  NO_SHOW_BOTH:         "No-Show (Neither Attended)",
   PAYMENT_FAILED:       "Payment Failed",
   EXPIRED:              "Expired",
   PENDING_CONFIRMATION: "Awaiting Confirmation",
@@ -224,6 +227,7 @@ function getSessionStatusBadge(status: string | null | undefined) {
     case "CANCELLED_BY_SYSTEM":
     case "NO_SHOW_USER":
     case "NO_SHOW_MENTOR":
+    case "NO_SHOW_BOTH":
     case "DISPUTED":
     case "PAYMENT_FAILED":
       return <Badge variant="destructive">{label}</Badge>

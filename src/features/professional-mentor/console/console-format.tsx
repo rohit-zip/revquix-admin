@@ -156,6 +156,7 @@ const STATUS_TONE: Record<string, BadgeVariant> = {
   DISPUTED: "destructive",
   NO_SHOW_MENTOR: "destructive",
   NO_SHOW_USER: "destructive",
+  NO_SHOW_BOTH: "destructive",
   PAYMENT_FAILED: "destructive",
   ESCALATED: "destructive",
   FAILED: "destructive",

@@ -96,6 +96,7 @@ const SESSION_STATUS_ORDER = [
   "CANCELLED_BY_SYSTEM",
   "NO_SHOW_USER",
   "NO_SHOW_MENTOR",
+  "NO_SHOW_BOTH",
   "DISPUTED",
   "PENDING_PAYMENT",
   "PAYMENT_FAILED",
@@ -112,6 +113,7 @@ const SESSION_STATUS_LABEL: Record<string, string> = {
   CANCELLED_BY_SYSTEM:  "Cancelled by System",
   NO_SHOW_USER:         "No-Show (User)",
   NO_SHOW_MENTOR:       "No-Show (Mentor)",
+  NO_SHOW_BOTH:         "No-Show (Neither Attended)",
   PAYMENT_FAILED:       "Payment Failed",
   EXPIRED:              "Expired",
   PENDING_CONFIRMATION: "Awaiting Confirmation",
@@ -141,6 +143,7 @@ function sessionStatusDotClass(status: string): string {
     case "CANCELLED_BY_SYSTEM":
     case "NO_SHOW_USER":
     case "NO_SHOW_MENTOR":
+    case "NO_SHOW_BOTH":
     case "DISPUTED":
     case "PAYMENT_FAILED":
       return "bg-red-500"

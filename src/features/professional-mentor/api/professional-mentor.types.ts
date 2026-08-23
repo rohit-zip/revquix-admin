@@ -45,6 +45,7 @@ export const PAYOUT_STAGE = {
   REFUNDED: "REFUNDED",
   ON_HOLD: "ON_HOLD",
   FAILED: "FAILED",
+  VOIDED: "VOIDED",
 } as const
 export type PayoutStage = (typeof PAYOUT_STAGE)[keyof typeof PAYOUT_STAGE]
 
