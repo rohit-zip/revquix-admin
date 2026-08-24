@@ -27,13 +27,18 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import { useContactQueriesList } from "./api/contact.hooks"
+import { SlaSummaryCard } from "./sla-summary-card"
 import {
   CONTACT_QUERY_STATUS,
+  AWAITING_LABELS,
   INQUIRY_TYPE_LABELS,
   INQUIRY_TYPE_OPTIONS,
+  SOURCE_LABELS,
+  type AwaitingParty,
   type ContactInquiryType,
   type ContactQueryResponse,
   type ContactQueryStatus,
+  type SupportSource,
 } from "./api/contact.types"
 import { PATH_CONSTANTS } from "@/core/constants/path-constants"
 
@@ -72,12 +77,16 @@ const STATUS_TABS: { label: string; value: ContactQueryStatus | "ALL" }[] = [
 ]
 
 const ALL_INQUIRY = "ALL"
+const ALL_AWAITING = "ALL"
+const ALL_SOURCE = "ALL"
 
 export function AdminContactQueriesView() {
   const router = useRouter()
   const [page, setPage] = useState(0)
   const [activeTab, setActiveTab] = useState<ContactQueryStatus | "ALL">("ALL")
   const [inquiryType, setInquiryType] = useState<ContactInquiryType | typeof ALL_INQUIRY>(ALL_INQUIRY)
+  const [awaiting, setAwaiting] = useState<AwaitingParty | typeof ALL_AWAITING>(ALL_AWAITING)
+  const [source, setSource] = useState<SupportSource | typeof ALL_SOURCE>(ALL_SOURCE)
   const [searchInput, setSearchInput] = useState("")
   const [search, setSearch] = useState("")
 
@@ -92,13 +101,15 @@ export function AdminContactQueriesView() {
   const statusFilter = activeTab === "ALL" ? undefined : activeTab
   const inquiryFilter = inquiryType === ALL_INQUIRY ? undefined : inquiryType
 
-  const { data, isLoading, refetch, isRefetching } = useContactQueriesList(
+  const { data, isLoading, refetch, isRefetching } = useContactQueriesList({
     page,
-    20,
-    statusFilter,
-    inquiryFilter,
-    search || undefined,
-  )
+    size: 20,
+    status: statusFilter,
+    inquiryType: inquiryFilter,
+    awaitingParty: awaiting === ALL_AWAITING ? undefined : awaiting,
+    source: source === ALL_SOURCE ? undefined : source,
+    q: search || undefined,
+  })
 
   const queries = data?.content ?? []
   const totalPages = data?.totalPages ?? 0
@@ -154,7 +165,45 @@ export function AdminContactQueriesView() {
             ))}
           </SelectContent>
         </Select>
+
+        {/* The work queue. "Waiting on us" is every ticket where the member spoke last and
+            nobody has answered — including replies that arrive on a ticket somebody already
+            considered handled, which before Phase 2 simply landed in an inbox and were noticed
+            or not. */}
+        <Select value={awaiting} onValueChange={(v) => { setAwaiting(v as AwaitingParty | typeof ALL_AWAITING); setPage(0) }}>
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue placeholder="Anyone waiting" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_AWAITING}>Anyone waiting</SelectItem>
+            {(Object.keys(AWAITING_LABELS) as AwaitingParty[]).map((value) => (
+              <SelectItem key={value} value={value}>
+                {AWAITING_LABELS[value]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Sales leads and support tickets share this table. Without this the inbox is one
+            undifferentiated queue and the SLA cannot be reported for the audience we promised
+            it to. */}
+        <Select value={source} onValueChange={(v) => { setSource(v as SupportSource | typeof ALL_SOURCE); setPage(0) }}>
+          <SelectTrigger className="w-full sm:w-44">
+            <SelectValue placeholder="Any source" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_SOURCE}>Any source</SelectItem>
+            {(Object.keys(SOURCE_LABELS) as SupportSource[]).map((value) => (
+              <SelectItem key={value} value={value}>
+                {SOURCE_LABELS[value]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+
+      {/* The report sits above the queue: how we are doing, then what there is to do. */}
+      <SlaSummaryCard />
 
       <Card>
         <CardHeader className="pb-3">

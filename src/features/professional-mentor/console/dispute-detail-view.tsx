@@ -565,12 +565,24 @@ function DisputeActionsPanel({ dispute }: { dispute: DisputeRow }) {
                     value={extendDays}
                     onChange={(event) => setExtendDays(event.target.value)}
                   />
-                  {!dispute.entitlementId ? (
-                    <p className="text-xs font-medium text-destructive">
-                      This dispute has no package entitlement attached, so validity cannot be
-                      extended.
+                  {dispute.entitlementId ? (
+                    /*
+                      Named, not merely implied. On a dispute filed against a session the buyer
+                      redeemed, the item being extended is the one that session came out of — which
+                      is nowhere else on this screen, and an operator pushing a validity window out
+                      should be able to see which window they are moving before they move it.
+                    */
+                    <p className="text-xs text-muted-foreground">
+                      Extends package item <strong>{dispute.entitlementId}</strong>
+                      {dispute.bookingId ? " — the one this session was redeemed from" : ""}.
                     </p>
-                  ) : null}
+                  ) : (
+                    <p className="text-xs font-medium text-destructive">
+                      This dispute is not about a package item — it names no entitlement and its
+                      booking was not redeemed from one — so there is no validity window to extend.
+                      Pick a different resolution.
+                    </p>
+                  )}
                 </div>
               ) : null}
 

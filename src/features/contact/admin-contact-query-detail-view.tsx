@@ -31,10 +31,12 @@ import {
   useUpdateContactStatus,
 } from "./api/contact.hooks"
 import {
+  RELATED_ENTITY_LABELS,
   CONTACT_QUERY_STATUS,
   INQUIRY_TYPE_LABELS,
   type ContactQueryStatus,
 } from "./api/contact.types"
+import { CANNED_REPLIES } from "./canned-replies"
 import { ReplyEditor } from "./reply-editor"
 import { PATH_CONSTANTS } from "@/core/constants/path-constants"
 
@@ -88,6 +90,15 @@ export function AdminContactQueryDetailView({ contactQueryId }: AdminContactQuer
 
   const [replySubject, setReplySubject] = useState("")
   const [replyBody, setReplyBody] = useState("")
+  /**
+   * Compose a staff-only note instead of a reply.
+   *
+   * The `internalNote` textarea further down writes the single `internal_note` COLUMN on the
+   * ticket, which has no position relative to the conversation it is about. This writes a
+   * message on the thread — same privacy, but in order, so "we checked the gateway on the 3rd"
+   * sits between the two replies it explains.
+   */
+  const [asInternalNote, setAsInternalNote] = useState(false)
   const [editorKey, setEditorKey] = useState(0)
   const [note, setNote] = useState<string | null>(null)
 
@@ -128,11 +139,19 @@ export function AdminContactQueryDetailView({ contactQueryId }: AdminContactQuer
   const handleReply = () => {
     const subject = replySubject.trim()
     replyMutation.mutate(
-      { contactQueryId, request: { subject: subject || undefined, body: replyBody } },
+      {
+        contactQueryId,
+        request: {
+          subject: subject || undefined,
+          body: replyBody,
+          internalNote: asInternalNote,
+        },
+      },
       {
         onSuccess: () => {
           setReplySubject("")
           setReplyBody("")
+          setAsInternalNote(false)
           setEditorKey((k) => k + 1)
         },
       },
@@ -235,6 +254,17 @@ export function AdminContactQueryDetailView({ contactQueryId }: AdminContactQuer
         <CardContent className="grid grid-cols-2 gap-4">
           <DetailRow label="Name" value={query.name} />
           <DetailRow label="Email" value={query.email} />
+          {/* ── What the ticket is about (Phase 3) ──────────────────────────
+              Present only when the member arrived from a "Get help with this" control. This is
+              the typed version of pageUrl: an id you can search on rather than a URL you have to
+              read and decode. It may dangle — the record can be archived after the ticket — so it
+              renders as a reference, not as a link to something assumed to exist. */}
+          {query.relatedEntityType && query.relatedEntityId ? (
+            <DetailRow
+              label={`About this ${RELATED_ENTITY_LABELS[query.relatedEntityType].toLowerCase()}`}
+              value={query.relatedEntityId}
+            />
+          ) : null}
           <DetailRow label="Phone" value={query.phone} />
           <DetailRow
             label="Preferred channel"
@@ -286,32 +316,68 @@ export function AdminContactQueryDetailView({ contactQueryId }: AdminContactQuer
         </CardContent>
       </Card>
 
-      {/* Reply thread */}
+      {/* ── The thread, both sides ──────────────────────────────────────────
+          Was staff replies only, which was accurate until Phase 2: there was no
+          other kind. Now a member's reply is a row here too, and a thread that
+          rendered one side would make the member's half invisible to the person
+          answering — the same one-way defect this phase set out to fix, only
+          pointing the other way.
+
+          Three visually distinct kinds, and the distinction is load-bearing:
+            · staff reply   — what we sent, with its delivery status
+            · member reply  — what they sent back
+            · internal note — never sent, never visible to them */}
       {query.replies && query.replies.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-              Reply thread
+              Conversation
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {query.replies.map((reply) => (
-              <div key={reply.replyId} className="rounded-lg border p-4">
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <p className="text-sm font-medium">{reply.subject}</p>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={reply.deliveryStatus === "SENT" ? "secondary" : "destructive"}>
-                      {reply.deliveryStatus}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">{formatDate(reply.sentAt ?? reply.createdAt)}</span>
-                  </div>
-                </div>
+            {query.replies.map((reply) => {
+              const fromMember = reply.direction === "USER_TO_STAFF"
+              return (
                 <div
-                  className="prose prose-sm max-w-none text-sm prose-p:text-foreground prose-a:text-primary-500"
-                  dangerouslySetInnerHTML={{ __html: reply.bodyHtml }}
-                />
-              </div>
-            ))}
+                  key={reply.replyId}
+                  className={
+                    reply.internalNote
+                      ? "rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30"
+                      : fromMember
+                        ? "rounded-lg border border-primary-300 bg-primary-50/60 p-4 dark:border-primary-800 dark:bg-primary-950/20"
+                        : "rounded-lg border p-4"
+                  }
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <p className="text-sm font-medium">
+                      {reply.internalNote
+                        ? "Internal note"
+                        : fromMember
+                          ? `${query.name} replied`
+                          : (reply.subject ?? "Support reply")}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      {reply.internalNote ? (
+                        <Badge variant="outline">Not sent — staff only</Badge>
+                      ) : fromMember ? (
+                        <Badge variant="outline">From member</Badge>
+                      ) : (
+                        <Badge variant={reply.deliveryStatus === "SENT" ? "secondary" : "destructive"}>
+                          {reply.deliveryStatus}
+                        </Badge>
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(reply.sentAt ?? reply.createdAt)}
+                      </span>
+                    </div>
+                  </div>
+                  <div
+                    className="prose prose-sm max-w-none text-sm prose-p:text-foreground prose-a:text-primary-500"
+                    dangerouslySetInnerHTML={{ __html: reply.bodyHtml }}
+                  />
+                </div>
+              )
+            })}
           </CardContent>
         </Card>
       )}
@@ -321,7 +387,7 @@ export function AdminContactQueryDetailView({ contactQueryId }: AdminContactQuer
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Mail className="h-4 w-4" />
-            Reply by email
+            {asInternalNote ? "Add an internal note" : "Reply to the member"}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -349,11 +415,66 @@ export function AdminContactQueryDetailView({ contactQueryId }: AdminContactQuer
 
           <div className="space-y-2">
             <Label>Message</Label>
+
+            {/* ── Canned bodies (Phase 4 §7) ────────────────────────────────
+                Inserting one REPLACES the editor content and does nothing else — no send, no
+                status change. A canned reply that could go out in one click is how somebody
+                sends "we've issued your refund" to a person whose refund was not issued.
+                Hidden while composing an internal note: these are all addressed to the member. */}
+            {!asInternalNote && (
+              <div className="flex flex-wrap gap-1.5">
+                {CANNED_REPLIES.map((canned) => (
+                  <button
+                    key={canned.id}
+                    type="button"
+                    title={canned.hint}
+                    onClick={() => {
+                      // ⚠ The editorKey bump is REQUIRED, not cosmetic. `ReplyEditor` is TipTap's
+                      // `useEditor({ content })`, which reads `content` once at initialisation and
+                      // has no effect syncing later changes — so setting state alone updates
+                      // `replyBody` while the visible editor stays exactly as it was. Remounting is
+                      // what actually inserts the text, and it is why `editorKey` already exists
+                      // (the post-send clear needs it for the same reason).
+                      setReplyBody(canned.body({ name: query.name, ticketRef: query.ticketRef }))
+                      setEditorKey((k) => k + 1)
+                    }}
+                    className="rounded-full border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted"
+                  >
+                    {canned.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <ReplyEditor key={editorKey} content={replyBody} onChange={setReplyBody} />
+            {/* The old copy said replies "route back to the support inbox", which was never true —
+                there is no inbound mail ingestion. Members now answer on their ticket page, and
+                the reply email is a deep link there. Anonymous /contact submissions have no page
+                to link to and keep the reply-to behaviour. */}
             <p className="text-xs text-muted-foreground">
-              Sent to {query.email} from contact@revquix.com. Replies route back to the support inbox.
+              {asInternalNote
+                ? "Not sent to anyone. Visible only in this console, in thread order."
+                : query.userId
+                  ? `Emailed to ${query.email} as a link to their ticket page, where they can reply.`
+                  : `Emailed to ${query.email} with the full message — this submission has no account, so there is no ticket page to link to.`}
             </p>
           </div>
+
+          <label className="flex items-start gap-2 rounded-lg border border-dashed p-3 text-sm">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={asInternalNote}
+              onChange={(e) => setAsInternalNote(e.target.checked)}
+            />
+            <span>
+              <span className="font-medium">Internal note</span>
+              <span className="block text-xs text-muted-foreground">
+                Records this on the thread for the team without sending it. Does not count as a
+                first response and leaves the ticket in the queue.
+              </span>
+            </span>
+          </label>
 
           <Button onClick={handleReply} disabled={replyDisabled}>
             {replyMutation.isPending ? (
@@ -361,7 +482,7 @@ export function AdminContactQueryDetailView({ contactQueryId }: AdminContactQuer
             ) : (
               <Send className="h-4 w-4 mr-2" />
             )}
-            Send Reply
+            {asInternalNote ? "Save internal note" : "Send Reply"}
           </Button>
         </CardContent>
       </Card>
