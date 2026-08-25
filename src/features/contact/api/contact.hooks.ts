@@ -91,10 +91,13 @@ export function useReplyToContactQuery() {
     { contactQueryId: string; request: ContactReplyRequest }
   >({
     mutationFn: ({ contactQueryId, request }) => replyToContactQuery(contactQueryId, request),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: contactQueryKeys.all })
       queryClient.invalidateQueries({ queryKey: contactQueryKeys.detail(data.contactQueryId) })
-      showSuccessToast("Reply sent")
+      // "Sent" is the wrong word for an internal note, and it is wrong in the direction that
+      // matters: the whole point of the note is that it did NOT go to the member, and a toast
+      // saying otherwise is the one place staff would look to confirm that.
+      showSuccessToast(variables.request.internalNote ? "Internal note saved" : "Reply sent")
     },
     onError: (err) => showErrorToast(err),
   })
