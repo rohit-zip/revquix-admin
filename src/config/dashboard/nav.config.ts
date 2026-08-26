@@ -22,6 +22,7 @@ import {
   Brain,
   Building2,
   Calendar,
+  Code2,
   GraduationCap,
   Coins,
   CreditCard,
@@ -149,6 +150,20 @@ export const PERMISSIONS = {
   PERM_MANAGE_TOOL_RUNS: "PERM_MANAGE_TOOL_RUNS",
   /** Rubric versions and the content library. */
   PERM_MANAGE_TOOL_RUBRIC: "PERM_MANAGE_TOOL_RUBRIC",
+
+  // ── Coding problems (docs/CODING_PROBLEMS_MASTER_PLAN.md, seeded by V336) ───
+  /**
+   * Approve, publish, unlist and retire coding problems, and edit any of them.
+   *
+   * Two permissions rather than one, and the split is real: PERM_CREATE_PROBLEM lets somebody
+   * WRITE a problem and is granted per-user on request, while this one lets somebody decide what
+   * the platform publishes. The first is a hobby; the second is editorial responsibility for
+   * content carrying our name — including the copyright question no automated check can answer.
+   *
+   * PERM_CREATE_PROBLEM is deliberately absent from this file: it gates the authoring surface in
+   * revquix-web and nothing in this console.
+   */
+  PERM_PUBLISH_PROBLEM: "PERM_PUBLISH_PROBLEM",
 
 } as const
 
@@ -519,6 +534,17 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         href: PATH_CONSTANTS.ADMIN_ANNOUNCEMENTS,
         access: {
           anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_ANNOUNCEMENTS],
+        },
+      },
+      {
+        // Same argument as Announcements: one row. The review queue is the whole console for now
+        // — authoring lives in revquix-web — and a section for a single screen would start
+        // undoing the sidebar collapse on the day it shipped.
+        Icon: Code2,
+        label: "Coding Problems",
+        href: PATH_CONSTANTS.ADMIN_PROBLEMS,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_PUBLISH_PROBLEM],
         },
       },
     ],

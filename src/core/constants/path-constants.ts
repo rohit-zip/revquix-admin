@@ -84,6 +84,15 @@ export const PATH_CONSTANTS = {
 
   /** Site-wide announcement bar (docs/ANNOUNCEMENTS_MASTER_PLAN.md). */
   ADMIN_ANNOUNCEMENTS: "/announcements",
+
+  /**
+   * Coding problem review queue (docs/CODING_PROBLEMS_MASTER_PLAN.md §5.4).
+   *
+   * Problems are AUTHORED in revquix-web; this console only reviews them. The path is
+   * `/problems` rather than `/coding-problems` because there is nothing else in this console
+   * called a problem.
+   */
+  ADMIN_PROBLEMS: "/problems",
   ADMIN_ASSETS: "/assets",
 
   /**
