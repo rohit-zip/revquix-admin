@@ -154,6 +154,7 @@ export default function AdminToolPricingView() {
                       <TableHead className="text-right">Daily cap</TableHead>
                       <TableHead className="text-right">Price</TableHead>
                       <TableHead className="text-right">₹/credit</TableHead>
+                      <TableHead className="text-right">USD</TableHead>
                       <TableHead>State</TableHead>
                       <TableHead className="text-right">Edit</TableHead>
                     </TableRow>
@@ -191,6 +192,25 @@ export default function AdminToolPricingView() {
                           {pack.pricePerCredit === null
                             ? "—"
                             : `₹${pack.pricePerCredit.toFixed(2)}`}
+                        </TableCell>
+                        {/*
+                          An em dash here is not cosmetic: it means this SKU is invisible to every
+                          buyer outside India. Worth a column rather than a detail you have to open
+                          the editor to find, because a pack activated without a USD price looks
+                          fine from this table and is simply missing from half the world's catalogue.
+                        */}
+                        <TableCell className="text-right text-xs tabular-nums">
+                          {pack.priceUsdMinor === null ||
+                          pack.priceUsdMinor === undefined ? (
+                            <span
+                              className="text-muted-foreground"
+                              title="Not sold outside India"
+                            >
+                              —
+                            </span>
+                          ) : (
+                            `$${(pack.priceUsdMinor / 100).toFixed(2)}`
+                          )}
                         </TableCell>
                         <TableCell>
                           <Badge

@@ -492,6 +492,16 @@ export interface AdminPackageRow {
   priceMinor: number;
   currency: string;
   mrpMinor: number | null;
+  /**
+   * USD price in cents, or `null` when this SKU is not sold on the international rail.
+   *
+   * Hand-set, never converted: ₹99 is about $1.12 and PayPal's cross-border fee (4.4% + $0.30)
+   * makes $0.35 of that a fee, so a converted entry SKU loses money. Null means an international
+   * buyer is told the pack is not available in their currency - which is the only safe reading,
+   * since the rupee figure read as cents would charge a hundredth of the intended amount.
+   */
+  priceUsdMinor: number | null;
+  mrpUsdMinor: number | null;
   active: boolean;
   featured: boolean;
   displayOrder: number;
@@ -527,6 +537,9 @@ export interface AdminPackageUpsertRequest {
   passDailyRunCap?: number | null;
   priceMinor?: number;
   mrpMinor?: number | null;
+  /** USD price in cents. Send `null` to withdraw the SKU from the international rail. */
+  priceUsdMinor?: number | null;
+  mrpUsdMinor?: number | null;
   currency?: string;
   active?: boolean;
   featured?: boolean;

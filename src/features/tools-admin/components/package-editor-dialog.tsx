@@ -87,6 +87,8 @@ type Draft = {
   passDailyRunCap: string;
   priceRupees: string;
   mrpRupees: string;
+  priceDollars: string;
+  mrpDollars: string;
   currency: string;
   active: boolean;
   featured: boolean;
@@ -111,6 +113,8 @@ function toDraft(pack: AdminPackageRow | null): Draft {
       passDailyRunCap: "30",
       priceRupees: "",
       mrpRupees: "",
+      priceDollars: "",
+      mrpDollars: "",
       currency: "INR",
       active: true,
       featured: false,
@@ -128,6 +132,14 @@ function toDraft(pack: AdminPackageRow | null): Draft {
       pack.passDailyRunCap === null ? "" : String(pack.passDailyRunCap),
     priceRupees: String(pack.priceMinor / 100),
     mrpRupees: pack.mrpMinor === null ? "" : String(pack.mrpMinor / 100),
+    priceDollars:
+      pack.priceUsdMinor === null || pack.priceUsdMinor === undefined
+        ? ""
+        : String(pack.priceUsdMinor / 100),
+    mrpDollars:
+      pack.mrpUsdMinor === null || pack.mrpUsdMinor === undefined
+        ? ""
+        : String(pack.mrpUsdMinor / 100),
     currency: pack.currency ?? "INR",
     active: pack.active,
     featured: pack.featured,
@@ -205,6 +217,10 @@ function PackageEditorForm({
 
   const priceMinor = rupeesToPaise(draft.priceRupees);
   const mrpMinor = rupeesToPaise(draft.mrpRupees);
+  // Same major-to-minor conversion; the helper is currency-agnostic despite its name, because both
+  // supported currencies have 100 minor units to the major.
+  const priceUsdMinor = rupeesToPaise(draft.priceDollars);
+  const mrpUsdMinor = rupeesToPaise(draft.mrpDollars);
 
   const problems: string[] = [];
   if (!isEdit && !/^[A-Z0-9_]{1,32}$/.test(draft.code.trim())) {
@@ -231,6 +247,20 @@ function PackageEditorForm({
       "A strike-through price below the real price advertises a discount that does not exist.",
     );
   }
+  if (
+    mrpUsdMinor !== undefined &&
+    priceUsdMinor !== undefined &&
+    mrpUsdMinor < priceUsdMinor
+  ) {
+    problems.push(
+      "The USD strike-through is below the USD price, which advertises a discount that does not exist.",
+    );
+  }
+  if (mrpUsdMinor !== undefined && priceUsdMinor === undefined) {
+    problems.push(
+      "A USD strike-through needs a USD price under it. Set the price, or clear the strike-through.",
+    );
+  }
   if (draft.kind === "PACK" && toIntOrNull(draft.credits) === null) {
     problems.push("A pack must grant at least one credit.");
   }
@@ -254,6 +284,11 @@ function PackageEditorForm({
       description: draft.description.trim() || undefined,
       priceMinor,
       mrpMinor: mrpMinor ?? null,
+      // Sent as null rather than omitted when the field is empty: clearing the USD price is how a
+      // SKU is withdrawn from the international rail without deactivating it for everyone, and an
+      // omitted key would be indistinguishable from "leave it alone".
+      priceUsdMinor: priceUsdMinor ?? null,
+      mrpUsdMinor: mrpUsdMinor ?? null,
       currency: draft.currency,
       active: draft.active,
       featured: draft.featured,
@@ -281,6 +316,13 @@ function PackageEditorForm({
     priceMinor !== undefined &&
     toIntOrNull(draft.credits)
       ? priceMinor / 100 / (toIntOrNull(draft.credits) as number)
+      : null;
+
+  const perCreditUsd =
+    draft.kind === "PACK" &&
+    priceUsdMinor !== undefined &&
+    toIntOrNull(draft.credits)
+      ? priceUsdMinor / 100 / (toIntOrNull(draft.credits) as number)
       : null;
 
   return (
@@ -420,6 +462,54 @@ function PackageEditorForm({
                 setDraft((d) => ({ ...d, displayOrder: e.target.value }))
               }
             />
+          </div>
+        </div>
+
+        {/*
+          The international rail. Its own row rather than a fourth column beside the rupee fields,
+          because these are not a variant of that price — they are a second, independently set one,
+          and putting them side by side invites the reading that one is derived from the other.
+        */}
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="pkg-price-usd">Price ($)</Label>
+            <Input
+              id="pkg-price-usd"
+              inputMode="decimal"
+              value={draft.priceDollars}
+              disabled={busy}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, priceDollars: e.target.value }))
+              }
+              placeholder="6.99"
+            />
+            {perCreditUsd !== null && (
+              <p className="text-[11px] text-muted-foreground tabular-nums">
+                ${perCreditUsd.toFixed(2)} per credit
+              </p>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="pkg-mrp-usd">Strike-through ($)</Label>
+            <Input
+              id="pkg-mrp-usd"
+              inputMode="decimal"
+              value={draft.mrpDollars}
+              disabled={busy}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, mrpDollars: e.target.value }))
+              }
+              placeholder="optional"
+            />
+          </div>
+          <div className="space-y-1.5 sm:pt-6">
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              Set by hand, never converted. Blank keeps this pack off the
+              international rail — buyers outside India are told it is not
+              available in their currency rather than being charged a converted
+              amount. PayPal takes 4.4% + $0.30, so anything under about $2 is
+              mostly fee.
+            </p>
           </div>
         </div>
 
