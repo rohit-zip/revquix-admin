@@ -6,9 +6,8 @@
 
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React from "react"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
 import {
   Calendar,
   CreditCard,
@@ -26,75 +25,18 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { PATH_CONSTANTS } from "@/core/constants/path-constants"
 import { useMentorProfile, useProfessionalSlotStats } from "./api/professional-mentor.hooks"
 import { CentralizedBanner, BannerItem } from "@/components/centralized-banner"
-import { getCalendarStatus, GoogleCalendarStatus } from "./api/google-calendar.api"
-import { GoogleCalendarCard } from "./google-calendar-card"
 
 export default function MentorDashboard() {
   const { data: profile, isLoading: profileLoading } = useMentorProfile()
   const { data: stats, isLoading: statsLoading } = useProfessionalSlotStats()
-  const [calendarStatus, setCalendarStatus] = useState<GoogleCalendarStatus | null>(null)
-  const searchParams = useSearchParams()
 
   const isLoading = profileLoading || statsLoading
 
-  // Fetch Google Calendar connection status
-  useEffect(() => {
-    getCalendarStatus()
-      .then(setCalendarStatus)
-      .catch(() => {}) // Silently fail if not a mentor
-  }, [])
-
-  // Build dynamic banners
+  // Every banner this page ever raised was about the mentor's Google Calendar connection —
+  // connect, re-authorise, and the two OAuth return-trip toasts. That integration has been removed
+  // from the platform, so nothing pushes a banner here today. The mount is kept rather than deleted
+  // because it costs nothing and is where the next dashboard-level notice belongs.
   const banners: BannerItem[] = []
-
-  // Banner: Google Calendar not connected
-  if (calendarStatus && !calendarStatus.connected) {
-    banners.push({
-      id: "google-calendar-connect",
-      type: "info",
-      message: "Connect your Google Calendar to automatically generate Google Meet links for new bookings.",
-      action: {
-        label: "Connect",
-        onClick: () => {
-          const settingsSection = document.getElementById("google-calendar-section")
-          settingsSection?.scrollIntoView({ behavior: "smooth" })
-        },
-      },
-    })
-  }
-
-  // Banner: Google Calendar requires re-auth
-  if (calendarStatus?.requiresReauth) {
-    banners.push({
-      id: "google-calendar-reauth",
-      type: "warning",
-      message: "Your Google Calendar connection needs to be re-authorized. Please reconnect.",
-      dismissible: false,
-      action: {
-        label: "Reconnect",
-        onClick: () => {
-          const settingsSection = document.getElementById("google-calendar-section")
-          settingsSection?.scrollIntoView({ behavior: "smooth" })
-        },
-      },
-    })
-  }
-
-  // Banner: Calendar just connected (from callback redirect)
-  const calendarParam = searchParams.get("google_calendar")
-  if (calendarParam === "connected") {
-    banners.push({
-      id: "google-calendar-success",
-      type: "success",
-      message: "Google Calendar connected successfully! Future bookings will automatically include Google Meet links.",
-    })
-  } else if (calendarParam === "error") {
-    banners.push({
-      id: "google-calendar-error",
-      type: "error",
-      message: "Failed to connect Google Calendar. Please try again.",
-    })
-  }
 
   const quickActions = [
     { icon: Calendar, label: "Open Slots", href: PATH_CONSTANTS.PROFESSIONAL_MENTOR_SLOTS },
@@ -232,11 +174,6 @@ export default function MentorDashboard() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Google Calendar Integration */}
-      <div id="google-calendar-section">
-        <GoogleCalendarCard />
-      </div>
     </div>
   )
 }

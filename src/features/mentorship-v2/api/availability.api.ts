@@ -13,7 +13,6 @@ import type {
   AvailabilityAuditResponse,
   AvailabilityHealthResponse,
   BookableStartsResponse,
-  GoogleCalendarRoundTripResponse,
   ManualBookedIntervalRequest,
   MentorBookedIntervalResponse,
 } from "./availability.types"
@@ -78,15 +77,5 @@ export const listAvailabilityAudit = (
   apiClient
     .get<AvailabilityAuditResponse[]>(`${BASE}/audit`, {
       params: { ...(mentor ? { mentor } : {}), limit },
-    })
-    .then((r) => r.data)
-
-/** POST /google-calendar/round-trip — create → patch → delete a test event. */
-export const runGoogleCalendarRoundTrip = (
-  mentor: string,
-): Promise<GoogleCalendarRoundTripResponse> =>
-  apiClient
-    .post<GoogleCalendarRoundTripResponse>(`${BASE}/google-calendar/round-trip`, null, {
-      params: { mentor },
     })
     .then((r) => r.data)

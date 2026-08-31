@@ -128,16 +128,3 @@ export interface AvailabilityAuditResponse {
   afterState?: Record<string, unknown> | null
   createdAt?: IsoInstant | null
 }
-
-export interface GoogleCalendarRoundTripResponse {
-  mentorUserId: string
-  calendarConnected: boolean
-  success: boolean
-  eventId?: string | null
-  meetingUrl?: string | null
-  createdStartsAt?: IsoInstant | null
-  patchedStartsAt?: IsoInstant | null
-  deleted: boolean
-  steps: string[]
-  failureMessage?: string | null
-}

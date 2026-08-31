@@ -93,6 +93,8 @@ export const PATH_CONSTANTS = {
    * called a problem.
    */
   ADMIN_PROBLEMS: "/problems",
+  /** Track curation — §10. Beside the review queue because it is the same job: what we publish. */
+  ADMIN_TRACKS: "/tracks",
   ADMIN_ASSETS: "/assets",
 
   /**

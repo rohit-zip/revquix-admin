@@ -54,7 +54,7 @@ const buttonColorMap = {
  * <CentralizedBanner
  *   banners={[
  *     { id: "1", type: "warning", message: "You have 1 booking that needs a meeting link.", action: { label: "Set Link", onClick: () => {} } },
- *     { id: "2", type: "info", message: "Connect Google Calendar for automatic Meet links." },
+ *     { id: "2", type: "info", message: "Your next session starts in 30 minutes." },
  *   ]}
  *   onDismiss={(id) => console.log("dismissed", id)}
  * />

@@ -158,8 +158,6 @@ export default function SessionDetailView({ bookingId }: { bookingId: string }) 
                   <p className="mt-0.5 text-sm text-destructive">{booking.meetingLinkError}</p>
                 </div>
               ) : null}
-              <Field label="Google event">{booking.googleEventId ?? "—"}</Field>
-              <Field label="Google calendar">{booking.googleCalendarId ?? "—"}</Field>
             </CardContent>
           </Card>
 

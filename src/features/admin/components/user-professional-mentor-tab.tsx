@@ -14,13 +14,16 @@
  *   3. Feedback & Join Rate — avg turnaround (profile), join-rate bar (report)
  *   4. Ratings              — combined summary + per-type (mock / hourly)
  *   5. Revenue              — mock, hourly, total gross revenue
- *   6. Google Calendar      — connection status, OAuth vs manual session split
- *   7. Payout & Commission  — wallet balances, commission rate, link to wallet
- *   8. Payout Accounts      — registered bank / UPI with verify button
+ *   6. Payout & Commission  — wallet balances, commission rate, link to wallet
+ *   7. Payout Accounts      — registered bank / UPI with verify button
+ *
+ * There used to be a "Google Calendar" card between Revenue and Payout, showing the mentor's
+ * connection status and an OAuth-vs-manual session split. That integration has been removed from
+ * the platform, and the report no longer returns those fields.
  *
  * Data sources
  *   • useMentorProfileByUserId → profile + denormalised analytics counters
- *   • getMentorReport           → join rate, Google Calendar, rating distributions
+ *   • getMentorReport           → join rate, rating distributions
  *   • useMentorWallet           → wallet balances / commission
  *   • usePayoutAccountsForMentor → payout accounts
  */
@@ -46,8 +49,6 @@ import {
   User,
   Video,
   Wallet,
-  Wifi,
-  WifiOff,
   XCircle,
 } from "lucide-react"
 
@@ -916,82 +917,7 @@ export default function UserProfessionalMentorTab({ userId }: UserProfessionalMe
         </CardContent>
       </Card>
 
-      {/* ── 6. Google Calendar Integration ───────────────────────────────── */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            {report?.googleCalendarConnected ? (
-              <Wifi className="size-4 text-emerald-500" />
-            ) : (
-              <WifiOff className="size-4 text-muted-foreground" />
-            )}
-            Google Calendar Integration
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {reportLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-5 w-28" />
-              <Skeleton className="h-16 w-full" />
-            </div>
-          ) : reportError ? (
-            <p className="text-sm text-muted-foreground">Unavailable.</p>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-muted-foreground">Connection Status</span>
-                {report!.googleCalendarConnected ? (
-                  <Badge className="gap-1 bg-emerald-500/15 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/20">
-                    <CheckCircle2 className="size-3" />
-                    Connected
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary" className="gap-1">
-                    <XCircle className="size-3" />
-                    Not Connected
-                  </Badge>
-                )}
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <StatTile label="OAuth Sessions" value={report!.oauthMeetingSessions} accent="green" />
-                <StatTile label="Manual Sessions" value={report!.manualMeetingSessions} />
-                <StatTile label="OAuth Adoption" value={`${(report!.oauthAdoptionPercent ?? 0).toFixed(1)}%`} />
-              </div>
-              {report!.oauthMeetingSessions + report!.manualMeetingSessions > 0 && (
-                <div className="space-y-1.5">
-                  <div className="flex h-2 rounded-full overflow-hidden bg-muted">
-                    <div
-                      className="bg-emerald-500 transition-all"
-                      style={{ width: `${report!.oauthAdoptionPercent ?? 0}%` }}
-                    />
-                    <div
-                      className="bg-amber-400 transition-all"
-                      style={{ width: `${100 - (report!.oauthAdoptionPercent ?? 0)}%` }}
-                    />
-                  </div>
-                  <div className="flex gap-4 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1.5">
-                      <span className="inline-block size-2 rounded-full bg-emerald-500" />
-                      OAuth (Calendar)
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="inline-block size-2 rounded-full bg-amber-400" />
-                      Manual link
-                    </span>
-                  </div>
-                </div>
-              )}
-              {!report!.googleCalendarConnected && (
-                <p className="text-xs text-muted-foreground border border-amber-500/30 bg-amber-500/5 rounded-md px-3 py-2">
-                  This mentor has not connected Google Calendar. Meeting links are created manually.
-                </p>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ── 7. Payout & Commission ────────────────────────────────────────── */}
+      {/* ── 6. Payout & Commission ────────────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
@@ -1036,7 +962,7 @@ export default function UserProfessionalMentorTab({ userId }: UserProfessionalMe
         </CardContent>
       </Card>
 
-      {/* ── 8. Payout Accounts ────────────────────────────────────────────── */}
+      {/* ── 7. Payout Accounts ────────────────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">

@@ -27,14 +27,12 @@ import { useMemo, useState } from "react"
 import {
   AlertTriangle,
   CalendarSearch,
-  CheckCircle2,
   ClipboardList,
   Loader2,
   Play,
   RefreshCw,
   ShieldCheck,
   Users,
-  XCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -55,11 +53,10 @@ import {
   useAvailabilityMentors,
   useBookedIntervals,
   useCreateManualInterval,
-  useGoogleCalendarRoundTrip,
   useInspectAvailability,
   useReleaseInterval,
 } from "./api/availability.hooks"
-import type { GoogleCalendarRoundTripResponse, TraceSpan } from "./api/availability.types"
+import type { TraceSpan } from "./api/availability.types"
 
 const DURATIONS = [15, 30, 45, 60, 75, 90]
 
@@ -107,11 +104,9 @@ export default function AdminAvailabilityVerificationView() {
 
   const createInterval = useCreateManualInterval(mentor)
   const releaseInterval = useReleaseInterval(mentor)
-  const roundTrip = useGoogleCalendarRoundTrip(mentor)
 
   const [intervalStart, setIntervalStart] = useState("")
   const [intervalEnd, setIntervalEnd] = useState("")
-  const [roundTripResult, setRoundTripResult] = useState<GoogleCalendarRoundTripResponse | null>(null)
 
   const trace = inspectQuery.data?.trace ?? null
   const mentorChosen = mentor.trim().length > 0
@@ -137,7 +132,7 @@ export default function AdminAvailabilityVerificationView() {
         <h2 className="text-lg font-semibold">Availability engine</h2>
         <p className="text-sm text-muted-foreground">
           Verification tools for the availability engine: run it for any mentor, read the step-by-step
-          trace, prove the database rejects double-bookings, and round-trip a Google Calendar event.
+          trace, and prove the database rejects double-bookings.
         </p>
       </div>
 
@@ -530,64 +525,6 @@ export default function AdminAvailabilityVerificationView() {
             </div>
           ) : mentorChosen ? (
             <p className="text-sm text-muted-foreground">No intervals for this mentor yet.</p>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      {/* ── 4. Google round trip ───────────────────────────────────────────── */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <RefreshCw className="size-5 text-muted-foreground" />
-            <CardTitle className="text-base">Google Calendar round trip</CardTitle>
-          </div>
-          <CardDescription>
-            Creates an event ~7 days out with a Google Meet link, patches its start time, then deletes
-            it — using only the <span className="font-mono">calendar.events.owned</span> scope. Nothing
-            is left on the mentor&apos;s calendar. Requires the mentor to have connected Google Calendar.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Button
-            type="button"
-            onClick={() =>
-              roundTrip.mutate(undefined, {
-                onSuccess: (data) => setRoundTripResult(data),
-              })
-            }
-            disabled={!mentorChosen || roundTrip.isPending}
-          >
-            {roundTrip.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Play className="size-4" />
-            )}
-            Run round trip
-          </Button>
-
-          {roundTripResult ? (
-            <Alert variant={roundTripResult.success ? "default" : "destructive"}>
-              {roundTripResult.success ? (
-                <CheckCircle2 className="size-4" />
-              ) : (
-                <XCircle className="size-4" />
-              )}
-              <AlertTitle>
-                {roundTripResult.success ? "Round trip passed" : "Round trip did not complete"}
-              </AlertTitle>
-              <AlertDescription>
-                <ul className="mt-1 space-y-0.5">
-                  {roundTripResult.steps.map((step) => (
-                    <li key={step} className="text-xs">
-                      {step}
-                    </li>
-                  ))}
-                </ul>
-                {roundTripResult.meetingUrl ? (
-                  <p className="mt-2 break-all font-mono text-xs">{roundTripResult.meetingUrl}</p>
-                ) : null}
-              </AlertDescription>
-            </Alert>
           ) : null}
         </CardContent>
       </Card>

@@ -98,8 +98,6 @@ export interface BookingSessionDiagnostics {
   hasMeetingLink: boolean
   meetingLinkReadyAt: string | null
   meetingLinkError: string | null
-  googleEventId: string | null
-  googleCalendarId: string | null
 
   // ── Revquix-hosted room (M4/M5) ───────────────────────────────────────────
   /**

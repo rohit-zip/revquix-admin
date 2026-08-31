@@ -65,7 +65,6 @@ import {
   useBulkCancelSlots,
 } from "@/features/business-mentor/api/business-mentor.hooks"
 import type { MentorSlotResponse, OpenSlotsRequest } from "@/features/business-mentor/api/business-mentor.types"
-import { GoogleCalendarCard } from "@/features/professional-mentor/google-calendar-card"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -363,9 +362,6 @@ export default function MentorSlotsView() {
           Manage your availability slots. Open new time windows for bookings or cancel existing ones.
         </p>
       </div>
-
-      {/* Google Calendar connection — required for automatic Meet link generation */}
-      <GoogleCalendarCard />
 
       {/* Stats */}
       <StatsCards isLoading={isLoading} />

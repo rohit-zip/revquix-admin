@@ -46,12 +46,6 @@ export interface MentorReportResponse {
   hourlyTotalRatings: number
   hourlyRatingDistribution: Record<number, number>
 
-  // Meeting link mode
-  googleCalendarConnected: boolean
-  oauthMeetingSessions: number
-  manualMeetingSessions: number
-  oauthAdoptionPercent: number
-
   // Performance rates (computed live). May be undefined on older backends;
   // callers should fall back to profile counters when absent.
   completionRate?: number

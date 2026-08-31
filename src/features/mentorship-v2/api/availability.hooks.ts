@@ -16,7 +16,6 @@ import {
   listAvailabilityMentors,
   listBookedIntervals,
   releaseBookedInterval,
-  runGoogleCalendarRoundTrip,
 } from "./availability.api"
 import type { ManualBookedIntervalRequest } from "./availability.types"
 
@@ -109,19 +108,6 @@ export function useReleaseInterval(mentor: string) {
     onSuccess: () => {
       showSuccessToast("Interval released")
       void qc.invalidateQueries({ queryKey: ["mentorship-v2", "availability"] })
-    },
-    onError: (error: ApiError | NetworkError) => showErrorToast(error),
-  })
-}
-
-export function useGoogleCalendarRoundTrip(mentor: string) {
-  return useMutation({
-    mutationFn: () => runGoogleCalendarRoundTrip(mentor),
-    retry: false,
-    onSuccess: (data) => {
-      if (data.success) {
-        showSuccessToast("Google Calendar round trip passed")
-      }
     },
     onError: (error: ApiError | NetworkError) => showErrorToast(error),
   })

@@ -23,6 +23,7 @@ import {
   Building2,
   Calendar,
   Code2,
+  Layers,
   GraduationCap,
   Coins,
   CreditCard,
@@ -543,6 +544,17 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         Icon: Code2,
         label: "Coding Problems",
         href: PATH_CONSTANTS.ADMIN_PROBLEMS,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_PUBLISH_PROBLEM],
+        },
+      },
+      {
+        // Tracks (§10). Its own row rather than a tab inside the queue: reviewing a problem and
+        // ordering a path are different jobs done at different times, and the second is the one
+        // §1.1 calls the product.
+        Icon: Layers,
+        label: "Tracks",
+        href: PATH_CONSTANTS.ADMIN_TRACKS,
         access: {
           anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_PUBLISH_PROBLEM],
         },

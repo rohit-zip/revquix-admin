@@ -44,7 +44,7 @@ const GOOGLE_MEET_REGEX = /^https:\/\/meet\.google\.com\/[a-z]{3}-[a-z]{4}-[a-z]
 
 /**
  * Modal for mentors to manually set a Google Meet URL for a session.
- * Used when the mentor hasn't connected Google Calendar (manual mode).
+ * Legacy sessions have no automatic link source, so the mentor supplies one.
  */
 export function SetMeetingUrlModal({ sessionId, onSuccess }: SetMeetingUrlModalProps) {
   const [open, setOpen] = useState(false)
