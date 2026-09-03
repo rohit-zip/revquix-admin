@@ -84,6 +84,7 @@ export const PATH_CONSTANTS = {
 
   /** Site-wide announcement bar (docs/ANNOUNCEMENTS_MASTER_PLAN.md). */
   ADMIN_ANNOUNCEMENTS: "/announcements",
+  ADMIN_DOCS_HEALTH: "/docs-health",
 
   /**
    * Coding problem review queue (docs/CODING_PROBLEMS_MASTER_PLAN.md §5.4).

@@ -213,6 +213,16 @@ export interface CorpusCoverage {
   listable_rows: number
   embedded_rows: number
   unembedded_rows: number
+  /**
+   * Embedded, but of text that has since changed.
+   *
+   * ⚠ `embedded_rows` counts rows holding a vector and says nothing about whether that vector still
+   * describes the current text. A re-index preserves vectors deliberately, so a corpus can be 100%
+   * embedded and entirely stale at once - which read as full coverage until this was added.
+   */
+  stale_rows: number
+  /** What the next sweep would actually pick up. Excludes parked rows. */
+  pending_rows: number
   parked_rows: number
   newest_embedded_at: string | null
 }

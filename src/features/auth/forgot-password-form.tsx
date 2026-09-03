@@ -39,6 +39,7 @@ import {
   useVerifyPasswordResetOtp,
   useResetPassword,
 } from "@/features/auth/api/auth.hooks"
+import { PASSWORD_RULES, passwordFieldSchema } from "./_hooks/use-password-rules"
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -60,29 +61,13 @@ const emailSchema = z.object({
 
 const passwordSchema = z
   .object({
-    newPassword: z
-      .string()
-      .min(8, "Must be at least 8 characters")
-      .regex(/[A-Z]/, "Must contain at least one uppercase letter")
-      .regex(/[a-z]/, "Must contain at least one lowercase letter")
-      .regex(/[0-9]/, "Must contain at least one number")
-      .regex(/[^A-Za-z0-9]/, "Must contain at least one special character"),
+    newPassword: passwordFieldSchema,
     confirmPassword: z.string().min(1, "Please confirm your password"),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
   })
-
-// ─── Password requirements ─────────────────────────────────────────────────────
-
-const PASSWORD_REQUIREMENTS = [
-  { id: "length",    label: "At least 8 characters",      test: (v: string) => v.length >= 8 },
-  { id: "uppercase", label: "Uppercase letter (A–Z)",      test: (v: string) => /[A-Z]/.test(v) },
-  { id: "lowercase", label: "Lowercase letter (a–z)",      test: (v: string) => /[a-z]/.test(v) },
-  { id: "number",    label: "Number (0–9)",                test: (v: string) => /[0-9]/.test(v) },
-  { id: "special",   label: "Special character (!@#$…)",   test: (v: string) => /[^A-Za-z0-9]/.test(v) },
-] as const
 
 // ─── Animation variants ────────────────────────────────────────────────────────
 
@@ -373,7 +358,7 @@ export default function ForgotPasswordForm() {
                       {newPasswordValue.length > 0 && (
                         <motion.ul initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
                           className="grid grid-cols-2 gap-x-3 gap-y-1.5 rounded-lg border border-border/40 bg-muted/30 p-3">
-                          {PASSWORD_REQUIREMENTS.map((req) => {
+                          {PASSWORD_RULES.map((req) => {
                             const met = req.test(newPasswordValue)
                             return (
                               <li key={req.id} className={cn("flex items-center gap-1.5 text-[11px] transition-colors", met ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>

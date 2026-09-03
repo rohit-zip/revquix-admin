@@ -139,6 +139,8 @@ export const PERMISSIONS = {
    * there is an editorial team that is not the same people as the operators.
    */
   PERM_MANAGE_ANNOUNCEMENTS: "PERM_MANAGE_ANNOUNCEMENTS",
+  /** Docs notices + corpus. Seeded by V352 as permission_name MANAGE_DOCS. */
+  PERM_MANAGE_DOCS: "PERM_MANAGE_DOCS",
   PERM_MANAGE_MEET_INTEGRATION: "PERM_MANAGE_MEET_INTEGRATION",
 
   // ── Tools platform (seeded by V213 — docs/tools-platform §P3) ───────────────
@@ -535,6 +537,17 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
         href: PATH_CONSTANTS.ADMIN_ANNOUNCEMENTS,
         access: {
           anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_ANNOUNCEMENTS],
+        },
+      },
+      {
+        // ⚠ READ-ONLY, and one row. Docs *authoring* — notices, the corpus — lives in
+        // revquix-web at /dashboard/docs, following the same convention as Editorial and the
+        // Coding Problems review queue: authoring in the app, oversight in the console.
+        Icon: BarChart3,
+        label: "Docs Health",
+        href: PATH_CONSTANTS.ADMIN_DOCS_HEALTH,
+        access: {
+          anyOf: [PERMISSIONS.ROLE_ADMIN, PERMISSIONS.PERM_MANAGE_DOCS],
         },
       },
       {

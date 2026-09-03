@@ -27,14 +27,44 @@ export interface LoginRequest {
   credential: string
 }
 
+/**
+ * The response every sign-in path returns — and since auth-hardening Phase 5 it covers two
+ * outcomes, not one.
+ *
+ * Branch on `status`, never on `accessToken` being absent. The discriminator is present on every
+ * response including `AUTHENTICATED` ones and including `/auth/refresh`.
+ */
 export interface LoginResponse {
+  status?: "AUTHENTICATED" | "MFA_REQUIRED"
   userId: string
   email: string
   username: string | null
   name: string | null
+  /** Empty on an `MFA_REQUIRED` response — there is no session yet. */
   accessToken: string
   expiresIn: number
   tokenType: string
+
+  /** Single-use, five-minute handle to the parked sign-in. Only on `MFA_REQUIRED`. */
+  mfaToken?: string | null
+  /** `RECOVERY_CODE` is absent once the account's codes run out. */
+  mfaMethods?: MfaMethod[] | null
+  /** Phase 6: this admin must set up two-factor auth. */
+  mfaEnrollmentRequired?: boolean
+}
+
+export type MfaMethod = "TOTP" | "RECOVERY_CODE"
+
+/**
+ * Narrows a sign-in response to the "one more step" case.
+ *
+ * A shared guard rather than an inline check per hook: two hooks consume these, and the point of a
+ * discriminator is defeated if each spells the check slightly differently.
+ */
+export function isMfaRequired(
+  response: LoginResponse,
+): response is LoginResponse & { mfaToken: string } {
+  return response.status === "MFA_REQUIRED" && Boolean(response.mfaToken)
 }
 
 // ─── Verify Email ─────────────────────────────────────────────────────────────

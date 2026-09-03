@@ -86,11 +86,29 @@ async function redirectToLogin() {
 // (/auth/login, /auth/register, /auth/refresh, /auth/logout, …) start with /auth/.
 const PUBLIC_PATH_PREFIX = "/auth/"
 
+// Paths under /auth/ that DO need the Authorization header.
+//
+// The prefix above is a blanket rule, and it was true until two-factor authentication: every
+// endpoint in auth.api.ts is genuinely public. The MFA endpoints live under the same prefix — they
+// belong to authentication — but the management half acts on the CALLER'S OWN account and is
+// Bearer-authenticated. Stripping the header there makes every one of them 401.
+//
+// The /auth/mfa/challenge/* routes are covered by this exception too, and safely so: they sit in
+// JwtAuthenticationFilter.OPTIONAL_AUTH_PATHS, which ignores a stale token rather than rejecting
+// it — which is the whole reason they were listed there.
+//
+// Mirrors the same exception in revquix-web's axios client. The two repos deploy independently and
+// share no package; keep them in step.
+const AUTHENTICATED_AUTH_PREFIXES = ["/auth/mfa/"]
+
 apiClient.interceptors.request.use(
   async (config) => {
     // Skip auth header for public auth endpoints
     const url = config.url ?? ""
-    if (url.startsWith(PUBLIC_PATH_PREFIX)) {
+    if (
+      url.startsWith(PUBLIC_PATH_PREFIX) &&
+      !AUTHENTICATED_AUTH_PREFIXES.some((p) => url.startsWith(p))
+    ) {
       return config
     }
 

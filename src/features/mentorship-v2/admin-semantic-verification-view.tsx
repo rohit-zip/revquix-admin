@@ -158,13 +158,24 @@ export default function AdminSemanticVerificationView() {
         {mentorCoverage.isLoading ? (
           <p className="mt-3 text-xs text-muted-foreground">Loading coverage…</p>
         ) : mentorCoverage.data ? (
-          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
             <Stat label="Listable" value={Number(mentorCoverage.data.listable_rows ?? 0)} />
             <Stat label="Embedded" value={Number(mentorCoverage.data.embedded_rows ?? 0)} />
             <Stat
               label="Missing"
               value={Number(mentorCoverage.data.unembedded_rows ?? 0)}
               tone={Number(mentorCoverage.data.unembedded_rows ?? 0) > 0 ? "warning" : "default"}
+            />
+            {/*
+              ⚠ "Embedded" counts rows holding a vector and says nothing about whether that vector
+              still describes the current text. A re-index preserves vectors on purpose, so a corpus
+              can be 100% embedded and entirely stale at the same time - which this panel reported as
+              full coverage until "Stale" was added.
+            */}
+            <Stat
+              label="Stale"
+              value={Number(mentorCoverage.data.stale_rows ?? 0)}
+              tone={Number(mentorCoverage.data.stale_rows ?? 0) > 0 ? "warning" : "default"}
             />
             <Stat
               label="Parked"

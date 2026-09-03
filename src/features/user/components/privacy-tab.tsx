@@ -15,6 +15,8 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
 import {
   AlertCircle,
   CheckCircle2,
@@ -36,6 +38,11 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { REGEXP_ONLY_DIGITS } from "input-otp"
 
 import { useAppSelector } from "@/hooks/useRedux"
+import AuthPasswordStrength from "@/features/auth/_shell/auth-password-strength"
+import {
+  passwordFieldSchema,
+  usePasswordRules,
+} from "@/features/auth/_hooks/use-password-rules"
 import {
   useApplyPasswordChange,
   useInitiatePasswordChange,
@@ -46,33 +53,35 @@ import {
 
 type Step = "idle" | "loading" | "otp" | "form" | "success"
 
-interface PasswordFormValues {
-  currentPassword: string
-  newPassword: string
-  confirmPassword: string
+/**
+ * The same rule the server enforces via `@ValidPassword`, and the same one the
+ * registration and forgot-password forms use. Until auth-hardening Phase 2 this
+ * form validated length alone on both sides - it accepted `aaaaaaaa` here and the
+ * server accepted it too, while the copy under the field claimed otherwise.
+ */
+function buildPasswordFormSchema(requireCurrent: boolean) {
+  return z
+    .object({
+      // Deliberately NOT policy-checked: this is the password the account already
+      // has. Anyone whose password predates the policy must still be able to type it
+      // in order to replace it - validating it here would lock out exactly the
+      // accounts this phase exists to help. Its "required" is conditional on the
+      // account having a password at all, which is why the schema is built rather
+      // than declared: RHF ignores register()-level rules once a resolver is set, so
+      // a `required` left on the field would silently never run.
+      currentPassword: requireCurrent
+        ? z.string().min(1, "Current password is required")
+        : z.string(),
+      newPassword: passwordFieldSchema,
+      confirmPassword: z.string().min(1, "Please confirm your new password"),
+    })
+    .refine((d) => d.newPassword === d.confirmPassword, {
+      message: "Passwords do not match",
+      path: ["confirmPassword"],
+    })
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function getPasswordStrength(password: string): {
-  score: number
-  label: string
-  color: string
-} {
-  if (!password) return { score: 0, label: "", color: "" }
-  let score = 0
-  if (password.length >= 8) score++
-  if (password.length >= 12) score++
-  if (/[A-Z]/.test(password)) score++
-  if (/[a-z]/.test(password)) score++
-  if (/\d/.test(password)) score++
-  if (/[^A-Za-z0-9]/.test(password)) score++
-
-  if (score <= 2) return { score, label: "Weak", color: "bg-destructive" }
-  if (score <= 4) return { score, label: "Fair", color: "bg-amber-500" }
-  if (score === 5) return { score, label: "Good", color: "bg-emerald-400" }
-  return { score, label: "Strong", color: "bg-emerald-500" }
-}
+type PasswordFormValues = z.infer<ReturnType<typeof buildPasswordFormSchema>>
 
 // ─── Countdown Hook ───────────────────────────────────────────────────────────
 
@@ -159,11 +168,12 @@ export default function PrivacyTab() {
     reset,
     formState: { errors },
   } = useForm<PasswordFormValues>({
+    resolver: zodResolver(buildPasswordFormSchema(hasPassword)),
     defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
   })
 
-  const newPasswordValue = watch("newPassword")
-  const strength = getPasswordStrength(newPasswordValue)
+  const newPasswordValue = watch("newPassword") ?? ""
+  const { rules, strength } = usePasswordRules(newPasswordValue)
 
   const { remaining: otpRemaining, formatted: otpFormatted } = useCountdown(otpSeconds)
 
@@ -413,9 +423,7 @@ export default function PrivacyTab() {
                     id="currentPassword"
                     autoComplete="current-password"
                     placeholder="Enter your current password"
-                    {...register("currentPassword", {
-                      required: "Current password is required",
-                    })}
+                    {...register("currentPassword")}
                   />
                   {errors.currentPassword && (
                     <p className="text-xs text-destructive flex items-center gap-1">
@@ -433,52 +441,24 @@ export default function PrivacyTab() {
                   id="newPassword"
                   autoComplete="new-password"
                   placeholder="Minimum 8 characters"
-                  {...register("newPassword", {
-                    required: "New password is required",
-                    minLength: { value: 8, message: "Must be at least 8 characters" },
-                    maxLength: { value: 128, message: "Must be at most 128 characters" },
-                  })}
+                  {...register("newPassword")}
                 />
-                {/* Strength indicator */}
-                {newPasswordValue && (
-                  <div className="space-y-1 mt-1">
-                    <div className="flex gap-1 h-1">
-                      {[1, 2, 3, 4].map((i) => (
-                        <div
-                          key={i}
-                          className={`flex-1 rounded-full transition-colors duration-300 ${
-                            strength.score >= i * 1.5 ? strength.color : "bg-muted"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    {strength.label && (
-                      <p className="text-xs text-muted-foreground">
-                        Strength:{" "}
-                        <span
-                          className={
-                            strength.label === "Weak"
-                              ? "text-destructive"
-                              : strength.label === "Fair"
-                              ? "text-amber-500"
-                              : "text-emerald-500"
-                          }
-                        >
-                          {strength.label}
-                        </span>
-                      </p>
-                    )}
-                  </div>
-                )}
+                {/* The same meter and checklist the registration and forgot-password
+                    forms show, driven by the same rules. This tab used to render a
+                    second, hand-rolled copy on a different 0-6 scale. */}
+                <div className="mt-1">
+                  <AuthPasswordStrength
+                    rules={rules}
+                    strength={strength}
+                    visible={Boolean(newPasswordValue)}
+                  />
+                </div>
                 {errors.newPassword && (
                   <p className="text-xs text-destructive flex items-center gap-1">
                     <AlertCircle className="size-3" />
                     {errors.newPassword.message}
                   </p>
                 )}
-                <p className="text-xs text-muted-foreground">
-                  Use 8+ characters with uppercase, lowercase, numbers, and symbols.
-                </p>
               </div>
 
               {/* Confirm password */}
@@ -488,11 +468,7 @@ export default function PrivacyTab() {
                   id="confirmPassword"
                   autoComplete="new-password"
                   placeholder="Re-enter new password"
-                  {...register("confirmPassword", {
-                    required: "Please confirm your new password",
-                    validate: (val) =>
-                      val === newPasswordValue || "Passwords do not match",
-                  })}
+                  {...register("confirmPassword")}
                 />
                 {errors.confirmPassword && (
                   <p className="text-xs text-destructive flex items-center gap-1">

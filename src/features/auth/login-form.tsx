@@ -27,7 +27,10 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
-import { useLogin } from "@/features/auth/api/auth.hooks"
+import { useCompleteMfaSignIn, useLogin } from "@/features/auth/api/auth.hooks"
+import type { MfaChallengeHandoff } from "@/features/auth/api/auth.hooks"
+import MfaChallenge from "@/features/auth/_shell/mfa-challenge"
+import MfaEnrollRequired from "@/features/auth/_shell/mfa-enroll-required"
 import CentralizedLoader from "@/components/centralized-loader"
 
 // ─── Validation schema ────────────────────────────────────────────────────────
@@ -62,10 +65,70 @@ export default function LoginForm() {
     defaultValues: { identifier: "", password: "" },
   })
 
-  const { mutate: login, isPending: isLoginPending, isRedirecting: isLoginRedirecting } = useLogin(setError)
+  /**
+   * A sign-in held at its second factor.
+   *
+   * Component state and nowhere else — the token is single-use and five minutes long, so putting
+   * it in the URL or storage would leave a credential lying about after the interaction it belongs
+   * to has ended.
+   */
+  const [mfaChallenge, setMfaChallenge] = useState<MfaChallengeHandoff | null>(null)
+
+  const { mutate: login, isPending: isLoginPending, isRedirecting: isLoginRedirecting } = useLogin(
+    setError,
+    { onMfaRequired: setMfaChallenge },
+  )
+  const { mutate: completeMfa } = useCompleteMfaSignIn()
 
   const identifierValue = watch("identifier") ?? ""
   const isEmailMode = identifierValue.includes("@")
+
+  // ── Second factor ────────────────────────────────────────────────────────
+  // Replaces the form rather than stacking a dialog over it: the sign-in is mid-flight, and there
+  // is nothing useful to do behind this screen.
+  if (mfaChallenge) {
+    // Same logo + Card as the sign-in form below, deliberately. The step components render bare
+    // content — no card of their own — so without this the second factor arrived as unstyled text
+    // on the page ground while the screen it replaced was a proper card. Two steps of one flow
+    // should not look like two different products, least of all when the second one is asking for
+    // a security code.
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center p-6">
+        <div className="w-full max-w-sm space-y-6">
+
+          {/* Logo — matches the sign-in screen this replaces */}
+          <div className="flex flex-col items-center gap-3">
+            <Image src="/svg/revquix.svg" alt="Revquix" width={40} height={40} />
+            <div className="text-center">
+              <h1 className="text-xl font-bold tracking-tight">Revquix Admin</h1>
+              <p className="text-sm text-muted-foreground">One more step to finish signing in</p>
+            </div>
+          </div>
+
+          <Card className="border-border/50 shadow-sm">
+            <CardContent className="pt-6">
+              {mfaChallenge.enrollmentRequired ? (
+                // No settings route exists in this console, so this screen IS the only way an admin
+                // past their grace period can satisfy the requirement. See mfa-enroll-required.tsx.
+                <MfaEnrollRequired
+                  mfaToken={mfaChallenge.mfaToken}
+                  onComplete={(response) => completeMfa(response)}
+                  onCancel={() => setMfaChallenge(null)}
+                />
+              ) : (
+                <MfaChallenge
+                  mfaToken={mfaChallenge.mfaToken}
+                  methods={mfaChallenge.methods}
+                  onComplete={(response) => completeMfa(response)}
+                  onCancel={() => setMfaChallenge(null)}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>

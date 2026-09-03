@@ -14,9 +14,49 @@ import {
 import { showErrorToast, showSuccessToast } from "@/lib/show-toast"
 import { clearSessionCookie, setSessionCookie } from "@/lib/session-cookie"
 import type { ApiError, NetworkError } from "@/lib/api-error"
-import type { LoginFormValues, RegisterFormValues } from "./auth.types"
+import { isMfaRequired } from "./auth.types"
+import type { LoginFormValues, LoginResponse, MfaMethod, RegisterFormValues } from "./auth.types"
 import { initiateEmailOtp, loginUser, logoutUser, registerUser, resendOtp, verifyEmail, verifyEmailOtp, forgotPassword, verifyPasswordResetOtp, resetPassword } from "./auth.api"
 import { getCurrentUser } from "@/features/user/api/user.api"
+
+/**
+ * A sign-in that passed its primary factor and is waiting on the second.
+ *
+ * Surfaced to the caller rather than handled here: these hooks have no UI, and the challenge screen
+ * belongs to whichever form started the sign-in.
+ */
+export interface MfaChallengeHandoff {
+  mfaToken: string
+  methods: MfaMethod[] | null
+  /** Phase 6: this admin must ENROL, not merely present a code they already have. */
+  enrollmentRequired: boolean
+}
+
+export interface AuthSuccessOptions {
+  /**
+   * Called instead of establishing a session when the account has two-step verification on.
+   *
+   * Nothing is dispatched in that case: there is no session yet, so setCredentials would store an
+   * empty access token and setSessionCookie would tell the edge middleware otherwise.
+   */
+  onMfaRequired?: (challenge: MfaChallengeHandoff) => void
+}
+
+/**
+ * Returns true when the caller should stop — the sign-in is not finished.
+ *
+ * One helper rather than the same three lines in each `onSuccess`: a discriminator only pays for
+ * itself if every consumer reads it the same way.
+ */
+function handleMfaChallenge(data: LoginResponse, options?: AuthSuccessOptions): boolean {
+  if (!isMfaRequired(data)) return false
+  options?.onMfaRequired?.({
+    mfaToken: data.mfaToken,
+    methods: data.mfaMethods ?? null,
+    enrollmentRequired: data.mfaEnrollmentRequired ?? false,
+  })
+  return true
+}
 import { PATH_CONSTANTS } from "@/core/constants/path-constants"
 
 /**
@@ -66,7 +106,43 @@ export function useRegister(setError: UseFormSetError<RegisterFormValues>) {
  * and navigates to the app home. The refresh token arrives as an httpOnly cookie
  * set by the backend — no client-side handling needed.
  */
-export function useLogin(setError: UseFormSetError<LoginFormValues>) {
+/**
+ * Establishes the session once a second factor has been verified.
+ *
+ * The response from `/auth/mfa/challenge/verify` is an ordinary AUTHENTICATED LoginResponse, so
+ * this does exactly what `useLogin` does after its own success — credentials, session marker,
+ * profile, redirect. Shared shape rather than a second one, because a member who signed in through
+ * two steps must land in the same place as one who signed in through one.
+ */
+export function useCompleteMfaSignIn() {
+  const dispatch = useAppDispatch()
+  const router = useRouter()
+
+  return useMutation({
+    mutationFn: async (response: LoginResponse) => response,
+    onSuccess: async (data: LoginResponse) => {
+      dispatch(setCredentials(data))
+      setSessionCookie()
+
+      try {
+        dispatch(fetchUserProfileStart())
+        dispatch(setUserProfile(await getCurrentUser()))
+      } catch {
+        dispatch(fetchUserProfileFailed("Failed to load profile"))
+      }
+
+      showSuccessToast(`Welcome back${data.name ? `, ${data.name}` : ""}!`)
+
+      const from = new URLSearchParams(window.location.search).get("from")
+      const destination =
+        from && from.startsWith("/") && !from.startsWith("//") ? from : PATH_CONSTANTS.DASHBOARD
+
+      router.push(destination)
+    },
+  })
+}
+
+export function useLogin(setError: UseFormSetError<LoginFormValues>, options?: AuthSuccessOptions) {
   const dispatch = useAppDispatch()
   const router = useRouter()
   const [isRedirecting, setIsRedirecting] = useState(false)
@@ -75,6 +151,9 @@ export function useLogin(setError: UseFormSetError<LoginFormValues>) {
     mutationFn: loginUser,
     retry: false,
     onSuccess: async (data) => {
+      // The sign-in may not be finished — see handleMfaChallenge.
+      if (handleMfaChallenge(data, options)) return
+
       dispatch(setCredentials(data))
       setSessionCookie()
 
@@ -136,7 +215,7 @@ export function useLogin(setError: UseFormSetError<LoginFormValues>) {
  * Submits the 6-digit OTP + userId to verify the user's email address.
  * On success navigates to /auth/login so the user can sign in.
  */
-export function useVerifyEmail() {
+export function useVerifyEmail(options?: AuthSuccessOptions) {
   const router = useRouter()
   const dispatch = useAppDispatch()
   const [isRedirecting, setIsRedirecting] = useState(false)
@@ -145,6 +224,9 @@ export function useVerifyEmail() {
     mutationFn: verifyEmail,
     retry: false,
     onSuccess: async (data) => {
+      // The sign-in may not be finished — see handleMfaChallenge.
+      if (handleMfaChallenge(data, options)) return
+
       dispatch(setCredentials(data))
       showSuccessToast("Email has been verified successfully!")
       setSessionCookie()
@@ -213,7 +295,7 @@ export function useInitiateEmailOtp() {
  *
  * @param options.redirectTo  Override the post-login destination (default: DASHBOARD).
  */
-export function useVerifyEmailOtp(options?: { redirectTo?: string }) {
+export function useVerifyEmailOtp(options?: { redirectTo?: string } & AuthSuccessOptions) {
   const dispatch = useAppDispatch()
   const router = useRouter()
   const [isRedirecting, setIsRedirecting] = useState(false)
@@ -222,6 +304,9 @@ export function useVerifyEmailOtp(options?: { redirectTo?: string }) {
     mutationFn: verifyEmailOtp,
     retry: false,
     onSuccess: async (data) => {
+      // The sign-in may not be finished — see handleMfaChallenge.
+      if (handleMfaChallenge(data, options)) return
+
       dispatch(setCredentials(data))
       setSessionCookie()
 

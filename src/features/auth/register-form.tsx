@@ -33,24 +33,18 @@ import { useInitiateEmailOtp, useRegister, useResendOtp, useVerifyEmailOtp } fro
 import SocialAuthButtons from "@/components/social-auth-buttons"
 import CentralizedLoader from "@/components/centralized-loader"
 
-export const PASSWORD_REQUIREMENTS = [
-  { id: "length",    label: "At least 8 characters",      test: (v: string) => v.length >= 8 },
-  { id: "uppercase", label: "One uppercase letter (A–Z)",  test: (v: string) => /[A-Z]/.test(v) },
-  { id: "lowercase", label: "One lowercase letter (a–z)",  test: (v: string) => /[a-z]/.test(v) },
-  { id: "number",    label: "One number (0–9)",            test: (v: string) => /[0-9]/.test(v) },
-] as const
+import { PASSWORD_RULES, passwordFieldSchema } from "./_hooks/use-password-rules"
 
+// The four-rule checklist and four-rule schema that used to live here both omitted
+// the special character the server has always required, so the list could go fully
+// green, the submit button could enable, and registration would still 400. Both now
+// come from the one module that mirrors `@ValidPassword`.
 const registerSchema = z.object({
   email: z
     .string()
     .min(1, "Email is required")
     .email("Please enter a valid email address"),
-  password: z
-    .string()
-    .min(8, "Must be at least 8 characters")
-    .regex(/[A-Z]/, "Must contain at least one uppercase letter")
-    .regex(/[a-z]/, "Must contain at least one lowercase letter")
-    .regex(/[0-9]/, "Must contain at least one number"),
+  password: passwordFieldSchema,
 })
 
 const otpEmailSchema = z.object({
@@ -114,7 +108,7 @@ export default function RegisterForm() {
   const { mutate: verifyOtp, isPending: isVerifying, isRedirecting: isOtpRedirecting } = useVerifyEmailOtp()
 
   const passwordValue = watch("password") ?? ""
-  const allRequirementsMet = PASSWORD_REQUIREMENTS.every((r) => r.test(passwordValue))
+  const allRequirementsMet = PASSWORD_RULES.every((r) => r.test(passwordValue))
 
   /** True while we are navigating away — keeps the UI locked and shows the overlay */
   const isNavigating = isRegisterRedirecting || isOtpRedirecting
@@ -606,7 +600,7 @@ export default function RegisterForm() {
                 {/* Live requirements checklist */}
                 {passwordValue.length > 0 && !allRequirementsMet && (
                   <ul className="flex flex-col gap-1 pt-0.5">
-                    {PASSWORD_REQUIREMENTS.map((req) => {
+                    {PASSWORD_RULES.map((req) => {
                       const met = req.test(passwordValue)
                       return (
                         <li key={req.id} className="flex items-center gap-1.5">
